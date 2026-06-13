@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>数字电路智能练习系统</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css?v=20260605-9">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <p>数字电路课程设计 · Node.js 智能学习平台</p>
+        <h1>数字电路交互仿真与个性化学习系统</h1>
+      </div>
+      <div class="top-actions">
+        <a class="button-link primary" href="./labs.html">进入仿真实验</a>
+        <button id="refreshButton" type="button">刷新题库</button>
+        <button id="shutdownButton" class="danger" type="button">退出系统</button>
+      </div>
+    </header>
+    <div id="systemNotice" class="system-notice" hidden></div>
+
+    <main class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <h2>练习范围</h2>
+          <div class="segments">
+            <button class="active" data-scope="all" type="button">全部</button>
+            <button data-scope="comb" type="button">组合逻辑</button>
+            <button data-scope="ff" type="button">集成触发器</button>
+          </div>
+
+          <details class="sidebar-details">
+            <summary>导入与题库来源</summary>
+            <div class="details-body">
+              <label class="file-picker">
+                <input id="fileInput" type="file" accept=".docx,.pdf">
+                <span id="fileName">选择 Word / PDF</span>
+              </label>
+              <div class="compact-actions">
+                <button id="importButton" type="button">导入</button>
+                <button id="clearImportButton" class="secondary" type="button">清空导入题</button>
+              </div>
+              <p id="importStatus" class="note">支持 .docx 和文字层 PDF。</p>
+              <div id="sourceList" class="tags source-list"></div>
+            </div>
+          </details>
+        </section>
+
+        <section class="panel learning-panel">
+          <div class="panel-title-row">
+            <h2>个性化学习路线</h2>
+            <span id="planFocus" class="focus-chip">待诊断</span>
+          </div>
+          <div class="mode-grid">
+            <button id="planButton" class="practice-mode-button" data-practice-module="route" type="button" aria-pressed="false">开始推荐路线</button>
+            <button id="wrongReviewButton" class="practice-mode-button" data-practice-module="wrong_review" type="button" aria-pressed="false">错题复盘</button>
+            <button id="targetedButton" class="practice-mode-button" data-practice-module="targeted" type="button" aria-pressed="false">针对性出题</button>
+            <button id="normalPracticeButton" class="practice-mode-button active" data-practice-module="normal" type="button" aria-pressed="true">普通练习</button>
+          </div>
+          <div class="paper-row">
+            <label for="paperCount">自测</label>
+            <select id="paperCount">
+              <option value="5">5 题</option>
+              <option value="8">8 题</option>
+              <option value="10">10 题</option>
+            </select>
+            <button id="selfTestButton" class="practice-mode-button" data-practice-module="self_test" type="button" aria-pressed="false">智能组卷</button>
+          </div>
+          <p id="practiceModeStatus" class="mode-status">当前：普通练习</p>
+          <div id="learningPlan" class="learning-plan"></div>
+          <p id="routeReview" class="route-review">完成练习后生成路线复盘。</p>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <section class="practice">
+          <div class="question-head">
+            <div>
+              <p id="chapter">章节</p>
+              <h2 id="title">题目加载中</h2>
+            </div>
+            <span id="meta">1 / 1</span>
+          </div>
+
+          <div class="question-layout">
+            <article class="question-card">
+              <div id="knowledge" class="tags"></div>
+              <p id="questionText" class="question-text"></p>
+              <div id="options" class="options"></div>
+              <textarea id="answerInput" rows="5" placeholder="简答题或分析题在这里输入答案"></textarea>
+              <div class="actions">
+                <button id="submitButton" type="button">提交答案</button>
+                <button id="nextButton" class="secondary" type="button">下一题</button>
+              </div>
+              <div id="feedback" class="feedback"></div>
+            </article>
+
+            <aside class="panel question-recommendations">
+              <div class="recommendation-heading">
+                <div>
+                  <h2 id="rightPanelTitle">同类推荐</h2>
+                  <p id="rightPanelSubtitle">结合当前题目与薄弱知识点</p>
+                </div>
+                <span id="rightPanelBadge">推荐</span>
+              </div>
+              <div id="recommendations" class="recommendations"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="dashboard-grid">
+          <section class="panel growth-panel">
+            <div class="panel-title-row">
+              <h2>成长与学习轨迹</h2>
+              <span id="level" class="level-chip">Lv.1</span>
+            </div>
+            <div class="growth-overview">
+              <div class="growth-stats">
+                <div><strong id="points">0</strong><span>成长积分</span></div>
+                <div><strong id="streak">0</strong><span>连续学习天数</span></div>
+              </div>
+              <p id="motivationMessage" class="motivation-message">完成第一组自测，开启学习路线。</p>
+              <div id="badges" class="badges"></div>
+            </div>
+            <div class="progress-layout">
+              <div>
+                <h3>进步迭代轨迹</h3>
+                <div id="trajectory" class="trajectory empty">暂无学习轮次</div>
+                <div id="effectiveness" class="effectiveness">完成针对训练后验证个性化方向。</div>
+              </div>
+              <div>
+                <h3>知识点掌握</h3>
+                <div id="knowledgeProgress" class="knowledge-progress"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel support-panel">
+            <div class="stats-block">
+              <div class="panel-title-row">
+                <h2>学习统计</h2>
+                <button id="clearRecordsButton" class="text-button" type="button">清空记录</button>
+              </div>
+              <div class="stats">
+                <div><strong id="answered">0</strong><span>已答</span></div>
+                <div><strong id="rate">0%</strong><span>正确率</span></div>
+              </div>
+              <pre id="weakness">暂无错题数据</pre>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <button id="aiChatLauncher" class="ai-chat-launcher" type="button" aria-label="打开 AI 助教">
+    <span class="launcher-mark">AI</span>
+    <span>助教</span>
+  </button>
+
+  <section id="aiChatPanel" class="ai-chat-panel" aria-label="AI 助教聊天窗口" hidden>
+    <header class="chat-header">
+      <div>
+        <strong>AI 数字电路助教</strong>
+        <span id="chatStatus">围绕当前题目持续对话</span>
+      </div>
+      <div class="chat-header-actions">
+        <button id="toggleAiConfigButton" type="button" aria-label="AI 设置">设置</button>
+        <button id="closeChatButton" type="button" aria-label="关闭聊天">关闭</button>
+      </div>
+    </header>
+
+    <div id="aiConfigDrawer" class="ai-config-drawer" hidden>
+      <label class="field">
+        <span>API Key</span>
+        <input id="aiKeyInput" class="text-input" type="password" placeholder="填写百炼 API Key">
+      </label>
+      <label class="field">
+        <span>接口地址</span>
+        <input id="baseUrlInput" class="text-input" type="text" value="https://dashscope.aliyuncs.com/compatible-mode/v1">
+      </label>
+      <label class="field">
+        <span>模型名称</span>
+        <input id="modelInput" class="text-input" type="text" value="qwen-plus">
+      </label>
+      <button id="saveAiButton" type="button">保存 AI 配置</button>
+      <p id="aiConfigStatus" class="note">未配置 API Key 时使用本地讲解。</p>
+    </div>
+
+    <div id="aiOutput" class="chat-messages" aria-live="polite">
+      <div class="chat-message assistant">
+        <span class="chat-avatar">AI</span>
+        <div class="chat-bubble">你好，我会围绕当前题目讲解。你可以让我讲思路、生成变式题，或继续追问某一步。</div>
+      </div>
+    </div>
+
+    <div class="chat-quick-actions">
+      <button id="explainButton" type="button">讲解当前题</button>
+      <button id="variantButton" type="button">生成变式题</button>
+    </div>
+
+    <div class="chat-composer">
+      <textarea id="followupInput" rows="2" placeholder="输入问题，Enter 发送，Shift+Enter 换行"></textarea>
+      <button id="followupButton" type="button">发送</button>
+    </div>
+  </section>
+
+  <script src="./app.js?v=20260605-9"></script>
+</body>
+</html>

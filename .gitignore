@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+.env
+data/*.json
+data/*.properties
+data/uploads/
+coverage/
+screenshots/
+npm-debug.log*
+*.log
+Thumbs.db
+.DS_Store

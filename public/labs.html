@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>数字电路交互仿真实验</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./labs.css?v=20260613-9">
+</head>
+<body>
+  <header class="lab-topbar">
+    <div>
+      <p>state → calculate → render → describe</p>
+      <h1>数字电路交互仿真实验中心</h1>
+    </div>
+    <a href="./index.html">返回智能练习</a>
+  </header>
+
+  <main class="lab-shell">
+    <nav id="experimentTabs" class="experiment-tabs" aria-label="实验选择"></nav>
+
+    <section class="lab-grid">
+      <article class="circuit-panel">
+        <div class="section-heading">
+          <div>
+            <span id="experimentChapter">实验</span>
+            <h2 id="experimentTitle">基本逻辑门</h2>
+          </div>
+          <button id="demoButton" type="button">自动演示</button>
+        </div>
+
+        <div id="controls" class="controls"></div>
+
+        <div id="circuitDiagram" class="circuit-stage" aria-live="polite"></div>
+
+        <section id="timingPanel" class="timing-panel" hidden>
+          <div class="timing-heading">
+            <div>
+              <span>边沿触发过程</span>
+              <h3>JK 触发器动态时序图</h3>
+              <p id="timingSummary">点击“上升沿”后记录 J、K 与输出状态。</p>
+            </div>
+            <button id="clearTimingButton" type="button">清空波形</button>
+          </div>
+          <div id="timingDiagram" class="timing-diagram"></div>
+        </section>
+
+        <div class="explanation-card">
+          <span>状态讲解</span>
+          <p id="stateExplanation"></p>
+          <button id="speakButton" type="button">朗读讲解</button>
+        </div>
+      </article>
+
+      <aside class="truth-panel">
+        <div class="section-heading compact">
+          <div>
+            <span>实时验证</span>
+            <h2>真值表 / 状态表</h2>
+          </div>
+        </div>
+        <div id="truthTable" class="truth-table"></div>
+      </aside>
+    </section>
+
+    <section class="assistant-panel">
+      <div class="digital-tutor" aria-hidden="true">
+        <div id="tutorFace" class="tutor-face">
+          <span class="eye left"></span>
+          <span class="eye right"></span>
+          <span class="mouth"></span>
+        </div>
+        <strong>实验助教</strong>
+        <small id="voiceStatus">可朗读，也可语音提问</small>
+      </div>
+      <div class="assistant-chat">
+        <div id="labMessages" class="lab-messages">
+          <div class="message assistant">改变输入后，我会同步解释电路输出。你也可以直接问“为什么现在输出是 1”。</div>
+        </div>
+        <div class="assistant-actions">
+          <button id="stateQuestionButton" type="button">解释当前状态</button>
+          <button id="voiceButton" type="button">语音提问</button>
+        </div>
+        <div class="assistant-composer">
+          <input id="labQuestion" type="text" placeholder="结合当前实验状态提问">
+          <button id="askButton" type="button">发送</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./labs.js?v=20260613-9"></script>
+</body>
+</html>
