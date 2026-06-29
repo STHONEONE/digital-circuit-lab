@@ -84,7 +84,10 @@
     .pixel-canvas,
     .scan-layer,
     .pulse-layer,
-    .glow-markers {
+    .glow-markers,
+    .circuit-flow-layer,
+    .timing-wave-layer,
+    .cursor-field {
       position: absolute;
       inset: 0;
       z-index: 3;
@@ -263,6 +266,124 @@
       z-index: 6;
     }
 
+    .circuit-flow-layer {
+      z-index: 5;
+      mix-blend-mode: screen;
+      opacity: .72;
+    }
+
+    .flow-trace {
+      position: absolute;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(88, 225, 255, .24), transparent);
+      box-shadow: 0 0 14px rgba(39, 230, 255, .16);
+      overflow: hidden;
+    }
+
+    .flow-trace::before,
+    .flow-trace::after {
+      position: absolute;
+      top: 50%;
+      width: 68px;
+      height: 2px;
+      content: "";
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, rgba(226, 255, 255, .90), rgba(57, 222, 255, .90), transparent);
+      box-shadow: 0 0 16px rgba(91, 239, 255, .75), 0 0 34px rgba(64, 168, 255, .36);
+      transform: translate(-110%, -50%);
+      animation: trace-run 4.6s linear infinite;
+    }
+
+    .flow-trace::after {
+      width: 34px;
+      animation-delay: 1.75s;
+      opacity: .55;
+    }
+
+    .flow-trace.vertical {
+      width: 2px;
+      height: 26vh;
+      background: linear-gradient(180deg, transparent, rgba(88, 225, 255, .24), transparent);
+    }
+
+    .flow-trace.vertical::before,
+    .flow-trace.vertical::after {
+      left: 50%;
+      top: 0;
+      width: 2px;
+      height: 62px;
+      background: linear-gradient(180deg, transparent, rgba(226, 255, 255, .90), rgba(57, 222, 255, .90), transparent);
+      transform: translate(-50%, -110%);
+      animation-name: trace-run-y;
+    }
+
+    .flow-trace.a { left: 54%; top: 18%; width: 34vw; transform: rotate(4deg); }
+    .flow-trace.b { left: 59%; top: 57%; width: 27vw; transform: rotate(-13deg); animation-delay: -.6s; }
+    .flow-trace.c { left: 34%; top: 82%; width: 30vw; transform: rotate(-7deg); }
+    .flow-trace.d { left: 82%; top: 29%; animation-delay: -1.1s; }
+    .flow-trace.e { left: 47%; top: 48%; height: 21vh; animation-delay: -2s; }
+
+    .timing-wave-layer {
+      left: 43%;
+      top: auto;
+      bottom: 5.5%;
+      width: 54vw;
+      height: 118px;
+      z-index: 6;
+      opacity: .56;
+      mix-blend-mode: screen;
+      overflow: hidden;
+      mask-image: linear-gradient(90deg, transparent, #000 12%, #000 82%, transparent);
+    }
+
+    .timing-wave {
+      width: 980px;
+      height: 118px;
+      animation: wave-scroll 7.5s linear infinite;
+      filter: drop-shadow(0 0 11px rgba(55, 225, 255, .34));
+    }
+
+    .timing-wave path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .timing-wave .grid {
+      stroke: rgba(125, 211, 252, .10);
+      stroke-width: 1;
+    }
+
+    .timing-wave .clock {
+      stroke: rgba(103, 232, 249, .74);
+      stroke-width: 2.5;
+    }
+
+    .timing-wave .data {
+      stroke: rgba(139, 92, 246, .58);
+      stroke-width: 2.5;
+    }
+
+    .timing-wave .enable {
+      stroke: rgba(52, 211, 153, .46);
+      stroke-width: 2;
+    }
+
+    .cursor-field {
+      z-index: 7;
+      opacity: 0;
+      background:
+        radial-gradient(circle 170px at var(--cursor-x, 50%) var(--cursor-y, 50%), rgba(96, 236, 255, .20), rgba(79, 141, 255, .08) 34%, transparent 72%);
+      mix-blend-mode: screen;
+      transition: opacity .22s ease;
+    }
+
+    .pixel-home.has-cursor .cursor-field {
+      opacity: 1;
+    }
+
     .spark {
       position: absolute;
       width: 5px;
@@ -422,6 +543,24 @@
       box-shadow: inset 0 0 20px rgba(39, 230, 255, .14), 0 0 22px rgba(39, 230, 255, .25);
     }
 
+    .feature-tag {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-tag::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background: linear-gradient(110deg, transparent 0 28%, rgba(255,255,255,.30) 45%, transparent 62% 100%);
+      transform: translateX(-130%);
+      transition: transform .52s ease;
+    }
+
+    .feature-tag:hover::after {
+      transform: translateX(130%);
+    }
+
     .hero-actions {
       display: flex;
       align-items: center;
@@ -553,6 +692,21 @@
       70% { transform: translate(-1px, 1px); filter: brightness(.9); }
     }
 
+    @keyframes trace-run {
+      from { transform: translate(-110%, -50%); }
+      to { transform: translate(150vw, -50%); }
+    }
+
+    @keyframes trace-run-y {
+      from { transform: translate(-50%, -110%); }
+      to { transform: translate(-50%, 34vh); }
+    }
+
+    @keyframes wave-scroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-490px); }
+    }
+
     @media (max-width: 1180px) {
       .hero-copy {
         width: clamp(430px, 38vw, 560px);
@@ -577,7 +731,10 @@
       .binary-counter,
       .spark,
       .enter-button,
-      .feature-tag {
+      .feature-tag,
+      .flow-trace::before,
+      .flow-trace::after,
+      .timing-wave {
         animation: none !important;
         transition: none !important;
       }
@@ -612,6 +769,22 @@
       <span class="spark"></span>
       <span class="spark"></span>
     </div>
+    <div class="circuit-flow-layer" aria-hidden="true">
+      <span class="flow-trace a"></span>
+      <span class="flow-trace b"></span>
+      <span class="flow-trace c"></span>
+      <span class="flow-trace vertical d"></span>
+      <span class="flow-trace vertical e"></span>
+    </div>
+    <div class="timing-wave-layer" aria-hidden="true">
+      <svg class="timing-wave" viewBox="0 0 980 118" preserveAspectRatio="none">
+        <path class="grid" d="M0 24H980M0 58H980M0 92H980M40 0V118M110 0V118M180 0V118M250 0V118M320 0V118M390 0V118M460 0V118M530 0V118M600 0V118M670 0V118M740 0V118M810 0V118M880 0V118M950 0V118" />
+        <path class="clock" d="M0 84H42V34H84V84H126V34H168V84H210V34H252V84H294V34H336V84H378V34H420V84H462V34H504V84H546V34H588V84H630V34H672V84H714V34H756V84H798V34H840V84H882V34H924V84H980" />
+        <path class="data" d="M0 92H74V48H142V92H250V48H360V92H436V48H546V92H644V48H756V92H842V48H930V92H980" />
+        <path class="enable" d="M0 64H108V28H286V64H420V28H616V64H756V28H936V64H980" />
+      </svg>
+    </div>
+    <div class="cursor-field" aria-hidden="true"></div>
 
     <section class="hero-copy">
       <div class="copy-shell">
@@ -914,8 +1087,25 @@
       update();
     }
 
+    function initCursorField() {
+      const home = document.querySelector(".pixel-home");
+      if (!home || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      function update(event) {
+        home.style.setProperty("--cursor-x", `${event.clientX}px`);
+        home.style.setProperty("--cursor-y", `${event.clientY}px`);
+        home.classList.add("has-cursor");
+      }
+
+      home.addEventListener("pointermove", update);
+      home.addEventListener("pointerleave", () => {
+        home.classList.remove("has-cursor");
+      });
+    }
+
     initPixelHeroCanvas();
     initBinaryCounter();
+    initCursorField();
   </script>
   <script src="./page-transition.js?v=20260621-1"></script>
 </body>
