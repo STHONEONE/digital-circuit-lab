@@ -1,5 +1,9 @@
 # 数字电路交互仿真与个性化学习系统
 
+## 在线访问
+
+https://digital-circuit-lab-production.up.railway.app/
+
 这是原 Java 课程设计之外的独立升级版。旧工程未被修改。
 
 ## 技术栈
