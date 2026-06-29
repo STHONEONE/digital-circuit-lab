@@ -66,6 +66,8 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /data-scope="basic-logic"/);
   assert.match(appHome, /data-scope="combinational"/);
   assert.match(appHome, /data-scope="sequential"/);
+  assert.match(appHome, /id="scopeToggleButton"/);
+  assert.match(appHome, /id="scopePanelBody"/);
   assert.match(appHome, /id="questionDiagram"/);
   assert.match(appHome, /id="prevButton"/);
   assert.match(appHome, /site-nav__link active" href="\.\/index\.html" aria-current="page"/);
@@ -75,6 +77,7 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /gate-builder-demo\.html/);
   assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /function renderSvg/);
   assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /moveQuestion\(-1\)/);
+  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /setupScopePanelToggle/);
   assert.match(labs, /交互仿真实验中心/);
   assert.match(labs, /site-nav\.css/);
   assert.match(labs, /href="\.\/index\.html">学习中心/);

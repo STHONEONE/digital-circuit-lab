@@ -58,9 +58,13 @@
 
     <main class="layout">
       <aside class="sidebar">
-        <section class="panel">
-          <h2>练习范围</h2>
-          <div class="segments">
+        <section class="panel collapsible-panel" id="scopePanel">
+          <div class="collapsible-heading">
+            <h2>练习范围</h2>
+            <button id="scopeToggleButton" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="scopePanelBody">收起</button>
+          </div>
+          <div id="scopePanelBody" class="collapsible-body">
+            <div class="segments">
             <button class="active" data-scope="all" type="button">全部</button>
             <button data-scope="basic-logic" type="button">基础逻辑</button>
             <button data-scope="combinational" type="button">组合逻辑</button>
@@ -82,6 +86,7 @@
               <div id="sourceList" class="tags source-list"></div>
             </div>
           </details>
+          </div>
         </section>
 
         <section class="panel learning-panel">

@@ -179,6 +179,46 @@ button { cursor: pointer; }
 
 .panel-title-row h2 { margin-bottom: 13px; }
 
+.collapsible-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.collapsible-heading h2 {
+  margin-bottom: 0;
+}
+
+.collapse-toggle {
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.collapsible-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 14px;
+  overflow: hidden;
+  transition: grid-template-rows .22s ease, opacity .18s ease, margin-top .18s ease;
+}
+
+.collapsible-panel.is-collapsed .collapsible-body {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.collapsible-body > * {
+  min-height: 0;
+}
+
 button {
   min-height: 40px;
   border: 1px solid var(--line);

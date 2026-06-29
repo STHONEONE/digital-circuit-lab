@@ -12,6 +12,7 @@ let activePracticeModule = "normal";
 const completedSelfTestQuestions = new Set();
 const correctedReviewQuestions = new Set();
 const wrongReviewAttempts = new Map();
+const scopePanelStorageKey = "learning-scope-panel-collapsed";
 
 const modeLabels = {
   normal: "普通练习",
@@ -24,6 +25,9 @@ const els = {
   refreshButton: document.querySelector("#refreshButton"),
   shutdownButton: document.querySelector("#shutdownButton"),
   systemNotice: document.querySelector("#systemNotice"),
+  scopePanel: document.querySelector("#scopePanel"),
+  scopePanelBody: document.querySelector("#scopePanelBody"),
+  scopeToggleButton: document.querySelector("#scopeToggleButton"),
   fileInput: document.querySelector("#fileInput"),
   fileName: document.querySelector("#fileName"),
   importButton: document.querySelector("#importButton"),
@@ -115,6 +119,24 @@ function setActivePracticeModule(module, pending = false) {
     els.recommendations.className = "review-directory paper-directory";
     els.recommendations.innerHTML = '<div class="review-directory-empty pending">试卷生成后，这里会显示可点击的题目目录。</div>';
   }
+}
+
+function setScopePanelCollapsed(collapsed) {
+  if (!els.scopePanel || !els.scopePanelBody || !els.scopeToggleButton) return;
+  els.scopePanel.classList.toggle("is-collapsed", collapsed);
+  els.scopePanelBody.setAttribute("aria-hidden", String(collapsed));
+  els.scopeToggleButton.setAttribute("aria-expanded", String(!collapsed));
+  els.scopeToggleButton.textContent = collapsed ? "展开" : "收起";
+  localStorage.setItem(scopePanelStorageKey, collapsed ? "1" : "0");
+}
+
+function setupScopePanelToggle() {
+  if (!els.scopePanel || !els.scopeToggleButton) return;
+  const collapsed = localStorage.getItem(scopePanelStorageKey) === "1";
+  setScopePanelCollapsed(collapsed);
+  els.scopeToggleButton.addEventListener("click", () => {
+    setScopePanelCollapsed(!els.scopePanel.classList.contains("is-collapsed"));
+  });
 }
 
 function showSystemNotice(message, type = "", autoHide = false) {
@@ -1504,4 +1526,5 @@ els.wrongReviewButton.addEventListener("click", () => runAction(els.wrongReviewB
 els.targetedButton.addEventListener("click", () => runAction(els.targetedButton, startTargetedPractice, "出题中…"));
 els.normalPracticeButton.addEventListener("click", () => runAction(els.normalPracticeButton, returnToNormalPractice, "返回中…"));
 
+setupScopePanelToggle();
 loadAll();
