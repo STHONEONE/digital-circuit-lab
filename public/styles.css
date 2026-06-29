@@ -480,8 +480,8 @@ button:disabled { cursor: wait; opacity: .58; }
 }
 
 .question-text {
-  min-height: 110px;
-  margin: 24px 0;
+  min-height: 0;
+  margin: 18px 0 14px;
   font-size: 20px;
   line-height: 1.75;
 }
@@ -489,6 +489,12 @@ button:disabled { cursor: wait; opacity: .58; }
 .question-diagram,
 .answer-diagram {
   margin: 0 0 20px;
+}
+
+.question-diagram[hidden],
+.answer-diagram[hidden] {
+  display: none !important;
+  margin: 0;
 }
 
 .answer-diagram {
@@ -1178,7 +1184,7 @@ button:disabled { cursor: wait; opacity: .58; }
   .growth-overview, .progress-layout { grid-template-columns: 1fr; }
   .badges { grid-column: auto; }
   .question-card { min-height: 0; padding: 20px; }
-  .question-text { min-height: 80px; font-size: 18px; }
+  .question-text { min-height: 0; margin: 14px 0 12px; font-size: 18px; }
   .ai-chat-launcher { right: 14px; bottom: 14px; }
   .ai-chat-panel {
     right: 8px;
