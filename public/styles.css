@@ -1165,7 +1165,7 @@ body::before {
   inset: -18px;
   z-index: 0;
   pointer-events: none;
-  background: url("/assets/%E9%9C%93%E8%99%B9%E6%9C%AA%E6%9D%A5%E5%9F%8E%E5%B8%82%E4%B8%8E%E5%85%A8%E6%81%AF%E5%AE%87%E8%88%AA%E5%91%98.webp") center center / cover no-repeat;
+  background: url("/assets/neon-circuit-city-astronaut.webp") center center / cover no-repeat;
   content: "";
   opacity: .46;
   filter: blur(1.2px) saturate(.94) brightness(.82);
@@ -1760,7 +1760,7 @@ body.inner-page::before {
   z-index: 0;
   pointer-events: none;
   content: "";
-  background: url("/assets/%E9%9C%93%E8%99%B9%E6%9C%AA%E6%9D%A5%E5%9F%8E%E5%B8%82%E4%B8%8E%E5%85%A8%E6%81%AF%E5%AE%87%E8%88%AA%E5%91%98.webp") center center / cover no-repeat;
+  background: url("/assets/neon-circuit-city-astronaut.webp") center center / cover no-repeat;
   opacity: .78;
   filter: saturate(.95) brightness(.86);
   transform: none;

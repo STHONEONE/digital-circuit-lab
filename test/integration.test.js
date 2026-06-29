@@ -37,7 +37,7 @@ test("health, pages and question APIs are available", async () => {
   assert.equal(questions.length, 10);
   assert.match(home, /数字电路智能仿真学习系统/);
   assert.match(home, /集成逻辑门、触发器、译码器与存储器，探索动态信号与时序波形/);
-  assert.match(home, /\/assets\/霓虹未来城市与全息宇航员\.webp/);
+  assert.match(home, /\/assets\/neon-circuit-city-astronaut\.webp/);
   assert.match(home, /data-pixel-home-canvas/);
   assert.match(home, /initPixelHeroCanvas/);
   assert.match(home, /robot-pulse/);
