@@ -107,20 +107,37 @@ export class AiService {
     const experimentName = String(request.experimentName || "数字电路实验");
     const state = request.experimentState || {};
     const question = String(request.question || "请解释当前实验状态");
+    const history = String(request.history || "").slice(-3000);
+    const isGateBuilder = state?.kind === "gate-builder";
     if (!this.configured()) {
-      onChunk(`当前使用本地实验讲解。\n实验：${experimentName}\n状态：${JSON.stringify(state)}\n`
-        + "请观察输入、输出和真值表之间的对应关系。配置 AI Key 后可获得动态推导。");
+      const localText = isGateBuilder && state.localAnalysis
+        ? `当前使用本地电路分析。\n${state.localAnalysis}\n\n配置 AI Key 后可进行多轮大模型追问。`
+        : `当前使用本地实验讲解。\n实验：${experimentName}\n状态：${JSON.stringify(state)}\n`
+          + "请观察输入、输出和真值表之间的对应关系。配置 AI Key 后可获得动态推导。";
+      onChunk(localText);
       return false;
     }
-    const stream = await this.model({ maxTokens: 650 }).stream([
+    const systemPrompt = isGateBuilder
+      ? "你是大学数字电路课程的门级电路功能分析助教。默认只分析当前组合逻辑电路一般可能实现的功能和典型用途。"
+        + "回答时聚焦功能用途，其他诊断类内容只有学生明确追问时再展开。"
+        + "回答用中文，简洁、分点，优先使用普通文本布尔表达式，例如 F=A·B、F=A+B、F=¬A、F=A⊕B。"
+      : "你是大学数字电路交互实验助教。必须结合实验状态回答，说明输入如何决定输出。"
+        + "回答简洁、分点清楚，不虚构页面上不存在的器件。";
+    const userPrompt = [
+      `实验：${experimentName}`,
+      `当前状态：${JSON.stringify(state)}`,
+      history ? `对话历史：\n${history}` : "",
+      `学生问题：${question}`
+    ].filter(Boolean).join("\n");
+
+    const stream = await this.model({ maxTokens: isGateBuilder ? 900 : 650 }).stream([
       {
         role: "system",
-        content: "你是大学数字电路交互实验助教。必须结合实验状态回答，说明输入如何决定输出。"
-          + "回答简洁、分点清楚，不虚构页面上不存在的器件。"
+        content: systemPrompt
       },
       {
         role: "user",
-        content: `实验：${experimentName}\n当前状态：${JSON.stringify(state)}\n学生问题：${question}`
+        content: userPrompt
       }
     ]);
     let emitted = false;

@@ -5,15 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>数字电路交互仿真实验</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./labs.css?v=20260613-9">
+  <link rel="stylesheet" href="./labs.css?v=20260621-2">
+  <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
 </head>
-<body>
+<body class="inner-page lab-page experiment-page experiment-center">
+  <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>
+  <div class="circuit-bg-overlay" aria-hidden="true"></div>
+  <div class="lab-background" aria-hidden="true">
+    <span class="lab-orb orb-a"></span>
+    <span class="lab-orb orb-b"></span>
+    <span class="circuit-trace trace-a"></span>
+    <span class="circuit-trace trace-b"></span>
+    <span class="circuit-trace trace-c"></span>
+    <span class="signal-flow flow-a"></span>
+    <span class="signal-flow flow-b"></span>
+    <span class="signal-flow flow-c"></span>
+    <span class="signal-dot dot-a"></span>
+    <span class="signal-dot dot-b"></span>
+    <span class="signal-dot dot-c"></span>
+    <span class="signal-dot dot-d"></span>
+    <span class="bit bit-a">0</span>
+    <span class="bit bit-b">1</span>
+    <span class="bit bit-c">1</span>
+    <span class="bit bit-d">0</span>
+    <span class="bit bit-e">CLK</span>
+    <span class="logic-mark mark-a">AND</span>
+    <span class="logic-mark mark-b">JK-FF</span>
+    <span class="logic-mark mark-c">DECODER</span>
+    <span class="logic-mark mark-d">RAM</span>
+    <svg class="background-wave" viewBox="0 0 1200 180" preserveAspectRatio="none">
+      <path d="M0 138 H80 V92 H140 V138 H250 V78 H315 V138 H430 V104 H500 V138 H640 V72 H705 V138 H840 V98 H910 V138 H1200"/>
+      <path d="M0 158 H120 V128 H235 V158 H390 V112 H520 V158 H720 V126 H850 V158 H1200"/>
+      <path d="M0 118 H170 V82 H270 V118 H420 V74 H560 V118 H760 V88 H900 V118 H1200"/>
+      <text x="70" y="78">CLK</text>
+      <text x="190" y="124">Q0</text>
+      <text x="312" y="60">Q1</text>
+      <text x="452" y="102">Q2</text>
+    </svg>
+  </div>
   <header class="lab-topbar">
     <div>
       <p>state → calculate → render → describe</p>
       <h1>数字电路交互仿真实验中心</h1>
     </div>
-    <a href="./index.html">返回智能练习</a>
+    <nav class="site-nav" aria-label="页面导航">
+      <a class="site-nav__link" href="./index.html">学习中心</a>
+      <a class="site-nav__link" href="./gate-builder-demo.html">实践中心</a>
+      <a class="site-nav__link active" href="./labs.html" aria-current="page">实验中心</a>
+    </nav>
   </header>
 
   <main class="lab-shell">
@@ -89,6 +128,7 @@
     </section>
   </main>
 
-  <script src="./labs.js?v=20260613-9"></script>
+  <script src="./circuit-background.js?v=20260620-1"></script>
+  <script src="./labs.js?v=20260620-3"></script>
 </body>
 </html>

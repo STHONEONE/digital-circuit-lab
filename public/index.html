@@ -5,18 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>数字电路智能练习系统</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=20260605-9">
+  <link rel="stylesheet" href="./styles.css?v=20260621-2">
+  <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
 </head>
-<body>
+<body class="inner-page learning-page center-page main-page">
+  <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>
+  <div class="circuit-bg-overlay" aria-hidden="true"></div>
+  <div class="tech-background" aria-hidden="true">
+    <span class="tech-orb orb-left"></span>
+    <span class="tech-orb orb-right"></span>
+    <span class="tech-trace trace-one"></span>
+    <span class="tech-trace trace-two"></span>
+    <span class="tech-trace trace-three"></span>
+    <span class="tech-pulse pulse-one"></span>
+    <span class="tech-pulse pulse-two"></span>
+    <span class="tech-pulse pulse-three"></span>
+    <span class="binary binary-a">0</span>
+    <span class="binary binary-b">1</span>
+    <span class="binary binary-c">10</span>
+    <span class="binary binary-d">01</span>
+    <span class="logic-label logic-a">AND</span>
+    <span class="logic-label logic-b">JK-FF</span>
+    <span class="logic-label logic-c">DECODER</span>
+    <span class="logic-label logic-d">RAM</span>
+    <svg class="theme-wave" viewBox="0 0 1200 180" preserveAspectRatio="none">
+      <path d="M0 138 H80 V92 H140 V138 H250 V78 H315 V138 H430 V104 H500 V138 H640 V72 H705 V138 H840 V98 H910 V138 H1200"/>
+      <path d="M0 158 H120 V128 H235 V158 H390 V112 H520 V158 H720 V126 H850 V158 H1200"/>
+      <path d="M0 118 H170 V82 H270 V118 H420 V74 H560 V118 H760 V88 H900 V118 H1200"/>
+      <text x="72" y="78">CLK</text>
+      <text x="190" y="124">Q0</text>
+      <text x="312" y="60">Q1</text>
+      <text x="452" y="102">Q2</text>
+    </svg>
+  </div>
   <div class="app">
     <header class="topbar">
       <div>
         <p>数字电路课程设计 · Node.js 智能学习平台</p>
-        <h1>数字电路交互仿真与个性化学习系统</h1>
+        <h1>数字电路个性化学习中心</h1>
       </div>
       <div class="top-actions">
-        <a class="button-link primary" href="./labs.html">进入仿真实验</a>
-        <button id="refreshButton" type="button">刷新题库</button>
+        <a class="home-return-link" href="./home.html">回到首页</a>
+        <nav class="site-nav" aria-label="页面导航">
+          <a class="site-nav__link active" href="./index.html" aria-current="page">学习中心</a>
+          <a class="site-nav__link" href="./gate-builder-demo.html">实践中心</a>
+          <a class="site-nav__link" href="./labs.html">实验中心</a>
+        </nav>
         <button id="shutdownButton" class="danger" type="button">退出系统</button>
       </div>
     </header>
@@ -208,6 +242,7 @@
     </div>
   </section>
 
-  <script src="./app.js?v=20260605-9"></script>
+  <script src="./circuit-background.js?v=20260620-1"></script>
+  <script src="./app.js?v=20260620-3"></script>
 </body>
 </html>

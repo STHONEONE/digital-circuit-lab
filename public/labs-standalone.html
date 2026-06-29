@@ -1,3 +1,1075 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>数字电路交互仿真实验 - 深蓝科技单文件版</title>
+  <link rel="icon" href="data:,">
+  <style>
+:root {
+  --ink: #e8f4ff;
+  --muted: #9fb6cf;
+  --line: rgba(125, 211, 252, .22);
+  --accent: #38bdf8;
+  --accent-dark: #22d3ee;
+  --accent-soft: rgba(56, 189, 248, .12);
+  --violet: #8b5cf6;
+  --panel: rgba(7, 17, 31, .74);
+  --panel-strong: rgba(9, 23, 42, .86);
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #00d1ff rgba(4, 12, 24, .88);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  border: 1px solid rgba(0, 209, 255, .10);
+  border-radius: 999px;
+  background: rgba(4, 12, 24, .88);
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, #00d1ff, #4df6c2);
+  box-shadow:
+    0 0 8px rgba(0, 209, 255, .55),
+    inset 0 0 4px rgba(255, 255, 255, .22);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4df6c2, #7c6cff);
+  box-shadow:
+    0 0 12px rgba(77, 246, 194, .75),
+    inset 0 0 4px rgba(255, 255, 255, .30);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+body {
+  margin: 0;
+  color: var(--ink);
+  min-height: 100vh;
+  position: relative;
+  background:
+    radial-gradient(circle at 12% -8%, rgba(56, 189, 248, .18), transparent 30%),
+    radial-gradient(circle at 88% 16%, rgba(139, 92, 246, .16), transparent 28%),
+    radial-gradient(circle at 50% 106%, rgba(34, 211, 238, .13), transparent 36%),
+    linear-gradient(135deg, #07111f 0%, #0b1f33 47%, #10172a 100%);
+  overflow-x: hidden;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(rgba(56, 189, 248, .075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, .075) 1px, transparent 1px),
+    linear-gradient(rgba(148, 163, 184, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, .035) 1px, transparent 1px);
+  background-size: 42px 42px, 42px 42px, 14px 14px, 14px 14px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.92), rgba(0,0,0,.55) 62%, rgba(0,0,0,.18));
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: auto -8% -22% -8%;
+  height: 42vh;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, rgba(56, 189, 248, .12), transparent 64%);
+}
+button, input { font: inherit; }
+button {
+  min-height: 42px;
+  border: 1px solid rgba(125, 211, 252, .25);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, .76);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
+}
+button:hover {
+  border-color: rgba(34, 211, 238, .62);
+  color: #f8fdff;
+  box-shadow: 0 8px 24px rgba(56, 189, 248, .18);
+}
+.lab-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.lab-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(5px);
+  opacity: .44;
+}
+.orb-a {
+  left: 8%;
+  top: 11%;
+  width: 210px;
+  height: 210px;
+  background: radial-gradient(circle, rgba(34, 211, 238, .22), transparent 65%);
+}
+.orb-b {
+  right: 4%;
+  top: 22%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(139, 92, 246, .18), transparent 64%);
+}
+.circuit-trace {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, .22), transparent);
+  box-shadow: 0 0 18px rgba(56, 189, 248, .18);
+}
+.trace-a { left: 6%; top: 30%; width: 34%; }
+.trace-b { right: 5%; top: 43%; width: 28%; transform: rotate(90deg); transform-origin: right center; }
+.trace-c { left: 34%; bottom: 18%; width: 42%; }
+.circuit-trace::before,
+.circuit-trace::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(34, 211, 238, .42);
+  border-radius: 999px;
+  background: rgba(7, 17, 31, .9);
+}
+.circuit-trace::before { left: 12%; }
+.circuit-trace::after { right: 18%; }
+.signal-flow {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #67e8f9;
+  box-shadow: 0 0 18px rgba(34, 211, 238, .72), 0 0 34px rgba(56, 189, 248, .30);
+  opacity: .72;
+  animation: signal-flow-x 9s linear infinite;
+}
+.flow-a { left: 7%; top: 30%; }
+.flow-b { left: 36%; bottom: 18%; animation-delay: -3s; animation-duration: 11s; }
+.flow-c { right: 5%; top: 20%; animation-name: signal-flow-y; animation-delay: -5s; animation-duration: 10s; }
+.signal-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(103, 232, 249, .72);
+  box-shadow: 0 0 18px rgba(34, 211, 238, .44);
+  animation: signal-drift 8s ease-in-out infinite;
+}
+.dot-a { left: 8%; top: 26%; animation-delay: -1s; }
+.dot-b { left: 72%; top: 18%; animation-delay: -3s; }
+.dot-c { left: 88%; top: 52%; animation-delay: -5s; }
+.dot-d { left: 20%; top: 76%; animation-delay: -7s; }
+.bit {
+  position: absolute;
+  color: rgba(186, 230, 253, .12);
+  font-size: clamp(30px, 5vw, 72px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  user-select: none;
+}
+.bit-a { left: 5%; top: 14%; }
+.bit-b { right: 12%; top: 22%; }
+.bit-c { left: 13%; bottom: 18%; }
+.bit-d { right: 7%; bottom: 22%; }
+.bit-e {
+  left: 47%;
+  bottom: 9%;
+  font-size: clamp(22px, 3vw, 42px);
+  color: rgba(196, 181, 253, .12);
+}
+.logic-mark {
+  position: absolute;
+  color: rgba(186, 230, 253, .10);
+  border: 1px solid rgba(56, 189, 248, .10);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: clamp(12px, 1.4vw, 18px);
+  font-weight: 800;
+  letter-spacing: .12em;
+  backdrop-filter: blur(2px);
+}
+.mark-a { left: 22%; top: 12%; }
+.mark-b { right: 25%; top: 15%; color: rgba(196, 181, 253, .12); }
+.mark-c { right: 10%; bottom: 32%; }
+.mark-d { left: 7%; bottom: 34%; color: rgba(196, 181, 253, .10); }
+.background-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -14px;
+  width: 100%;
+  height: 180px;
+  opacity: .42;
+}
+.background-wave path {
+  fill: none;
+  stroke: rgba(56, 189, 248, .28);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.background-wave path:nth-child(2) { stroke: rgba(139, 92, 246, .18); }
+.background-wave path:nth-child(3) { stroke: rgba(34, 211, 238, .16); }
+.background-wave text {
+  fill: rgba(186, 230, 253, .20);
+  font: 700 14px "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+@keyframes signal-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: .32; }
+  45% { transform: translate3d(24px, -18px, 0); opacity: .72; }
+  70% { transform: translate3d(52px, 14px, 0); opacity: .38; }
+}
+@keyframes signal-flow-x {
+  from { transform: translateX(0); opacity: .18; }
+  12%, 82% { opacity: .76; }
+  to { transform: translateX(430px); opacity: .10; }
+}
+@keyframes signal-flow-y {
+  from { transform: translateY(0); opacity: .18; }
+  16%, 80% { opacity: .70; }
+  to { transform: translateY(360px); opacity: .10; }
+}
+.lab-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1320px;
+  margin: auto;
+  padding: 24px 22px 16px;
+  position: relative;
+  z-index: 1;
+}
+.lab-topbar p, .section-heading span {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+.lab-topbar h1 { margin: 0; font-size: clamp(24px, 4vw, 36px); }
+.lab-topbar a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border-radius: 12px;
+  border: 1px solid rgba(125, 211, 252, .58);
+  background: linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6);
+  color: #fff;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: .01em;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 12px 34px rgba(56, 189, 248, .24);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.lab-topbar a:hover {
+  transform: translateY(-1px);
+  border-color: rgba(196, 181, 253, .68);
+  background: linear-gradient(135deg, #22d3ee, #38bdf8 58%, #8b5cf6);
+  box-shadow: 0 16px 36px rgba(56, 189, 248, .32);
+}
+.lab-shell {
+  max-width: 1320px;
+  margin: auto;
+  padding: 0 22px 50px;
+  position: relative;
+  z-index: 1;
+}
+.experiment-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+.experiment-tabs button.active {
+  border-color: rgba(125, 211, 252, .68);
+  background: linear-gradient(135deg, #38bdf8, #22d3ee 68%, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 12px 34px rgba(56, 189, 248, .24);
+}
+.lab-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, .7fr);
+  gap: 16px;
+}
+.circuit-panel, .truth-panel, .assistant-panel {
+  border: 1px solid rgba(125, 211, 252, .22);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, .82), rgba(7, 17, 31, .66));
+  box-shadow: 0 18px 58px rgba(0,0,0,.28), 0 0 38px rgba(56, 189, 248, .08), inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter: blur(14px);
+}
+.circuit-panel, .truth-panel { padding: 20px; }
+.circuit-panel { min-width: 0; }
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.section-heading h2 { margin: 0; }
+.section-heading button {
+  padding: 0 16px;
+  border-color: rgba(125, 211, 252, .46);
+  background: linear-gradient(135deg, #38bdf8, #22d3ee 72%, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(56, 189, 248, .18);
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0;
+}
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(125, 211, 252, .20);
+  border-radius: 11px;
+  background: rgba(15, 23, 42, .58);
+  padding: 8px;
+  backdrop-filter: blur(8px);
+}
+.control-group > span { color: var(--muted); font-size: 13px; font-weight: 700; }
+.control-group button { min-width: 52px; min-height: 36px; }
+.control-group button.active {
+  background: linear-gradient(135deg, #38bdf8, #22d3ee 72%, #8b5cf6);
+  color: #fff;
+  border-color: rgba(125, 211, 252, .58);
+}
+.circuit-stage {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-height: 360px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background:
+    linear-gradient(rgba(56, 189, 248, .055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, .055) 1px, transparent 1px),
+    radial-gradient(circle at 72% 35%, rgba(139, 92, 246, .10), transparent 30%),
+    rgba(8, 20, 37, .82);
+  background-size: 24px 24px, 24px 24px, auto, auto;
+  overflow: auto;
+  padding: 8px;
+}
+.circuit-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 340px;
+}
+.circuit-svg text {
+  fill: var(--ink);
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+.circuit-svg .label {
+  font-size: 15px;
+  font-weight: 700;
+}
+.circuit-svg .small-label {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.circuit-svg .value-label {
+  font-size: 17px;
+  font-weight: 800;
+}
+.circuit-svg .chip-label {
+  fill: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.circuit-svg .chip-subtext {
+  fill: #d9fff2;
+  font-size: 14px;
+  font-weight: 700;
+}
+.circuit-svg .chip-pin {
+  fill: #fff;
+  font-size: 19px;
+  font-weight: 800;
+}
+.circuit-svg .chip-state-hint {
+  fill: #eafff8;
+  font-size: 14px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgba(7, 91, 72, .45);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+.circuit-svg .diagram-caption {
+  fill: var(--accent-dark);
+  font-size: 14px;
+  font-weight: 800;
+}
+.circuit-svg .module-body {
+  fill: rgba(10, 27, 47, .94);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  filter: url("#softShadow");
+  vector-effect: non-scaling-stroke;
+}
+.circuit-svg .module-title {
+  fill: var(--accent-dark);
+  font-size: 16px;
+  font-weight: 800;
+}
+.circuit-svg .module-divider {
+  stroke: #a9d8c9;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.circuit-svg .module-formula {
+  fill: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.circuit-svg .signal-label {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgba(8, 20, 37, .92);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+.circuit-svg .gate-body,
+.circuit-svg .chip-body {
+  fill: url("#componentFill");
+  stroke: rgba(103, 232, 249, .86);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.circuit-svg .chip-body {
+  filter: url("#componentShadow");
+}
+.circuit-svg .gate-detail {
+  fill: none;
+  stroke: rgba(103, 232, 249, .86);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.circuit-svg .signal-line {
+  fill: none;
+  stroke: #afbec5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  transition: stroke .2s ease, filter .2s ease;
+  vector-effect: non-scaling-stroke;
+}
+.circuit-svg .signal-line.high {
+  stroke: #f0a500;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 3px rgba(240, 165, 0, .45));
+}
+.circuit-svg .signal-line.logic-high {
+  stroke: var(--accent);
+  stroke-width: 5;
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, .48));
+}
+.circuit-svg .port {
+  fill: #fff;
+  stroke: #8ca0aa;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.circuit-svg .port.high {
+  fill: #ffd86b;
+  stroke: #e59b00;
+  filter: url("#signalGlow");
+}
+.circuit-svg .port.logic-high {
+  fill: #67e8f9;
+  stroke: #0891b2;
+  filter: url("#greenGlow");
+}
+.circuit-svg .value-box {
+  fill: rgba(15, 23, 42, .92);
+  stroke: rgba(125, 211, 252, .40);
+  stroke-width: 2;
+  filter: url("#softShadow");
+  vector-effect: non-scaling-stroke;
+}
+.circuit-svg .value-box.high {
+  fill: rgba(67, 48, 10, .86);
+  stroke: #fbbf24;
+}
+.circuit-svg .mode-badge {
+  fill: rgba(56, 189, 248, .14);
+  stroke: rgba(125, 211, 252, .35);
+  stroke-width: 1.5;
+}
+.circuit-svg .active-output {
+  fill: rgba(67, 48, 10, .88);
+  stroke: #fbbf24;
+  stroke-width: 2;
+  filter: url("#signalGlow");
+}
+.circuit-svg .clock-pulse {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.circuit-svg .clock-pulse.active {
+  filter: url("#greenGlow");
+  animation: pulse-opacity .8s ease-in-out infinite alternate;
+}
+@keyframes pulse-opacity {
+  to { opacity: .45; }
+}
+.timing-panel {
+  margin-top: 16px;
+  border: 1px solid rgba(125, 211, 252, .20);
+  border-radius: 14px;
+  background: rgba(8, 20, 37, .64);
+  padding: 14px;
+  backdrop-filter: blur(10px);
+}
+.timing-panel[hidden] { display: none; }
+.timing-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.timing-heading span {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+.timing-heading h3 {
+  margin: 4px 0 3px;
+  font-size: 18px;
+}
+.timing-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.timing-heading button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 11px;
+  border-color: rgba(125, 211, 252, .34);
+  background: linear-gradient(135deg, rgba(56, 189, 248, .18), rgba(139, 92, 246, .14));
+  color: #dff8ff;
+  font-size: 12px;
+}
+.timing-diagram {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(125, 211, 252, .18);
+  border-radius: 11px;
+  background:
+    linear-gradient(rgba(56, 189, 248, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, .05) 1px, transparent 1px),
+    rgba(5, 14, 27, .74);
+  background-size: 20px 20px;
+}
+.timing-empty {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  padding: 20px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.timing-svg {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: auto;
+}
+.timing-svg text {
+  fill: var(--ink);
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+.timing-svg .timing-label {
+  fill: var(--accent-dark);
+  font-size: 14px;
+  font-weight: 800;
+}
+.timing-svg .timing-note {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.timing-svg .timing-grid {
+  stroke: rgba(125, 211, 252, .15);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.timing-svg .timing-edge {
+  stroke: #e3a000;
+  stroke-dasharray: 5 5;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.timing-svg .timing-signal {
+  fill: none;
+  stroke: var(--accent-dark);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.timing-svg .timing-signal.clock { stroke: #2d6cdf; }
+.timing-svg .timing-signal.input { stroke: #fbbf24; }
+.timing-svg .timing-signal.output {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+}
+.timing-svg .latest-cycle {
+  fill: rgba(56, 189, 248, .10);
+}
+.timing-svg .edge-marker {
+  fill: #e3a000;
+}
+.explanation-card {
+  position: relative;
+  margin-top: 16px;
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  background: rgba(8, 28, 48, .72);
+  padding: 14px 116px 14px 16px;
+  backdrop-filter: blur(8px);
+}
+.explanation-card span { color: var(--accent-dark); font-size: 12px; font-weight: 700; }
+.explanation-card p { margin: 6px 0 0; line-height: 1.7; }
+.explanation-card button {
+  position: absolute;
+  right: 12px;
+  top: 17px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-color: rgba(125, 211, 252, .46);
+  background: linear-gradient(135deg, #38bdf8, #22d3ee 72%, #8b5cf6);
+  color: #fff;
+}
+.truth-table { display: grid; gap: 7px; margin-top: 18px; }
+.truth-row {
+  display: grid;
+  grid-template-columns: repeat(var(--columns), 1fr);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.truth-row span { padding: 9px 5px; text-align: center; font-size: 13px; }
+.truth-row span + span { border-left: 1px solid var(--line); }
+.truth-row.header { background: rgba(125, 211, 252, .12); font-weight: 700; }
+.truth-row.active {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, .18);
+  color: #e0fbff;
+  font-weight: 700;
+}
+.assistant-panel {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+  padding: 18px;
+}
+.digital-tutor {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  border-radius: 14px;
+  border: 1px solid rgba(125, 211, 252, .16);
+  background: linear-gradient(160deg, rgba(15, 23, 42, .78), rgba(12, 38, 64, .68));
+  padding: 16px;
+}
+.digital-tutor small { margin-top: 5px; color: var(--muted); text-align: center; }
+.tutor-face {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  margin-bottom: 9px;
+  border: 4px solid rgba(56, 189, 248, .76);
+  border-radius: 45% 45% 48% 48%;
+  background: rgba(7, 17, 31, .95);
+  box-shadow: 0 0 26px rgba(56, 189, 248, .18);
+}
+.eye {
+  position: absolute;
+  top: 31px;
+  width: 9px;
+  height: 11px;
+  border-radius: 50%;
+  background: #67e8f9;
+}
+.eye.left { left: 23px; }
+.eye.right { right: 23px; }
+.mouth {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 24px;
+  height: 5px;
+  border-radius: 50%;
+  background: #38bdf8;
+  transform: translateX(-50%);
+}
+.tutor-face.speaking .mouth { animation: speak .24s ease-in-out infinite alternate; }
+@keyframes speak { to { height: 17px; width: 18px; } }
+.assistant-chat { min-width: 0; }
+.lab-messages {
+  min-height: 130px;
+  max-height: 250px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(125, 211, 252, .14);
+  background: rgba(5, 14, 27, .56);
+  padding: 12px;
+}
+.message {
+  width: fit-content;
+  max-width: 82%;
+  margin-bottom: 9px;
+  border-radius: 13px 13px 13px 4px;
+  background: rgba(15, 23, 42, .82);
+  border: 1px solid rgba(125, 211, 252, .14);
+  padding: 10px 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.message.user {
+  margin-left: auto;
+  border-radius: 13px 13px 4px 13px;
+  background: linear-gradient(135deg, #38bdf8, #22d3ee 72%, #8b5cf6);
+  color: #fff;
+}
+.assistant-actions { display: flex; gap: 8px; margin-top: 9px; }
+.assistant-actions button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-color: rgba(125, 211, 252, .34);
+  background: linear-gradient(135deg, rgba(56, 189, 248, .18), rgba(139, 92, 246, .14));
+  color: #dff8ff;
+}
+.assistant-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 9px;
+}
+.assistant-composer input {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: rgba(7, 17, 31, .78);
+  color: var(--ink);
+}
+.assistant-composer input::placeholder { color: rgba(159, 182, 207, .72); }
+.assistant-composer button {
+  min-width: 70px;
+  border-color: rgba(125, 211, 252, .58);
+  background: linear-gradient(135deg, #38bdf8, #22d3ee 72%, #8b5cf6);
+  color: #fff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-dot, .signal-flow { animation: none; }
+}
+
+@media (max-width: 900px) {
+  .lab-grid { grid-template-columns: 1fr; }
+  .experiment-tabs { grid-template-columns: 1fr 1fr; }
+  .circuit-stage { min-height: 330px; }
+  .circuit-svg { min-height: 310px; }
+}
+@media (max-width: 620px) {
+  .lab-topbar { align-items: flex-start; gap: 12px; }
+  .lab-topbar a { white-space: nowrap; }
+  .circuit-stage {
+    min-height: 300px;
+    padding: 4px;
+  }
+  .circuit-svg {
+    width: 720px;
+    min-width: 720px;
+    min-height: 290px;
+  }
+  .timing-heading { align-items: center; }
+  .timing-svg {
+    width: 760px;
+    min-width: 760px;
+  }
+  .assistant-panel { grid-template-columns: 1fr; }
+  .explanation-card { padding-right: 16px; padding-bottom: 62px; }
+  .explanation-card button { top: auto; bottom: 12px; left: 16px; right: auto; }
+}
+
+/* Unified inner-page background: visible homepage WebP + translucent floating modules. */
+body.inner-page {
+  color: #eaf6ff;
+  background: #040b16 !important;
+}
+
+body.inner-page::before {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background: url("/assets/%E9%9C%93%E8%99%B9%E6%9C%AA%E6%9D%A5%E5%9F%8E%E5%B8%82%E4%B8%8E%E5%85%A8%E6%81%AF%E5%AE%87%E8%88%AA%E5%91%98.webp") center center / cover no-repeat;
+  opacity: .78;
+  filter: saturate(.95) brightness(.86);
+}
+
+body.inner-page::after {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(3, 8, 20, .36) 0%, rgba(3, 8, 20, .50) 48%, rgba(3, 8, 20, .66) 100%),
+    radial-gradient(circle at 50% 45%, rgba(0, 210, 255, .08), transparent 42%);
+}
+
+body.inner-page .lab-topbar,
+body.inner-page .lab-shell,
+body.inner-page header,
+body.inner-page main,
+body.inner-page nav {
+  position: relative;
+  z-index: 2;
+}
+
+body.inner-page .lab-shell,
+body.inner-page .lab-grid {
+  background: transparent !important;
+}
+
+body.inner-page .circuit-panel,
+body.inner-page .truth-panel,
+body.inner-page .assistant-panel,
+body.inner-page .panel,
+body.inner-page .card,
+body.inner-page .lab-card,
+body.inner-page .experiment-card,
+body.inner-page .truth-table-card,
+body.inner-page .control-panel,
+body.inner-page .ai-panel,
+body.inner-page .explanation-card,
+body.inner-page .timing-panel {
+  background: rgba(5, 14, 30, .48) !important;
+  border-color: rgba(95, 205, 255, .24);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, .24),
+    0 0 22px rgba(0, 210, 255, .055),
+    inset 0 0 0 1px rgba(140, 220, 255, .055);
+  backdrop-filter: blur(12px) saturate(1.05);
+  -webkit-backdrop-filter: blur(12px) saturate(1.05);
+}
+
+body.inner-page .truth-panel,
+body.inner-page .assistant-panel,
+body.inner-page .explanation-card,
+body.inner-page .timing-panel {
+  background: rgba(5, 14, 30, .46) !important;
+}
+
+body.inner-page .circuit-panel {
+  background: rgba(5, 14, 30, .60) !important;
+}
+
+body.inner-page .circuit-stage,
+body.inner-page .timing-diagram,
+body.inner-page .experiment-board,
+body.inner-page .experiment-canvas,
+body.inner-page .circuit-canvas,
+body.inner-page .simulation-canvas,
+body.inner-page .waveform-panel,
+body.inner-page .canvas-area {
+  background:
+    linear-gradient(rgba(6, 18, 38, .56), rgba(6, 18, 38, .56)),
+    radial-gradient(circle at center, rgba(0, 210, 255, .10), transparent 60%) !important;
+  border-color: rgba(90, 200, 255, .25);
+}
+
+body.inner-page .lab-topbar,
+body.inner-page .page-header,
+body.inner-page .topbar,
+body.inner-page .top-nav,
+body.inner-page .lab-tabs,
+body.inner-page .page-tabs,
+body.inner-page .tab-bar,
+body.inner-page .experiment-tabs {
+  background: rgba(5, 14, 30, .44) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+body.inner-page input,
+body.inner-page textarea,
+body.inner-page select,
+body.inner-page .control-group,
+body.inner-page .truth-row,
+body.inner-page .message,
+body.inner-page .assistant-chat,
+body.inner-page .assistant-composer,
+body.inner-page .experiment-tabs button {
+  background: rgba(8, 22, 46, .44) !important;
+  border-color: rgba(95, 205, 255, .20);
+  color: #eaf6ff;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, .58);
+}
+
+</style>
+</head>
+<body class="inner-page lab-page experiment-page experiment-center">
+  <div class="lab-background" aria-hidden="true">
+    <span class="lab-orb orb-a"></span>
+    <span class="lab-orb orb-b"></span>
+    <span class="circuit-trace trace-a"></span>
+    <span class="circuit-trace trace-b"></span>
+    <span class="circuit-trace trace-c"></span>
+    <span class="signal-flow flow-a"></span>
+    <span class="signal-flow flow-b"></span>
+    <span class="signal-flow flow-c"></span>
+    <span class="signal-dot dot-a"></span>
+    <span class="signal-dot dot-b"></span>
+    <span class="signal-dot dot-c"></span>
+    <span class="signal-dot dot-d"></span>
+    <span class="bit bit-a">0</span>
+    <span class="bit bit-b">1</span>
+    <span class="bit bit-c">1</span>
+    <span class="bit bit-d">0</span>
+    <span class="bit bit-e">CLK</span>
+    <span class="logic-mark mark-a">AND</span>
+    <span class="logic-mark mark-b">JK-FF</span>
+    <span class="logic-mark mark-c">DECODER</span>
+    <span class="logic-mark mark-d">RAM</span>
+    <svg class="background-wave" viewBox="0 0 1200 180" preserveAspectRatio="none">
+      <path d="M0 138 H80 V92 H140 V138 H250 V78 H315 V138 H430 V104 H500 V138 H640 V72 H705 V138 H840 V98 H910 V138 H1200"/>
+      <path d="M0 158 H120 V128 H235 V158 H390 V112 H520 V158 H720 V126 H850 V158 H1200"/>
+      <path d="M0 118 H170 V82 H270 V118 H420 V74 H560 V118 H760 V88 H900 V118 H1200"/>
+      <text x="70" y="78">CLK</text>
+      <text x="190" y="124">Q0</text>
+      <text x="312" y="60">Q1</text>
+      <text x="452" y="102">Q2</text>
+    </svg>
+  </div>
+  <header class="lab-topbar">
+    <div>
+      <p>state → calculate → render → describe</p>
+      <h1>数字电路交互仿真实验中心</h1>
+    </div>
+    <a href="./index.html">返回学习中心</a>
+  </header>
+
+  <main class="lab-shell">
+    <nav id="experimentTabs" class="experiment-tabs" aria-label="实验选择"></nav>
+
+    <section class="lab-grid">
+      <article class="circuit-panel">
+        <div class="section-heading">
+          <div>
+            <span id="experimentChapter">实验</span>
+            <h2 id="experimentTitle">基本逻辑门</h2>
+          </div>
+          <button id="demoButton" type="button">自动演示</button>
+        </div>
+
+        <div id="controls" class="controls"></div>
+
+        <div id="circuitDiagram" class="circuit-stage" aria-live="polite"></div>
+
+        <section id="timingPanel" class="timing-panel" hidden>
+          <div class="timing-heading">
+            <div>
+              <span>边沿触发过程</span>
+              <h3>JK 触发器动态时序图</h3>
+              <p id="timingSummary">点击“上升沿”后记录 J、K 与输出状态。</p>
+            </div>
+            <button id="clearTimingButton" type="button">清空波形</button>
+          </div>
+          <div id="timingDiagram" class="timing-diagram"></div>
+        </section>
+
+        <div class="explanation-card">
+          <span>状态讲解</span>
+          <p id="stateExplanation"></p>
+          <button id="speakButton" type="button">朗读讲解</button>
+        </div>
+      </article>
+
+      <aside class="truth-panel">
+        <div class="section-heading compact">
+          <div>
+            <span>实时验证</span>
+            <h2>真值表 / 状态表</h2>
+          </div>
+        </div>
+        <div id="truthTable" class="truth-table"></div>
+      </aside>
+    </section>
+
+    <section class="assistant-panel">
+      <div class="digital-tutor" aria-hidden="true">
+        <div id="tutorFace" class="tutor-face">
+          <span class="eye left"></span>
+          <span class="eye right"></span>
+          <span class="mouth"></span>
+        </div>
+        <strong>实验助教</strong>
+        <small id="voiceStatus">可朗读，也可语音提问</small>
+      </div>
+      <div class="assistant-chat">
+        <div id="labMessages" class="lab-messages">
+          <div class="message assistant">改变输入后，我会同步解释电路输出。你也可以直接问“为什么现在输出是 1”。</div>
+        </div>
+        <div class="assistant-actions">
+          <button id="stateQuestionButton" type="button">解释当前状态</button>
+          <button id="voiceButton" type="button">语音提问</button>
+        </div>
+        <div class="assistant-composer">
+          <input id="labQuestion" type="text" placeholder="结合当前实验状态提问">
+          <button id="askButton" type="button">发送</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
 const experiments = {
   gates: {
     name: "基本逻辑门",
@@ -917,3 +1989,7 @@ elements.labQuestion.addEventListener("keydown", (event) => {
 });
 
 render();
+
+</script>
+</body>
+</html>

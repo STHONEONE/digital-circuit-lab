@@ -27,6 +27,9 @@ const upload = multer({
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "2mb" }));
+app.get("/", (_request, response) => {
+  response.sendFile(path.join(root, "public", "home.html"));
+});
 app.use(express.static(path.join(root, "public")));
 
 app.get("/api/health", (_request, response) => {

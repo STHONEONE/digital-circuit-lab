@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字电路智能仿真学习系统</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --cyan: #27e6ff;
+      --cyan-soft: rgba(39, 230, 255, .42);
+      --blue: #4f8dff;
+      --violet: #8b5cf6;
+      --text: #f4fbff;
+      --muted: #bfd8ee;
+      --glass: rgba(4, 12, 28, .42);
+      --line: rgba(96, 220, 255, .34);
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      color: var(--text);
+      background: #020711;
+    }
+
+    a,
+    button {
+      font: inherit;
+    }
+
+    .pixel-home {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      isolation: isolate;
+      background-image: url("/assets/霓虹未来城市与全息宇航员.webp");
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+    }
+
+    .pixel-home::before {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(1, 6, 16, .52) 0%, rgba(3, 11, 30, .34) 24%, rgba(5, 18, 44, .08) 49%, rgba(2, 7, 18, 0) 70%),
+        radial-gradient(circle at 54% 79%, rgba(39, 230, 255, .14), transparent 13%),
+        radial-gradient(circle at 76% 26%, rgba(78, 154, 255, .16), transparent 18%),
+        linear-gradient(180deg, rgba(0, 0, 0, .03), rgba(0, 0, 0, .10));
+    }
+
+    .pixel-home::after {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 38px 38px;
+      mask-image: linear-gradient(90deg, rgba(0,0,0,.72), rgba(0,0,0,.18) 58%, transparent 96%);
+      opacity: .45;
+      mix-blend-mode: screen;
+    }
+
+    .pixel-canvas,
+    .scan-layer,
+    .pulse-layer,
+    .glow-markers {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .pixel-canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .scan-layer {
+      z-index: 4;
+      overflow: hidden;
+      opacity: .36;
+      mix-blend-mode: screen;
+    }
+
+    .scan-layer::before {
+      position: absolute;
+      left: -8%;
+      top: -16%;
+      width: 116%;
+      height: 16vh;
+      content: "";
+      background:
+        linear-gradient(180deg, transparent 0%, rgba(98, 216, 255, .045) 38%, rgba(98, 216, 255, .13) 50%, rgba(98, 216, 255, .045) 62%, transparent 100%);
+      filter: blur(7px);
+      transform: translateY(-20vh);
+      animation: soft-scan-band 8.5s linear infinite;
+    }
+
+    .pulse-layer {
+      z-index: 5;
+    }
+
+    .robot-pulse,
+    .chip-pulse,
+    .logic-pulse {
+      position: absolute;
+      border: 1px solid rgba(107, 229, 255, .26);
+      border-radius: 999px;
+      opacity: .42;
+      box-shadow: 0 0 20px rgba(39, 230, 255, .24), inset 0 0 16px rgba(39, 230, 255, .10);
+      animation: pulse-ring 2.8s ease-out infinite;
+    }
+
+    .robot-pulse {
+      left: 49.2%;
+      top: 75.5%;
+      width: 148px;
+      height: 48px;
+      transform: translate(-50%, -50%) rotate(-10deg);
+    }
+
+    .chip-pulse {
+      left: 70.5%;
+      top: 34.2%;
+      width: 170px;
+      height: 74px;
+      animation-delay: .8s;
+    }
+
+    .logic-pulse {
+      left: 83%;
+      top: 20.5%;
+      width: 250px;
+      height: 128px;
+      border-radius: 28px;
+      animation-delay: 1.5s;
+    }
+
+    .astronaut-breathe {
+      position: absolute;
+      left: 4%;
+      top: 45%;
+      width: 24vw;
+      height: 42vh;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 46% 48%, rgba(105, 224, 255, .13), rgba(52, 141, 255, .055) 36%, transparent 70%);
+      filter: blur(10px);
+      opacity: .35;
+      mix-blend-mode: screen;
+      animation: astronaut-breathe 4.8s ease-in-out infinite;
+    }
+
+    .chip-orbit {
+      position: absolute;
+      right: 11.5%;
+      top: 24.5%;
+      width: 190px;
+      height: 116px;
+      border-radius: 22px;
+      opacity: .48;
+      mix-blend-mode: screen;
+    }
+
+    .chip-orbit::before {
+      position: absolute;
+      inset: -5px;
+      content: "";
+      border-radius: inherit;
+      background: conic-gradient(from 0deg, transparent 0 18%, rgba(94, 225, 255, .62) 24%, transparent 31% 54%, rgba(128, 145, 255, .40) 62%, transparent 72% 100%);
+      filter: blur(.4px);
+      animation: orbit-rotate 7s linear infinite;
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      padding: 2px;
+    }
+
+    .chip-orbit::after {
+      position: absolute;
+      inset: 14px;
+      content: "";
+      border-radius: 14px;
+      border: 1px solid rgba(111, 232, 255, .16);
+      box-shadow: inset 0 0 20px rgba(58, 199, 255, .06), 0 0 18px rgba(39, 230, 255, .10);
+    }
+
+    .chip-pin {
+      position: absolute;
+      width: 4px;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(137, 237, 255, .24);
+      box-shadow: 0 0 10px rgba(94, 225, 255, .16);
+      animation: pin-flicker 1.8s steps(2, end) infinite;
+    }
+
+    .chip-pin:nth-child(1) { left: 18px; top: -10px; animation-delay: 0s; }
+    .chip-pin:nth-child(2) { left: 52px; top: -10px; animation-delay: .24s; }
+    .chip-pin:nth-child(3) { left: 86px; top: -10px; animation-delay: .48s; }
+    .chip-pin:nth-child(4) { left: 120px; top: -10px; animation-delay: .72s; }
+    .chip-pin:nth-child(5) { right: 18px; bottom: -10px; animation-delay: .96s; }
+    .chip-pin:nth-child(6) { right: 52px; bottom: -10px; animation-delay: 1.2s; }
+    .chip-pin:nth-child(7) { right: 86px; bottom: -10px; animation-delay: 1.44s; }
+    .chip-pin:nth-child(8) { right: 120px; bottom: -10px; animation-delay: 1.68s; }
+
+    .binary-counter {
+      position: absolute;
+      right: 6.5%;
+      bottom: 10.5%;
+      z-index: 6;
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      padding: 8px 12px;
+      border: 1px solid rgba(89, 218, 255, .16);
+      border-radius: 14px;
+      color: rgba(174, 239, 255, .72);
+      background: rgba(4, 14, 31, .16);
+      box-shadow: inset 0 0 14px rgba(39, 230, 255, .06), 0 0 16px rgba(39, 230, 255, .08);
+      font: 800 18px/1 "Consolas", "Cascadia Mono", monospace;
+      letter-spacing: .08em;
+      opacity: .62;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .binary-counter::before {
+      content: "BIN";
+      margin-right: 4px;
+      color: rgba(143, 220, 255, .42);
+      font-size: 10px;
+      letter-spacing: .12em;
+    }
+
+    .binary-counter.is-refreshing {
+      animation: counter-refresh .18s steps(2, end);
+    }
+
+    .glow-markers {
+      z-index: 6;
+    }
+
+    .spark {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(118, 246, 255, .76);
+      box-shadow: 0 0 14px rgba(118, 246, 255, .46), 0 0 32px rgba(66, 153, 255, .20);
+      animation: node-blink 2.7s ease-in-out infinite;
+    }
+
+    .spark:nth-child(1) { left: 64%; top: 63%; animation-delay: .1s; }
+    .spark:nth-child(2) { left: 77%; top: 42%; animation-delay: .7s; }
+    .spark:nth-child(3) { left: 88%; top: 28%; animation-delay: 1.3s; }
+    .spark:nth-child(4) { left: 40%; top: 82%; animation-delay: 1.9s; }
+    .spark:nth-child(5) { left: 56%; top: 67%; animation-delay: 2.2s; }
+
+    .hero-copy {
+      position: relative;
+      z-index: 8;
+      width: clamp(430px, 32vw, 600px);
+      max-width: 600px;
+      min-width: 0;
+      margin-left: calc(7.2vw + 25px);
+      padding-top: clamp(370px, calc(43vh + 20px), 490px);
+    }
+
+    .copy-shell {
+      position: relative;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+
+    .copy-shell::before {
+      position: absolute;
+      left: -86px;
+      top: -58px;
+      bottom: -56px;
+      width: min(690px, 48vw);
+      z-index: -1;
+      content: "";
+      border-radius: 0;
+      background:
+        linear-gradient(90deg, rgba(1, 5, 16, .56) 0%, rgba(2, 11, 28, .34) 38%, rgba(2, 11, 28, .11) 68%, transparent 100%),
+        radial-gradient(circle at 18% 44%, rgba(22, 95, 140, .14), transparent 62%);
+      opacity: .88;
+      filter: blur(10px);
+      mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, .80) 42%, rgba(0, 0, 0, .24) 74%, transparent 100%);
+    }
+
+    .copy-shell::after {
+      position: absolute;
+      left: 0;
+      right: 62%;
+      top: -18px;
+      height: 1px;
+      content: "";
+      background: linear-gradient(90deg, rgba(96, 236, 255, .88), transparent);
+      box-shadow: 0 0 10px rgba(96, 236, 255, .50);
+    }
+
+    h1 {
+      display: grid;
+      gap: .06em;
+      max-width: 100%;
+      font-size: clamp(38px, 2.65vw, 52px);
+      line-height: 1.08;
+      letter-spacing: .035em;
+      font-family: "Segoe UI Semibold", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+      font-weight: 900;
+      color: #dff9ff;
+      background: none;
+      -webkit-text-stroke: 0;
+      text-shadow: none;
+      transform: skewX(-3deg);
+    }
+
+    h1 span {
+      display: block;
+      white-space: nowrap;
+      color: transparent;
+      background: linear-gradient(
+        180deg,
+        #ffffff 0%,
+        #eafcff 22%,
+        #9ef6ff 68%,
+        #41dfff 100%
+      );
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow:
+        0 0 1px rgba(255,255,255,0.8),
+        0 0 7px rgba(97,235,255,0.48),
+        0 0 16px rgba(0,209,255,0.28),
+        0 2px 5px rgba(4,18,40,0.70);
+    }
+
+    .subtitle {
+      max-width: 520px;
+      margin-top: 22px;
+      color: #d4eef9;
+      background: none;
+      background-clip: border-box;
+      -webkit-background-clip: border-box;
+      -webkit-text-fill-color: #d4eef9;
+      font-size: clamp(19px, 1.05vw, 20px);
+      line-height: 1.65;
+      font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+      font-weight: 650;
+      letter-spacing: .035em;
+      text-shadow:
+        0 0 6px rgba(0,209,255,0.18),
+        0 2px 4px rgba(5,18,38,0.62);
+    }
+
+    .feature-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .feature-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 14px;
+      border: 1px solid rgba(113, 234, 255, .26);
+      border-radius: 999px;
+      color: rgba(218, 243, 255, .82);
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 800;
+      background: rgba(5, 17, 39, .22);
+      box-shadow: inset 0 0 10px rgba(39, 230, 255, .04), 0 0 8px rgba(39, 230, 255, .08);
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    .feature-tag::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      content: "";
+      background: #63f5ff;
+      box-shadow: 0 0 9px rgba(99, 245, 255, .58);
+    }
+
+    .feature-tag:hover {
+      transform: translateY(-2px);
+      border-color: rgba(180, 249, 255, .78);
+      background: rgba(12, 35, 71, .62);
+      box-shadow: inset 0 0 20px rgba(39, 230, 255, .14), 0 0 22px rgba(39, 230, 255, .25);
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 34px;
+    }
+
+    .enter-button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-width: 202px;
+      min-height: 58px;
+      padding: 0 24px;
+      overflow: hidden;
+      border: 1px solid rgba(199, 250, 255, .48);
+      border-radius: 999px;
+      color: #04101f;
+      text-decoration: none;
+      font-size: 19px;
+      font-weight: 900;
+      letter-spacing: .03em;
+      background: linear-gradient(135deg, #77ecff 0%, #25c8ff 50%, #7568ff 100%);
+      box-shadow:
+        0 18px 44px rgba(0, 180, 255, .30),
+        0 0 34px rgba(58, 231, 255, .42),
+        inset 0 1px 0 rgba(255, 255, 255, .62);
+      transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+    }
+
+    .enter-button::before {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background: linear-gradient(110deg, transparent 0 32%, rgba(255,255,255,.54) 46%, transparent 61% 100%);
+      transform: translateX(-120%);
+      transition: transform .5s ease;
+    }
+
+    .enter-button:hover {
+      transform: translateY(-4px);
+      filter: saturate(1.12);
+      box-shadow:
+        0 22px 58px rgba(0, 180, 255, .42),
+        0 0 48px rgba(58, 231, 255, .58),
+        inset 0 1px 0 rgba(255, 255, 255, .72);
+    }
+
+    .enter-button:hover::before {
+      transform: translateX(120%);
+    }
+
+    .button-chip,
+    .button-arrow {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(2, 13, 29, .78);
+      color: #bdf9ff;
+      box-shadow: inset 0 0 12px rgba(39, 230, 255, .28);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .button-arrow {
+      font-size: 18px;
+      color: #fff;
+    }
+
+    .enter-text {
+      position: relative;
+      z-index: 1;
+    }
+
+    .system-note {
+      display: none;
+      color: rgba(216, 241, 255, .62);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    @keyframes soft-scan-band {
+      from { transform: translateY(-22vh); }
+      to { transform: translateY(122vh); }
+    }
+
+    @keyframes pulse-ring {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.78) rotate(-10deg); }
+      42% { opacity: .78; }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.55) rotate(-10deg); }
+    }
+
+    @keyframes node-blink {
+      0%, 100% { opacity: .28; transform: scale(.74); }
+      50% { opacity: 1; transform: scale(1.28); }
+    }
+
+    @keyframes astronaut-breathe {
+      0%, 100% { opacity: .20; transform: scale(.98); }
+      50% { opacity: .42; transform: scale(1.03); }
+    }
+
+    @keyframes orbit-rotate {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pin-flicker {
+      0%, 100% {
+        opacity: .28;
+        background: rgba(137, 237, 255, .22);
+      }
+      50% {
+        opacity: .74;
+        background: rgba(166, 247, 255, .48);
+      }
+    }
+
+    @keyframes counter-refresh {
+      0%, 100% { transform: translate(0, 0); filter: brightness(1); }
+      40% { transform: translate(1px, -1px); filter: brightness(1.25); }
+      70% { transform: translate(-1px, 1px); filter: brightness(.9); }
+    }
+
+    @media (max-width: 1180px) {
+      .hero-copy {
+        width: clamp(430px, 38vw, 560px);
+        min-width: 0;
+        margin-left: calc(7.2vw + 25px);
+        padding-top: clamp(310px, calc(39vh + 20px), 420px);
+      }
+
+      h1 {
+        font-size: clamp(34px, 3.4vw, 40px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .scan-layer,
+      .robot-pulse,
+      .chip-pulse,
+      .logic-pulse,
+      .astronaut-breathe,
+      .chip-orbit::before,
+      .chip-pin,
+      .binary-counter,
+      .spark,
+      .enter-button,
+      .feature-tag {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="pixel-home" aria-labelledby="coverTitle">
+    <canvas class="pixel-canvas" data-pixel-home-canvas aria-hidden="true"></canvas>
+    <div class="scan-layer" aria-hidden="true"></div>
+    <div class="pulse-layer" aria-hidden="true">
+      <div class="astronaut-breathe"></div>
+      <div class="robot-pulse"></div>
+      <div class="chip-pulse"></div>
+      <div class="logic-pulse"></div>
+      <div class="chip-orbit">
+        <span class="chip-pin"></span>
+        <span class="chip-pin"></span>
+        <span class="chip-pin"></span>
+        <span class="chip-pin"></span>
+        <span class="chip-pin"></span>
+        <span class="chip-pin"></span>
+        <span class="chip-pin"></span>
+        <span class="chip-pin"></span>
+      </div>
+      <div class="binary-counter" data-binary-counter>1010</div>
+    </div>
+    <div class="glow-markers" aria-hidden="true">
+      <span class="spark"></span>
+      <span class="spark"></span>
+      <span class="spark"></span>
+      <span class="spark"></span>
+      <span class="spark"></span>
+    </div>
+
+    <section class="hero-copy">
+      <div class="copy-shell">
+        <h1 id="coverTitle" aria-label="数字电路智能仿真学习系统">
+          <span>数字电路</span>
+          <span>智能仿真学习系统</span>
+        </h1>
+
+        <p class="subtitle">集成逻辑门、触发器、译码器与存储器，探索动态信号与时序波形</p>
+
+        <nav class="feature-tags" aria-label="功能入口">
+          <a class="feature-tag" href="./gate-builder-demo.html" data-no-transition="true">逻辑门</a>
+          <a class="feature-tag" href="./labs.html" data-no-transition="true">触发器</a>
+          <a class="feature-tag" href="./labs.html" data-no-transition="true">译码器</a>
+          <a class="feature-tag" href="./gate-builder-demo.html" data-no-transition="true">存储器</a>
+        </nav>
+
+        <div class="hero-actions">
+          <a class="enter-button" href="./index.html">
+            <span class="button-chip">IC</span>
+            <span class="enter-text">进入系统</span>
+            <span class="button-arrow" aria-hidden="true">›</span>
+          </a>
+          <span class="system-note">PCB RUNWAY · LOGIC SIMULATION</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function initPixelHeroCanvas() {
+      const canvas = document.querySelector("[data-pixel-home-canvas]");
+      if (!canvas) return;
+
+      const context = canvas.getContext("2d", { alpha: true });
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const binaryRain = [];
+      const electrons = [];
+      const signalDots = [];
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let frameId = 0;
+      let lastTime = performance.now();
+
+      function random(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function sideRainX(side) {
+        if (side === "left") return random(width * .015, width * .155);
+        return random(width * .845, width * .985);
+      }
+
+      function seedBinaryRain() {
+        binaryRain.length = 0;
+        const count = Math.max(26, Math.floor(width / 62));
+        for (let index = 0; index < count; index += 1) {
+          const side = index % 2 === 0 ? "left" : "right";
+          binaryRain.push({
+            side,
+            x: sideRainX(side),
+            y: random(-height * .12, height * .96),
+            value: Math.random() > .5 ? "1" : "0",
+            speed: random(26, 58),
+            size: random(13, 22),
+            alpha: random(.08, .22),
+            drift: random(-3, 3)
+          });
+        }
+      }
+
+      function seedElectrons() {
+        electrons.length = 0;
+        const count = Math.max(54, Math.floor(width / 28));
+        for (let index = 0; index < count; index += 1) {
+          electrons.push({
+            x: random(width * .05, width * .98),
+            y: random(height * .05, height * .98),
+            radius: random(.8, 2.2),
+            alpha: random(.05, .20),
+            speed: random(4, 13),
+            drift: random(-5, 5),
+            pulse: random(0, Math.PI * 2)
+          });
+        }
+      }
+
+      function seedSignals() {
+        signalDots.length = 0;
+        const tracks = [
+          { sx: .14, sy: .93, ex: .48, ey: .73, bend: -28 },
+          { sx: .28, sy: .98, ex: .52, ey: .72, bend: 22 },
+          { sx: .43, sy: .98, ex: .55, ey: .70, bend: -12 },
+          { sx: .62, sy: .96, ex: .54, ey: .70, bend: 18 },
+          { sx: .78, sy: .91, ex: .57, ey: .69, bend: -26 },
+          { sx: .92, sy: .86, ex: .60, ey: .67, bend: 24 }
+        ];
+
+        tracks.forEach((track, trackIndex) => {
+          for (let index = 0; index < 2; index += 1) {
+            signalDots.push({
+              ...track,
+              t: random(0, 1),
+              speed: random(.032, .064) + trackIndex * .002,
+              radius: random(1.8, 3.1),
+              alpha: random(.16, .30)
+            });
+          }
+        });
+      }
+
+      function seed() {
+        seedBinaryRain();
+        seedElectrons();
+        seedSignals();
+      }
+
+      function drawBinaryRain(delta) {
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+
+        binaryRain.forEach((item) => {
+          item.y += item.speed * delta;
+          item.x += item.drift * delta;
+
+          if (item.y > height + 42) {
+            item.y = random(-120, -18);
+            item.x = sideRainX(item.side);
+            item.value = Math.random() > .5 ? "1" : "0";
+          }
+
+          const bottomFade = item.y > height * .78 ? Math.max(0, 1 - ((item.y - height * .78) / (height * .22))) : 1;
+          const edgeFade = item.side === "left"
+            ? Math.max(0, 1 - (item.x / (width * .22)))
+            : Math.max(0, 1 - ((width - item.x) / (width * .22)));
+          const alpha = item.alpha * (.55 + edgeFade * .45) * bottomFade;
+
+          context.save();
+          context.globalAlpha = alpha;
+          context.fillStyle = "#9defff";
+          context.shadowColor = "rgba(73, 213, 255, .42)";
+          context.shadowBlur = 8;
+          context.font = `800 ${item.size}px Consolas, "Cascadia Mono", monospace`;
+          context.fillText(item.value, item.x, item.y);
+          context.restore();
+        });
+      }
+
+      function drawElectrons(delta, time) {
+        electrons.forEach((electron) => {
+          electron.y -= electron.speed * delta;
+          electron.x += electron.drift * delta;
+          if (electron.y < -12) {
+            electron.y = height + random(10, 70);
+            electron.x = random(width * .05, width * .98);
+          }
+
+          const blink = .55 + Math.sin(time * .0017 + electron.pulse) * .30;
+          context.save();
+          context.globalAlpha = Math.max(.03, electron.alpha * blink);
+          context.fillStyle = "#a8f7ff";
+          context.shadowColor = "rgba(90, 225, 255, .40)";
+          context.shadowBlur = 9;
+          context.beginPath();
+          context.arc(electron.x, electron.y, electron.radius, 0, Math.PI * 2);
+          context.fill();
+          context.restore();
+        });
+      }
+
+      function getTrackPoint(dot, offset = 0) {
+        const t = Math.max(0, Math.min(1, dot.t - offset));
+        const x = (dot.sx + (dot.ex - dot.sx) * t) * width + Math.sin(t * Math.PI) * dot.bend;
+        const y = (dot.sy + (dot.ey - dot.sy) * t) * height;
+        return { x, y };
+      }
+
+      function drawSignals(delta) {
+        signalDots.forEach((dot) => {
+          dot.t += dot.speed * delta;
+          if (dot.t > 1.06) dot.t = 0;
+
+          const head = getTrackPoint(dot);
+          const tail = getTrackPoint(dot, .075);
+          const glow = context.createRadialGradient(head.x, head.y, 0, head.x, head.y, 22);
+          glow.addColorStop(0, `rgba(127, 250, 255, ${dot.alpha})`);
+          glow.addColorStop(.38, `rgba(56, 199, 255, ${dot.alpha * .42})`);
+          glow.addColorStop(1, "rgba(56, 199, 255, 0)");
+
+          context.save();
+          context.globalCompositeOperation = "screen";
+          context.strokeStyle = `rgba(75, 208, 255, ${dot.alpha * .48})`;
+          context.lineWidth = 1.2;
+          context.shadowColor = "rgba(66, 209, 255, .35)";
+          context.shadowBlur = 10;
+          context.beginPath();
+          context.moveTo(tail.x, tail.y);
+          context.lineTo(head.x, head.y);
+          context.stroke();
+
+          context.fillStyle = glow;
+          context.beginPath();
+          context.arc(head.x, head.y, 22, 0, Math.PI * 2);
+          context.fill();
+
+          context.fillStyle = "rgba(221, 255, 255, .68)";
+          context.shadowBlur = 12;
+          context.beginPath();
+          context.arc(head.x, head.y, dot.radius, 0, Math.PI * 2);
+          context.fill();
+          context.restore();
+        });
+      }
+
+      function render(now) {
+        if (document.hidden || motionQuery.matches) {
+          frameId = 0;
+          return;
+        }
+
+        const delta = Math.min((now - lastTime) / 1000, .05);
+        lastTime = now;
+        context.clearRect(0, 0, width, height);
+        drawBinaryRain(delta);
+        drawSignals(delta);
+        drawElectrons(delta, now);
+        frameId = requestAnimationFrame(render);
+      }
+
+      function start() {
+        if (motionQuery.matches || document.hidden || frameId) return;
+        lastTime = performance.now();
+        frameId = requestAnimationFrame(render);
+      }
+
+      function stop() {
+        if (!frameId) return;
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+
+      resize();
+      seed();
+      start();
+
+      window.addEventListener("resize", () => {
+        resize();
+        seed();
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) stop();
+        else start();
+      });
+
+      motionQuery.addEventListener?.("change", () => {
+        if (motionQuery.matches) {
+          stop();
+          context.clearRect(0, 0, width, height);
+        } else {
+          seed();
+          start();
+        }
+      });
+    }
+
+    function initBinaryCounter() {
+      const counter = document.querySelector("[data-binary-counter]");
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      if (!counter || motionQuery.matches) return;
+
+      let timer = 0;
+      function update() {
+        if (!document.hidden) {
+          counter.textContent = Math.floor(Math.random() * 16).toString(2).padStart(4, "0");
+          counter.classList.remove("is-refreshing");
+          void counter.offsetWidth;
+          counter.classList.add("is-refreshing");
+        }
+        timer = window.setTimeout(update, 420 + Math.random() * 520);
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) window.clearTimeout(timer);
+        else update();
+      });
+
+      update();
+    }
+
+    initPixelHeroCanvas();
+    initBinaryCounter();
+  </script>
+  <script src="./page-transition.js?v=20260621-1"></script>
+</body>
+</html>

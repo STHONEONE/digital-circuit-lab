@@ -683,12 +683,339 @@ async function returnToNormalPractice() {
 function openChat() {
   els.aiChatPanel.hidden = false;
   els.aiChatLauncher.hidden = true;
-  window.setTimeout(() => els.followupInput.focus(), 0);
+  window.setTimeout(() => {
+    restoreChatPosition();
+    els.followupInput.focus();
+  }, 0);
 }
 
 function closeChat() {
   els.aiChatPanel.hidden = true;
   els.aiChatLauncher.hidden = false;
+}
+
+const chatPositionStorageKey = "digital-circuit-ai-chat-position";
+let chatDragState = null;
+let chatResizeState = null;
+
+function canDragChatPanel() {
+  return window.matchMedia("(pointer: fine)").matches && !window.matchMedia("(max-width: 780px)").matches;
+}
+
+function isChatDragIgnored(target) {
+  return Boolean(target.closest("button, input, textarea, select, a, .chat-header-actions"));
+}
+
+function resetChatPosition(clearSaved = true) {
+  els.aiChatPanel.style.left = "";
+  els.aiChatPanel.style.top = "";
+  els.aiChatPanel.style.right = "";
+  els.aiChatPanel.style.bottom = "";
+  els.aiChatPanel.style.width = "";
+  els.aiChatPanel.style.height = "";
+  if (clearSaved) {
+    localStorage.removeItem(chatPositionStorageKey);
+  }
+}
+
+function getChatSizeLimits() {
+  return {
+    minWidth: 340,
+    minHeight: 420,
+    maxWidth: Math.max(340, window.innerWidth - 16),
+    maxHeight: Math.max(420, window.innerHeight - 24)
+  };
+}
+
+function getSavedChatState() {
+  const saved = localStorage.getItem(chatPositionStorageKey);
+  if (!saved) return null;
+
+  try {
+    return JSON.parse(saved);
+  } catch {
+    localStorage.removeItem(chatPositionStorageKey);
+    return null;
+  }
+}
+
+function saveChatState(patch = {}) {
+  const saved = getSavedChatState() || {};
+  const rect = els.aiChatPanel.getBoundingClientRect();
+  const nextState = {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+    ...saved,
+    ...patch
+  };
+  localStorage.setItem(chatPositionStorageKey, JSON.stringify(nextState));
+}
+
+function applyChatSize(width, height, persist = true) {
+  const rect = els.aiChatPanel.getBoundingClientRect();
+  const limits = getChatSizeLimits();
+  const nextWidth = Math.min(Math.max(limits.minWidth, width), limits.maxWidth);
+  const nextHeight = Math.min(Math.max(limits.minHeight, height), limits.maxHeight);
+
+  els.aiChatPanel.style.width = `${Math.round(nextWidth)}px`;
+  els.aiChatPanel.style.height = `${Math.round(nextHeight)}px`;
+
+  const boundedLeft = Math.min(rect.left, window.innerWidth - nextWidth - 8);
+  const boundedTop = Math.min(rect.top, window.innerHeight - nextHeight - 8);
+  applyChatPosition(boundedLeft, boundedTop, false);
+
+  if (persist) {
+    saveChatState({ width: nextWidth, height: nextHeight });
+  }
+}
+
+function applyChatBounds(left, top, width, height, persist = true) {
+  const limits = getChatSizeLimits();
+  const margin = 8;
+  let nextWidth = Math.min(Math.max(limits.minWidth, width), limits.maxWidth);
+  let nextHeight = Math.min(Math.max(limits.minHeight, height), limits.maxHeight);
+  let nextLeft = left;
+  let nextTop = top;
+
+  if (nextLeft < margin) {
+    nextWidth -= margin - nextLeft;
+    nextLeft = margin;
+  }
+  if (nextTop < margin) {
+    nextHeight -= margin - nextTop;
+    nextTop = margin;
+  }
+
+  nextWidth = Math.min(Math.max(limits.minWidth, nextWidth), limits.maxWidth);
+  nextHeight = Math.min(Math.max(limits.minHeight, nextHeight), limits.maxHeight);
+  nextLeft = Math.min(Math.max(margin, nextLeft), window.innerWidth - nextWidth - margin);
+  nextTop = Math.min(Math.max(margin, nextTop), window.innerHeight - nextHeight - margin);
+
+  els.aiChatPanel.style.left = `${Math.round(nextLeft)}px`;
+  els.aiChatPanel.style.top = `${Math.round(nextTop)}px`;
+  els.aiChatPanel.style.right = "auto";
+  els.aiChatPanel.style.bottom = "auto";
+  els.aiChatPanel.style.width = `${Math.round(nextWidth)}px`;
+  els.aiChatPanel.style.height = `${Math.round(nextHeight)}px`;
+
+  if (persist) {
+    saveChatState({
+      left: nextLeft,
+      top: nextTop,
+      width: nextWidth,
+      height: nextHeight
+    });
+  }
+}
+
+function applyChatPosition(left, top, persist = true) {
+  const rect = els.aiChatPanel.getBoundingClientRect();
+  const margin = 8;
+  const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
+  const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
+  const nextLeft = Math.min(Math.max(margin, left), maxLeft);
+  const nextTop = Math.min(Math.max(margin, top), maxTop);
+
+  els.aiChatPanel.style.left = `${Math.round(nextLeft)}px`;
+  els.aiChatPanel.style.top = `${Math.round(nextTop)}px`;
+  els.aiChatPanel.style.right = "auto";
+  els.aiChatPanel.style.bottom = "auto";
+
+  if (persist) {
+    saveChatState({ left: nextLeft, top: nextTop });
+  }
+}
+
+function restoreChatPosition() {
+  if (!canDragChatPanel()) {
+    resetChatPosition(false);
+    return;
+  }
+
+  const position = getSavedChatState();
+  if (!position) return;
+
+  if (Number.isFinite(position.width) && Number.isFinite(position.height)) {
+    applyChatSize(position.width, position.height, false);
+  }
+  if (Number.isFinite(position.left) && Number.isFinite(position.top)) {
+    applyChatPosition(position.left, position.top, false);
+  }
+  if (
+    Number.isFinite(position.left) ||
+    Number.isFinite(position.top) ||
+    Number.isFinite(position.width) ||
+    Number.isFinite(position.height)
+  ) {
+    saveChatState();
+  }
+}
+
+function setupChatDrag() {
+  const handle = els.aiChatPanel.querySelector(".chat-header");
+  if (!handle || !window.PointerEvent) return;
+
+  handle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !canDragChatPanel() || isChatDragIgnored(event.target)) return;
+
+    const rect = els.aiChatPanel.getBoundingClientRect();
+    chatDragState = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
+    els.aiChatPanel.classList.add("dragging");
+    handle.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+
+  handle.addEventListener("pointermove", (event) => {
+    if (!chatDragState || chatDragState.pointerId !== event.pointerId) return;
+    applyChatPosition(event.clientX - chatDragState.offsetX, event.clientY - chatDragState.offsetY, false);
+  });
+
+  function endDrag(event) {
+    if (!chatDragState || chatDragState.pointerId !== event.pointerId) return;
+    const rect = els.aiChatPanel.getBoundingClientRect();
+    applyChatPosition(rect.left, rect.top, true);
+    els.aiChatPanel.classList.remove("dragging");
+    chatDragState = null;
+    if (handle.hasPointerCapture(event.pointerId)) {
+      handle.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  handle.addEventListener("pointerup", endDrag);
+  handle.addEventListener("pointercancel", endDrag);
+  handle.addEventListener("dblclick", (event) => {
+    if (!isChatDragIgnored(event.target)) {
+      resetChatPosition(true);
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (els.aiChatPanel.hidden) return;
+    if (!canDragChatPanel()) {
+      resetChatPosition(false);
+      return;
+    }
+    restoreChatPosition();
+  });
+}
+
+function setupChatResize() {
+  if (!window.PointerEvent) return;
+
+  const resizeZone = 10;
+
+  function getResizeDirection(event) {
+    const rect = els.aiChatPanel.getBoundingClientRect();
+    const nearLeft = event.clientX <= rect.left + resizeZone;
+    const nearRight = event.clientX >= rect.right - resizeZone;
+    const nearTop = event.clientY <= rect.top + resizeZone;
+    const nearBottom = event.clientY >= rect.bottom - resizeZone;
+    let horizontal = "";
+    let vertical = "";
+
+    if (nearLeft) horizontal = "w";
+    if (nearRight) horizontal = "e";
+    if (nearTop) vertical = "n";
+    if (nearBottom) vertical = "s";
+
+    return `${vertical}${horizontal}`;
+  }
+
+  function cursorForDirection(direction) {
+    if (direction === "n" || direction === "s") return "ns-resize";
+    if (direction === "e" || direction === "w") return "ew-resize";
+    if (direction === "ne" || direction === "sw") return "nesw-resize";
+    if (direction === "nw" || direction === "se") return "nwse-resize";
+    return "";
+  }
+
+  els.aiChatPanel.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !canDragChatPanel()) return;
+    const rect = els.aiChatPanel.getBoundingClientRect();
+    const direction = getResizeDirection(event);
+    if (!direction) return;
+
+    chatResizeState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      width: rect.width,
+      height: rect.height,
+      left: rect.left,
+      top: rect.top,
+      direction
+    };
+    els.aiChatPanel.classList.add("resizing");
+    els.aiChatPanel.dataset.resizeDirection = direction;
+    els.aiChatPanel.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+
+  els.aiChatPanel.addEventListener("pointermove", (event) => {
+    if (!chatResizeState && canDragChatPanel()) {
+      const direction = getResizeDirection(event);
+      els.aiChatPanel.style.cursor = cursorForDirection(direction);
+    }
+
+    if (!chatResizeState || chatResizeState.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - chatResizeState.startX;
+    const deltaY = event.clientY - chatResizeState.startY;
+    const direction = chatResizeState.direction;
+    let nextLeft = chatResizeState.left;
+    let nextTop = chatResizeState.top;
+    let nextWidth = chatResizeState.width;
+    let nextHeight = chatResizeState.height;
+
+    if (direction.includes("e")) {
+      nextWidth = chatResizeState.width + deltaX;
+    }
+    if (direction.includes("s")) {
+      nextHeight = chatResizeState.height + deltaY;
+    }
+    if (direction.includes("w")) {
+      nextLeft = chatResizeState.left + deltaX;
+      nextWidth = chatResizeState.width - deltaX;
+    }
+    if (direction.includes("n")) {
+      nextTop = chatResizeState.top + deltaY;
+      nextHeight = chatResizeState.height - deltaY;
+    }
+
+    applyChatBounds(nextLeft, nextTop, nextWidth, nextHeight, false);
+  });
+
+  els.aiChatPanel.addEventListener("pointerleave", () => {
+    if (!chatResizeState) {
+      els.aiChatPanel.style.cursor = "";
+    }
+  });
+
+  function endResize(event) {
+    if (!chatResizeState || chatResizeState.pointerId !== event.pointerId) return;
+    const rect = els.aiChatPanel.getBoundingClientRect();
+    saveChatState({
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height
+    });
+    els.aiChatPanel.classList.remove("resizing");
+    delete els.aiChatPanel.dataset.resizeDirection;
+    els.aiChatPanel.style.cursor = "";
+    chatResizeState = null;
+    if (els.aiChatPanel.hasPointerCapture(event.pointerId)) {
+      els.aiChatPanel.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  els.aiChatPanel.addEventListener("pointerup", endResize);
+  els.aiChatPanel.addEventListener("pointercancel", endResize);
 }
 
 const mathCommandSymbols = {
@@ -1088,7 +1415,7 @@ document.querySelectorAll(".segments button").forEach((button) => {
   }, "切换中…"));
 });
 
-els.refreshButton.addEventListener("click", () => runAction(els.refreshButton, loadAll, "刷新中…"));
+els.refreshButton?.addEventListener("click", () => runAction(els.refreshButton, loadAll, "刷新中…"));
 els.shutdownButton.addEventListener("click", shutdownSystem);
 els.saveAiButton.addEventListener("click", () => runAction(els.saveAiButton, saveAiConfig, "保存中…"));
 els.submitButton.addEventListener("click", () => runAction(els.submitButton, submitAnswer, "判题中…"));
@@ -1098,6 +1425,8 @@ els.nextButton.addEventListener("click", () => {
 });
 els.aiChatLauncher.addEventListener("click", openChat);
 els.closeChatButton.addEventListener("click", closeChat);
+setupChatDrag();
+setupChatResize();
 els.toggleAiConfigButton.addEventListener("click", () => {
   els.aiConfigDrawer.hidden = !els.aiConfigDrawer.hidden;
   els.toggleAiConfigButton.textContent = els.aiConfigDrawer.hidden ? "设置" : "收起";
