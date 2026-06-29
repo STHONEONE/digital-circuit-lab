@@ -396,8 +396,8 @@
       z-index: 6;
       top: auto;
       bottom: 0;
-      height: 34vh;
-      opacity: .62;
+      height: 38vh;
+      opacity: .74;
       mix-blend-mode: screen;
       overflow: hidden;
       mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 82%, transparent 100%);
@@ -405,9 +405,9 @@
 
     .runway-flow-svg {
       position: absolute;
-      left: 20%;
-      bottom: -6%;
-      width: 80%;
+      left: 0;
+      bottom: -8%;
+      width: 100%;
       height: 120%;
       filter: drop-shadow(0 0 13px rgba(72, 220, 255, .36));
     }
@@ -420,35 +420,28 @@
       opacity: .34;
     }
 
-    .runway-signal {
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-width: 5;
-      stroke-dasharray: 46 520;
-      stroke-dashoffset: 0;
-      filter: drop-shadow(0 0 8px currentColor);
-      animation: runway-signal-flow 4.8s linear infinite;
-    }
-
-    .runway-signal.fast {
-      animation-duration: 3.7s;
-      animation-delay: -1.4s;
-      stroke-dasharray: 32 430;
-      stroke-width: 4;
-    }
-
-    .runway-signal.slow {
-      animation-duration: 6.2s;
-      animation-delay: -2.2s;
-      stroke-dasharray: 58 620;
-      stroke-width: 4;
-    }
-
     .runway-cyan { color: #62f4ff; stroke: currentColor; }
     .runway-blue { color: #4f8dff; stroke: currentColor; }
     .runway-violet { color: #8b5cf6; stroke: currentColor; }
     .runway-green { color: #4df6c2; stroke: currentColor; }
+
+    .runway-traveler {
+      color: #62f4ff;
+      filter: drop-shadow(0 0 10px currentColor);
+    }
+
+    .traveler-dot {
+      fill: currentColor;
+      stroke: rgba(255,255,255,.82);
+      stroke-width: 1;
+    }
+
+    .traveler-tail {
+      stroke: currentColor;
+      stroke-width: 5;
+      stroke-linecap: round;
+      opacity: .74;
+    }
 
     .cursor-field {
       z-index: 7;
@@ -899,10 +892,6 @@
       to { transform: translateX(-490px); }
     }
 
-    @keyframes runway-signal-flow {
-      to { stroke-dashoffset: -560; }
-    }
-
     @media (max-width: 1180px) {
       .hero-copy {
         width: clamp(430px, 38vw, 560px);
@@ -931,7 +920,6 @@
       .flow-trace::before,
       .flow-trace::after,
       .timing-wave,
-      .runway-signal,
       h1 span::after,
       .hero-copy,
       .feature-tags,
@@ -939,6 +927,10 @@
       .pixel-home {
         animation: none !important;
         transition: none !important;
+      }
+
+      .runway-traveler {
+        display: none !important;
       }
     }
   </style>
@@ -1002,14 +994,31 @@
     </div>
     <div class="runway-flow-layer" aria-hidden="true">
       <svg class="runway-flow-svg" viewBox="0 0 1200 360" preserveAspectRatio="none">
-        <path class="runway-base runway-cyan" d="M0 316 C 178 255, 354 245, 530 247 S 900 258, 1200 190" />
-        <path class="runway-base runway-blue" d="M0 344 C 204 288, 392 279, 594 281 S 941 282, 1200 235" />
-        <path class="runway-base runway-violet" d="M90 360 C 252 313, 430 306, 642 309 S 962 318, 1200 282" />
-        <path class="runway-base runway-green" d="M156 298 C 300 266, 452 258, 626 264 S 948 274, 1160 218" />
-        <path class="runway-signal runway-cyan" d="M0 316 C 178 255, 354 245, 530 247 S 900 258, 1200 190" />
-        <path class="runway-signal runway-blue fast" d="M0 344 C 204 288, 392 279, 594 281 S 941 282, 1200 235" />
-        <path class="runway-signal runway-violet slow" d="M90 360 C 252 313, 430 306, 642 309 S 962 318, 1200 282" />
-        <path class="runway-signal runway-green fast" d="M156 298 C 300 266, 452 258, 626 264 S 948 274, 1160 218" />
+        <path class="runway-base runway-cyan" d="M34 330 C 190 276, 350 258, 536 258 S 900 250, 1168 168" />
+        <path class="runway-base runway-blue" d="M0 356 C 204 296, 398 286, 604 288 S 932 284, 1200 226" />
+        <path class="runway-base runway-violet" d="M130 360 C 274 326, 452 314, 654 316 S 960 322, 1200 286" />
+        <path class="runway-base runway-green" d="M160 302 C 306 270, 462 264, 640 270 S 950 276, 1148 214" />
+
+        <g class="runway-traveler runway-cyan">
+          <line class="traveler-tail" x1="-42" y1="0" x2="-9" y2="0" />
+          <circle class="traveler-dot" r="5" />
+          <animateMotion dur="4.8s" repeatCount="indefinite" rotate="auto" path="M34 330 C 190 276, 350 258, 536 258 S 900 250, 1168 168" />
+        </g>
+        <g class="runway-traveler runway-blue">
+          <line class="traveler-tail" x1="-38" y1="0" x2="-8" y2="0" />
+          <circle class="traveler-dot" r="4.6" />
+          <animateMotion dur="3.9s" begin="-1.2s" repeatCount="indefinite" rotate="auto" path="M0 356 C 204 296, 398 286, 604 288 S 932 284, 1200 226" />
+        </g>
+        <g class="runway-traveler runway-violet">
+          <line class="traveler-tail" x1="-46" y1="0" x2="-10" y2="0" />
+          <circle class="traveler-dot" r="4.4" />
+          <animateMotion dur="6.1s" begin="-2.6s" repeatCount="indefinite" rotate="auto" path="M130 360 C 274 326, 452 314, 654 316 S 960 322, 1200 286" />
+        </g>
+        <g class="runway-traveler runway-green">
+          <line class="traveler-tail" x1="-36" y1="0" x2="-8" y2="0" />
+          <circle class="traveler-dot" r="4.2" />
+          <animateMotion dur="4.3s" begin="-3.1s" repeatCount="indefinite" rotate="auto" path="M160 302 C 306 270, 462 264, 640 270 S 950 276, 1148 214" />
+        </g>
       </svg>
     </div>
     <div class="cursor-field" aria-hidden="true"></div>
