@@ -21,7 +21,7 @@ test("choice answer is judged and persisted", () => {
   try {
     const result = practice.answer({
       questionId: "comb-001",
-      answer: "C",
+      answer: "A",
       practiceMode: "self_test"
     });
     assert.equal(result.correct, true);
@@ -36,12 +36,12 @@ test("wrong answer enters review and affects learning plan", () => {
   const { practice, cleanup } = fixture();
   try {
     practice.answer({
-      questionId: "ff-001",
+      questionId: "base-004",
       answer: "A",
       practiceMode: "normal"
     });
     assert.equal(practice.wrongReviewDetails().length, 1);
-    assert.equal(practice.learningPlan().primaryFocus, "JK 触发器");
+    assert.equal(practice.learningPlan().primaryFocus, "德摩根定律");
   } finally {
     cleanup();
   }

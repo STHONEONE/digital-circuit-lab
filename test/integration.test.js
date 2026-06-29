@@ -34,7 +34,7 @@ test("health, pages and question APIs are available", async () => {
   const transitionScript = await fetch(`${baseUrl}/page-transition.js`).then((response) => response.text());
 
   assert.equal(health.ok, true);
-  assert.equal(questions.length, 10);
+  assert.equal(questions.length, 16);
   assert.match(home, /数字电路智能仿真学习系统/);
   assert.match(home, /集成逻辑门、触发器、译码器与存储器，探索动态信号与时序波形/);
   assert.match(home, /\/assets\/neon-circuit-city-astronaut\.webp/);
