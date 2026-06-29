@@ -135,13 +135,18 @@ server = app.listen(port, () => {
   const actualPort = server.address().port;
   const url = `http://localhost:${actualPort}`;
   console.log(`数字电路智能学习平台已启动：${url}`);
-  if (String(process.env.AUTO_OPEN_BROWSER || "true").toLowerCase() === "true") {
+  const shouldAutoOpenBrowser = String(
+    process.env.AUTO_OPEN_BROWSER
+      ?? (process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT ? "false" : "true"),
+  ).toLowerCase() === "true";
+  if (shouldAutoOpenBrowser) {
     const command = process.platform === "win32"
       ? ["cmd", ["/c", "start", "", url]]
       : process.platform === "darwin"
         ? ["open", [url]]
         : ["xdg-open", [url]];
     const child = spawn(command[0], command[1], { detached: true, stdio: "ignore", windowsHide: true });
+    child.on("error", () => {});
     child.unref();
   }
 });
