@@ -11,6 +11,7 @@ import { AiService } from "./server/ai.js";
 import { ImportService } from "./server/importer.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
+const host = process.env.HOST || "0.0.0.0";
 const port = Number(process.env.PORT || 8080);
 export const app = express();
 const dataDir = process.env.DATA_DIR
@@ -131,10 +132,10 @@ app.use((error, _request, response, _next) => {
   response.status(error.status || 400).json({ error: error.message || "服务器处理失败" });
 });
 
-server = app.listen(port, () => {
+server = app.listen(port, host, () => {
   const actualPort = server.address().port;
   const url = `http://localhost:${actualPort}`;
-  console.log(`数字电路智能学习平台已启动：${url}`);
+  console.log(`数字电路智能学习平台已启动：${url} (${host})`);
   const shouldAutoOpenBrowser = String(
     process.env.AUTO_OPEN_BROWSER
       ?? (process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT ? "false" : "true"),
