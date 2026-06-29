@@ -38,6 +38,7 @@ const els = {
   questionDiagram: document.querySelector("#questionDiagram"),
   options: document.querySelector("#options"),
   answerInput: document.querySelector("#answerInput"),
+  prevButton: document.querySelector("#prevButton"),
   submitButton: document.querySelector("#submitButton"),
   nextButton: document.querySelector("#nextButton"),
   feedback: document.querySelector("#feedback"),
@@ -369,6 +370,9 @@ function renderQuestion() {
   selectedOption = null;
   els.feedback.textContent = "";
   els.feedback.className = "feedback";
+  const hasQuestions = questions.length > 0;
+  if (els.prevButton) els.prevButton.disabled = !hasQuestions;
+  if (els.nextButton) els.nextButton.disabled = !hasQuestions;
 
   if (!question) {
     renderSvg(els.questionDiagram, "");
@@ -419,6 +423,12 @@ function renderQuestion() {
   }
   renderRightPanel();
   updateChatQuestion(question);
+}
+
+function moveQuestion(step) {
+  if (!questions.length) return;
+  currentIndex = (currentIndex + step + questions.length) % questions.length;
+  renderQuestion();
 }
 
 async function submitAnswer() {
@@ -1456,10 +1466,8 @@ els.refreshButton?.addEventListener("click", () => runAction(els.refreshButton, 
 els.shutdownButton.addEventListener("click", shutdownSystem);
 els.saveAiButton.addEventListener("click", () => runAction(els.saveAiButton, saveAiConfig, "保存中…"));
 els.submitButton.addEventListener("click", () => runAction(els.submitButton, submitAnswer, "判题中…"));
-els.nextButton.addEventListener("click", () => {
-  currentIndex = (currentIndex + 1) % Math.max(1, questions.length);
-  renderQuestion();
-});
+els.prevButton?.addEventListener("click", () => moveQuestion(-1));
+els.nextButton.addEventListener("click", () => moveQuestion(1));
 els.aiChatLauncher.addEventListener("click", openChat);
 els.closeChatButton.addEventListener("click", closeChat);
 setupChatDrag();
