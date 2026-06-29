@@ -240,21 +240,24 @@ function renderProgress(progress) {
   els.trajectory.innerHTML = "";
   els.trajectory.classList.toggle("empty", rounds.length === 0);
   if (!rounds.length) {
-    els.trajectory.textContent = "暂无学习轮次";
+    els.trajectory.innerHTML = '<div class="trajectory-empty-title">暂无学习轮次</div><small>完成 5 次答题后，这里会显示每轮正确率变化。</small>';
   } else {
     rounds.forEach((round) => {
       const item = document.createElement("div");
       item.className = "trajectory-item";
-      item.title = `${round.mode}，${round.answered} 次作答`;
+      item.title = `${round.mode}，${round.answered} 次作答，正确率 ${round.correctRate}%`;
 
       const bar = document.createElement("div");
       bar.className = "trajectory-bar";
       bar.style.height = `${Math.max(4, round.correctRate)}%`;
+      const roundName = document.createElement("span");
+      roundName.className = "trajectory-round";
+      roundName.textContent = round.round;
       const rate = document.createElement("strong");
       rate.textContent = `${round.correctRate}%`;
       const label = document.createElement("small");
-      label.textContent = round.round;
-      item.append(bar, rate, label);
+      label.textContent = `${round.answered}题 / ${round.mode}`;
+      item.append(bar, roundName, rate, label);
       els.trajectory.append(item);
     });
   }
@@ -262,9 +265,9 @@ function renderProgress(progress) {
   const effect = progress.effectiveness || {};
   const sign = (effect.improvement || 0) > 0 ? "+" : "";
   const targetedText = (effect.personalizedAttempts || 0) > 0
-    ? `，针对训练 ${effect.personalizedRate || 0}%`
+    ? `，针对训练正确率 ${effect.personalizedRate || 0}%`
     : "";
-  els.effectiveness.textContent = `${effect.conclusion || ""} 初始 ${effect.baselineRate || 0}% → 最近 ${effect.recentRate || 0}%（${sign}${effect.improvement || 0}%）${targetedText}`;
+  els.effectiveness.textContent = `${effect.conclusion || "完成更多练习后，系统会判断个性化训练是否有效。"} 初始正确率 ${effect.baselineRate || 0}%，最近正确率 ${effect.recentRate || 0}%，变化 ${sign}${effect.improvement || 0}%${targetedText}`;
 
   els.knowledgeProgress.innerHTML = "";
   const knowledge = (progress.knowledge || []).slice(0, 6);
@@ -289,12 +292,11 @@ function renderProgress(progress) {
     els.knowledgeProgress.append(row);
   });
 }
-
 function renderMotivation(motivation) {
-  els.level.textContent = `Lv.${motivation.level || 1}`;
+  els.level.innerHTML = `<small>当前等级</small><strong>Lv.${motivation.level || 1}</strong>`;
   els.points.textContent = motivation.points || 0;
   els.streak.textContent = motivation.streakDays || 0;
-  els.motivationMessage.textContent = motivation.message || "";
+  els.motivationMessage.textContent = motivation.message || "完成练习后，这里会说明当前学习状态和下一步建议。";
   els.badges.innerHTML = "";
   (motivation.badges || []).forEach((badge) => {
     const item = document.createElement("span");
@@ -302,7 +304,6 @@ function renderMotivation(motivation) {
     els.badges.append(item);
   });
 }
-
 async function loadAiConfig() {
   const config = await fetchJson("/api/ai-config");
   els.baseUrlInput.value = config.baseUrl || "https://dashscope.aliyuncs.com/compatible-mode/v1";

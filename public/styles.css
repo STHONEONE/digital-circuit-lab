@@ -414,6 +414,26 @@ button:disabled { cursor: wait; opacity: .58; }
   font-weight: 700;
 }
 
+.level-chip {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 6px;
+  border-radius: 12px;
+  padding: 7px 10px;
+  line-height: 1.15;
+}
+
+.level-chip small {
+  color: inherit;
+  font-size: 11px;
+  opacity: .82;
+}
+
+.level-chip strong {
+  font-size: 16px;
+}
+
 .learning-plan { display: grid; gap: 7px; }
 
 .plan-step {
@@ -655,7 +675,7 @@ button:disabled { cursor: wait; opacity: .58; }
 
 .growth-stats strong, .growth-stats span, .stats strong, .stats span { display: block; }
 .growth-stats strong, .stats strong { font-size: 24px; }
-.growth-stats span, .stats span { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.growth-stats span, .stats span { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.45; }
 
 .motivation-message {
   margin: 0;
@@ -702,19 +722,29 @@ button:disabled { cursor: wait; opacity: .58; }
 }
 
 .trajectory.empty {
+  display: grid;
   align-items: center;
   justify-content: center;
   color: var(--muted);
   font-size: 12px;
+  text-align: center;
+  gap: 4px;
+}
+
+.trajectory-empty-title {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .trajectory-item {
   display: grid;
-  grid-template-rows: 1fr auto auto;
+  grid-template-rows: 1fr auto auto auto;
   align-items: end;
   justify-items: center;
-  min-width: 46px;
-  height: 98px;
+  min-width: 86px;
+  height: 104px;
+  padding: 0 4px;
 }
 
 .trajectory-bar {
@@ -724,8 +754,15 @@ button:disabled { cursor: wait; opacity: .58; }
   background: linear-gradient(180deg, #8b5cf6, var(--accent));
 }
 
-.trajectory-item strong { margin-top: 4px; font-size: 11px; }
-.trajectory-item small { color: var(--muted); font-size: 10px; }
+.trajectory-round {
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.trajectory-item strong { margin-top: 2px; font-size: 13px; }
+.trajectory-item small { color: var(--muted); font-size: 10px; text-align: center; }
 
 .effectiveness {
   margin-top: 8px;
