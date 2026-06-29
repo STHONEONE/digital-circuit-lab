@@ -36,7 +36,7 @@ test("wrong answer enters review and affects learning plan", () => {
   const { practice, cleanup } = fixture();
   try {
     practice.answer({
-      questionId: "base-004",
+      questionId: "base-007",
       answer: "A",
       practiceMode: "normal"
     });

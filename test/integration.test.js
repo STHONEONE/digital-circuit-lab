@@ -23,6 +23,9 @@ test.after(async () => {
 test("health, pages and question APIs are available", async () => {
   const health = await fetch(`${baseUrl}/api/health`).then((response) => response.json());
   const questions = await fetch(`${baseUrl}/api/questions`).then((response) => response.json());
+  const basicQuestions = await fetch(`${baseUrl}/api/questions?scope=basic-logic`).then((response) => response.json());
+  const combinationQuestions = await fetch(`${baseUrl}/api/questions?scope=combinational`).then((response) => response.json());
+  const sequentialQuestions = await fetch(`${baseUrl}/api/questions?scope=sequential`).then((response) => response.json());
   const home = await fetch(`${baseUrl}/`).then((response) => response.text());
   const appHome = await fetch(`${baseUrl}/index.html`).then((response) => response.text());
   const labs = await fetch(`${baseUrl}/labs.html`).then((response) => response.text());
@@ -34,7 +37,10 @@ test("health, pages and question APIs are available", async () => {
   const transitionScript = await fetch(`${baseUrl}/page-transition.js`).then((response) => response.text());
 
   assert.equal(health.ok, true);
-  assert.equal(questions.length, 16);
+  assert.equal(questions.length, 36);
+  assert.equal(basicQuestions.length, 12);
+  assert.equal(combinationQuestions.length, 12);
+  assert.equal(sequentialQuestions.length, 12);
   assert.match(home, /数字电路智能仿真学习系统/);
   assert.match(home, /集成逻辑门、触发器、译码器与存储器，探索动态信号与时序波形/);
   assert.match(home, /\/assets\/neon-circuit-city-astronaut\.webp/);
@@ -55,6 +61,9 @@ test("health, pages and question APIs are available", async () => {
   assert.match(home, /page-transition\.js/);
   assert.match(appHome, /数字电路个性化学习中心/);
   assert.match(appHome, /site-nav\.css/);
+  assert.match(appHome, /data-scope="basic-logic"/);
+  assert.match(appHome, /data-scope="combinational"/);
+  assert.match(appHome, /data-scope="sequential"/);
   assert.match(appHome, /site-nav__link active" href="\.\/index\.html" aria-current="page"/);
   assert.match(appHome, /href="\.\/gate-builder-demo\.html">实践中心/);
   assert.match(appHome, /href="\.\/labs\.html">实验中心/);
