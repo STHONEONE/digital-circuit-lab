@@ -628,8 +628,7 @@
       min-width: 202px;
       min-height: 58px;
       padding: 0 24px;
-      isolation: isolate;
-      overflow: visible;
+      overflow: hidden;
       border: 1px solid rgba(199, 250, 255, .48);
       border-radius: 999px;
       color: #04101f;
@@ -657,23 +656,6 @@
       clip-path: inset(0 round 999px);
     }
 
-    .enter-button::after {
-      position: absolute;
-      inset: -6px;
-      z-index: -1;
-      content: "";
-      border-radius: inherit;
-      background: conic-gradient(from 0deg, transparent 0 16%, rgba(117, 236, 255, .92), rgba(117, 104, 255, .78), transparent 42% 100%);
-      filter: blur(.2px);
-      opacity: .62;
-      animation: energy-ring 5.8s linear infinite;
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      mask-composite: exclude;
-      padding: 2px;
-    }
-
     .enter-button:hover {
       transform: translateY(-4px);
       filter: saturate(1.12);
@@ -685,11 +667,6 @@
 
     .enter-button:hover::before {
       transform: translateX(120%);
-    }
-
-    .enter-button:hover::after {
-      opacity: .95;
-      animation-duration: 1.8s;
     }
 
     .click-spark {
@@ -837,10 +814,6 @@
       }
     }
 
-    @keyframes energy-ring {
-      to { transform: rotate(360deg); }
-    }
-
     @keyframes click-spark-burst {
       0% {
         opacity: 1;
@@ -891,7 +864,6 @@
       .binary-counter,
       .spark,
       .enter-button,
-      .enter-button::after,
       .feature-tag,
       .flow-trace::before,
       .flow-trace::after,
