@@ -35,6 +35,7 @@ const els = {
   meta: document.querySelector("#meta"),
   knowledge: document.querySelector("#knowledge"),
   questionText: document.querySelector("#questionText"),
+  questionDiagram: document.querySelector("#questionDiagram"),
   options: document.querySelector("#options"),
   answerInput: document.querySelector("#answerInput"),
   submitButton: document.querySelector("#submitButton"),
@@ -336,6 +337,33 @@ function currentQuestion() {
   return questions[currentIndex];
 }
 
+function trustedSvg(svg) {
+  const value = String(svg || "").trim();
+  return /^<svg[\s>]/i.test(value) && !/<script|on\w+=|javascript:/i.test(value) ? value : "";
+}
+
+function renderSvg(target, svg, caption = "") {
+  if (!target) return;
+  const safeSvg = trustedSvg(svg);
+  target.innerHTML = "";
+  target.hidden = !safeSvg;
+  if (!safeSvg) return;
+
+  const figure = document.createElement("figure");
+  figure.className = "svg-figure";
+  const image = document.createElement("div");
+  image.className = "svg-figure__image";
+  image.innerHTML = safeSvg;
+  figure.append(image);
+
+  if (caption) {
+    const figcaption = document.createElement("figcaption");
+    figcaption.textContent = caption;
+    figure.append(figcaption);
+  }
+  target.append(figure);
+}
+
 function renderQuestion() {
   const question = currentQuestion();
   selectedOption = null;
@@ -343,6 +371,7 @@ function renderQuestion() {
   els.feedback.className = "feedback";
 
   if (!question) {
+    renderSvg(els.questionDiagram, "");
     els.chapter.textContent = "暂无";
     els.title.textContent = "暂无题目";
     els.meta.textContent = "0 / 0";
@@ -361,6 +390,7 @@ function renderQuestion() {
   els.title.textContent = question.title || "未命名题目";
   els.meta.textContent = `${currentIndex + 1} / ${questions.length} · 难度 ${question.difficulty || 2}`;
   els.questionText.textContent = question.text;
+  renderSvg(els.questionDiagram, question.diagramSvg, "题目示意");
   els.knowledge.innerHTML = "";
   (question.knowledge || []).forEach((item) => {
     const tag = document.createElement("span");
@@ -413,7 +443,7 @@ async function submitAnswer() {
     })
   });
   const text = `${result.message}\n参考答案：${result.referenceAnswer || ""}\n\n${result.explanation || ""}`;
-  showFeedback(result.correct, text);
+  showFeedback(result.correct, text, question.explanationSvg);
   if (activePracticeModule === "self_test") {
     completedSelfTestQuestions.add(question.id);
     renderSelfTestDirectory();
@@ -431,9 +461,16 @@ async function submitAnswer() {
     : loadRecommendations()]);
 }
 
-function showFeedback(ok, text) {
+function showFeedback(ok, text, svg = "") {
   els.feedback.className = `feedback ${ok ? "ok" : "bad"}`;
   els.feedback.textContent = text;
+  const safeSvg = trustedSvg(svg);
+  if (safeSvg) {
+    const diagram = document.createElement("div");
+    diagram.className = "answer-diagram";
+    renderSvg(diagram, safeSvg, "答案解析图");
+    els.feedback.append(diagram);
+  }
 }
 
 async function loadRecommendations() {

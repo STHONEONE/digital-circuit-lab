@@ -486,6 +486,43 @@ button:disabled { cursor: wait; opacity: .58; }
   line-height: 1.75;
 }
 
+.question-diagram,
+.answer-diagram {
+  margin: 0 0 20px;
+}
+
+.answer-diagram {
+  margin-top: 16px;
+}
+
+.svg-figure {
+  margin: 0;
+  border: 1px solid rgba(125, 211, 252, .26);
+  border-radius: 12px;
+  background: rgba(5, 14, 30, .46);
+  overflow: hidden;
+}
+
+.svg-figure__image {
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.svg-figure svg {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.svg-figure figcaption {
+  border-top: 1px solid rgba(125, 211, 252, .18);
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .options {
   display: grid;
   gap: 11px;

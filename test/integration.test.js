@@ -41,6 +41,8 @@ test("health, pages and question APIs are available", async () => {
   assert.equal(basicQuestions.length, 12);
   assert.equal(combinationQuestions.length, 12);
   assert.equal(sequentialQuestions.length, 12);
+  assert.ok(questions.some((question) => question.diagramSvg?.includes("<svg")));
+  assert.ok(questions.some((question) => question.explanationSvg?.includes("<svg")));
   assert.match(home, /数字电路智能仿真学习系统/);
   assert.match(home, /集成逻辑门、触发器、译码器与存储器，探索动态信号与时序波形/);
   assert.match(home, /\/assets\/neon-circuit-city-astronaut\.webp/);
@@ -64,11 +66,13 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /data-scope="basic-logic"/);
   assert.match(appHome, /data-scope="combinational"/);
   assert.match(appHome, /data-scope="sequential"/);
+  assert.match(appHome, /id="questionDiagram"/);
   assert.match(appHome, /site-nav__link active" href="\.\/index\.html" aria-current="page"/);
   assert.match(appHome, /href="\.\/gate-builder-demo\.html">实践中心/);
   assert.match(appHome, /href="\.\/labs\.html">实验中心/);
   assert.doesNotMatch(appHome, /page-transition\.js/);
   assert.match(appHome, /gate-builder-demo\.html/);
+  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /function renderSvg/);
   assert.match(labs, /交互仿真实验中心/);
   assert.match(labs, /site-nav\.css/);
   assert.match(labs, /href="\.\/index\.html">学习中心/);

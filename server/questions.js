@@ -1,3 +1,73 @@
+const halfAdderSvg = `<svg viewBox="0 0 640 230" role="img" aria-label="半加器电路图" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/></marker></defs>
+  <rect width="640" height="230" rx="16" fill="#071527"/>
+  <g fill="none" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)">
+    <path d="M70 70 H210"/><path d="M70 150 H210"/><path d="M330 90 H520"/><path d="M330 155 H520"/>
+  </g>
+  <g fill="#0f213d" stroke="#7dd3fc" stroke-width="3">
+    <path d="M210 40 H275 Q335 40 360 110 Q335 180 275 180 H210 Q250 110 210 40Z"/>
+    <path d="M198 40 Q238 110 198 180"/>
+    <path d="M215 128 H300 Q342 128 360 155 Q342 182 300 182 H215 Z"/>
+  </g>
+  <g fill="#e0f2fe" font-family="Arial, sans-serif" font-size="20" font-weight="700">
+    <text x="38" y="76">A</text><text x="38" y="156">B</text><text x="245" y="115">XOR</text><text x="250" y="162">AND</text><text x="540" y="96">S=A⊕B</text><text x="540" y="162">C=AB</text>
+  </g>
+</svg>`;
+
+const fullAdderSvg = `<svg viewBox="0 0 720 260" role="img" aria-label="全加器结构图" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arrow-fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#38bdf8"/></marker></defs>
+  <rect width="720" height="260" rx="16" fill="#071527"/>
+  <g fill="#0f213d" stroke="#7dd3fc" stroke-width="3">
+    <rect x="170" y="45" width="150" height="80" rx="12"/><rect x="400" y="45" width="150" height="80" rx="12"/><rect x="280" y="155" width="150" height="70" rx="12"/>
+  </g>
+  <g fill="none" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow-fa)">
+    <path d="M60 70 H170"/><path d="M60 105 H170"/><path d="M320 85 H400"/><path d="M75 190 H280"/><path d="M550 85 H650"/><path d="M430 190 H650"/>
+  </g>
+  <g fill="#e0f2fe" font-family="Arial, sans-serif" font-size="18" font-weight="700">
+    <text x="35" y="76">A</text><text x="35" y="111">B</text><text x="34" y="196">Cin</text><text x="205" y="92">半加器1</text><text x="435" y="92">半加器2</text><text x="315" y="197">OR</text><text x="665" y="90">S</text><text x="665" y="196">Cout</text>
+  </g>
+</svg>`;
+
+const decoderSvg = `<svg viewBox="0 0 660 260" role="img" aria-label="3-8译码器示意图" xmlns="http://www.w3.org/2000/svg">
+  <rect width="660" height="260" rx="16" fill="#071527"/>
+  <rect x="210" y="35" width="190" height="190" rx="14" fill="#0f213d" stroke="#7dd3fc" stroke-width="3"/>
+  <g stroke="#38bdf8" stroke-width="3" fill="none">
+    <path d="M65 75 H210"/><path d="M65 130 H210"/><path d="M65 185 H210"/>
+    <path d="M400 55 H560"/><path d="M400 78 H560"/><path d="M400 101 H560"/><path d="M400 124 H560"/><path d="M400 147 H560"/><path d="M400 170 H560"/><path d="M400 193 H560"/><path d="M400 216 H560"/>
+  </g>
+  <g fill="#e0f2fe" font-family="Arial, sans-serif" font-size="18" font-weight="700">
+    <text x="35" y="81">A</text><text x="35" y="136">B</text><text x="35" y="191">C</text><text x="252" y="128">3-8 DEC</text>
+    <text x="575" y="61">Y0</text><text x="575" y="84">Y1</text><text x="575" y="107">Y2</text><text x="575" y="130">Y3</text><text x="575" y="153">Y4</text><text x="575" y="176">Y5</text><text x="575" y="199">Y6</text><text x="575" y="222">Y7</text>
+  </g>
+  <circle cx="562" cy="193" r="7" fill="#22c55e"/><text x="430" y="245" fill="#bbf7d0" font-family="Arial, sans-serif" font-size="16">ABC=110 时 Y6 有效</text>
+</svg>`;
+
+const dffWaveSvg = `<svg viewBox="0 0 720 260" role="img" aria-label="D触发器波形图" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="260" rx="16" fill="#071527"/>
+  <g stroke="#334155" stroke-width="1"><path d="M90 40 H680"/><path d="M90 105 H680"/><path d="M90 170 H680"/></g>
+  <g fill="#e0f2fe" font-family="Arial, sans-serif" font-size="18" font-weight="700"><text x="35" y="72">CLK</text><text x="50" y="137">D</text><text x="50" y="202">Q</text></g>
+  <path d="M100 80 H140 V45 H180 V80 H240 V45 H280 V80 H340 V45 H380 V80 H680" fill="none" stroke="#38bdf8" stroke-width="4"/>
+  <path d="M100 145 H180 V110 H300 V145 H420 V110 H680" fill="none" stroke="#facc15" stroke-width="4"/>
+  <path d="M100 210 H180 V175 H300 V210 H420 V175 H680" fill="none" stroke="#22c55e" stroke-width="4"/>
+  <g stroke="#f472b6" stroke-width="2" stroke-dasharray="6 6"><path d="M180 35 V225"/><path d="M300 35 V225"/><path d="M420 35 V225"/></g>
+  <g fill="#fecdd3" font-family="Arial, sans-serif" font-size="14"><text x="160" y="32">↑</text><text x="280" y="32">↑</text><text x="400" y="32">↑</text></g>
+</svg>`;
+
+const counterSvg = `<svg viewBox="0 0 700 250" role="img" aria-label="3位计数器状态环" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arrow-counter" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#38bdf8"/></marker></defs>
+  <rect width="700" height="250" rx="16" fill="#071527"/>
+  <g fill="none" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow-counter)">
+    <path d="M145 68 C205 25 285 25 345 68"/><path d="M405 68 C465 25 545 25 605 68"/><path d="M620 112 C650 145 650 190 610 210"/><path d="M545 220 C465 245 235 245 155 220"/><path d="M90 205 C50 165 55 105 90 78"/>
+  </g>
+  <g fill="#0f213d" stroke="#7dd3fc" stroke-width="3">
+    <circle cx="110" cy="70" r="34"/><circle cx="370" cy="70" r="34"/><circle cx="630" cy="90" r="34"/><circle cx="570" cy="205" r="34"/><circle cx="130" cy="205" r="34"/>
+  </g>
+  <g fill="#e0f2fe" font-family="Arial, sans-serif" font-size="18" font-weight="700" text-anchor="middle">
+    <text x="110" y="77">000</text><text x="370" y="77">001</text><text x="630" y="97">010</text><text x="570" y="212">...</text><text x="130" y="212">111</text>
+  </g>
+  <text x="230" y="135" fill="#bbf7d0" font-family="Arial, sans-serif" font-size="18">3 位二进制计数器共有 2³ = 8 个状态</text>
+</svg>`;
+
 export const seedQuestions = [
   {
     id: "base-001",
@@ -215,6 +285,8 @@ export const seedQuestions = [
     title: "3-8 译码器输出",
     type: "single_choice",
     text: "高电平有效的 3-8 译码器输入 ABC=110 时，哪一路输出为 1？",
+    diagramSvg: decoderSvg,
+    explanationSvg: decoderSvg,
     options: ["Y5", "Y6", "Y7", "Y3"],
     answer: 1,
     answerText: "Y6",
@@ -275,6 +347,8 @@ export const seedQuestions = [
     title: "半加器",
     type: "single_choice",
     text: "半加器的两个输入为 A、B，则和位 S 与进位 C 分别为哪一组？",
+    diagramSvg: halfAdderSvg,
+    explanationSvg: halfAdderSvg,
     options: ["S=A+B，C=AB", "S=A⊕B，C=AB", "S=AB，C=A⊕B", "S=A⊙B，C=A+B"],
     answer: 1,
     answerText: "S=A⊕B，C=AB",
@@ -290,6 +364,8 @@ export const seedQuestions = [
     title: "全加器进位",
     type: "single_choice",
     text: "全加器输入 A=1、B=1、Cin=0 时，输出 S 和 Cout 分别为多少？",
+    diagramSvg: fullAdderSvg,
+    explanationSvg: fullAdderSvg,
     options: ["S=0，Cout=1", "S=1，Cout=0", "S=1，Cout=1", "S=0，Cout=0"],
     answer: 0,
     answerText: "S=0，Cout=1",
@@ -379,6 +455,8 @@ export const seedQuestions = [
     title: "D 触发器功能",
     type: "single_choice",
     text: "边沿触发 D 触发器在有效时钟沿到来后，Q(n+1) 等于什么？",
+    diagramSvg: dffWaveSvg,
+    explanationSvg: dffWaveSvg,
     options: ["0", "1", "D", "Q(n)'"],
     answer: 2,
     answerText: "D",
@@ -454,6 +532,8 @@ export const seedQuestions = [
     title: "二进制计数器",
     type: "single_choice",
     text: "3 位二进制加法计数器最多可以表示多少个不同状态？",
+    diagramSvg: counterSvg,
+    explanationSvg: counterSvg,
     options: ["3 个", "6 个", "8 个", "16 个"],
     answer: 2,
     answerText: "8 个",
@@ -529,6 +609,8 @@ export const seedQuestions = [
     title: "波形分析",
     type: "analysis",
     text: "D 触发器初态 Q=0。在三个连续上升沿到来前，D 依次稳定为 1、0、1。请写出每个上升沿后的 Q 序列。",
+    diagramSvg: dffWaveSvg,
+    explanationSvg: dffWaveSvg,
     options: [],
     answerText: "Q 序列为 1、0、1。",
     explanation: "D 触发器在每个有效上升沿采样当时的 D 值，因此输出序列与 D 序列一致。",
