@@ -87,7 +87,8 @@ const els = {
   badges: document.querySelector("#badges"),
   trajectory: document.querySelector("#trajectory"),
   effectiveness: document.querySelector("#effectiveness"),
-  knowledgeProgress: document.querySelector("#knowledgeProgress")
+  knowledgeProgress: document.querySelector("#knowledgeProgress"),
+  coreCenter: document.querySelector(".core-center")
 };
 
 async function loadAll() {
@@ -271,6 +272,10 @@ function renderProgress(progress) {
 
   els.knowledgeProgress.innerHTML = "";
   const knowledge = (progress.knowledge || []).slice(0, 6);
+  const coreProgress = knowledge.length
+    ? Math.round(knowledge.reduce((sum, item) => sum + (item.rate || 0), 0) / knowledge.length)
+    : 0;
+  if (els.coreCenter) els.coreCenter.textContent = `${coreProgress}%`;
   if (!knowledge.length) {
     els.knowledgeProgress.textContent = "完成答题后显示各知识点掌握度。";
   }
