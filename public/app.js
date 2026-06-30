@@ -37,6 +37,7 @@ const els = {
   chapter: document.querySelector("#chapter"),
   title: document.querySelector("#title"),
   meta: document.querySelector("#meta"),
+  questionPickerPanel: document.querySelector("#questionPickerPanel"),
   knowledge: document.querySelector("#knowledge"),
   questionText: document.querySelector("#questionText"),
   questionDiagram: document.querySelector("#questionDiagram"),
@@ -407,6 +408,7 @@ function renderQuestion() {
     els.chapter.textContent = "暂无";
     els.title.textContent = "暂无题目";
     els.meta.textContent = "0 / 0";
+    renderQuestionPicker();
     els.questionText.textContent = practiceMode === "wrong_review"
       ? "当前没有待复盘错题，继续保持。"
       : "请导入题库，或切换练习范围。";
@@ -421,6 +423,7 @@ function renderQuestion() {
   els.chapter.textContent = `${question.chapter || "数字电路"} · ${modeLabels[practiceMode]}`;
   els.title.textContent = question.title || "未命名题目";
   els.meta.textContent = `${currentIndex + 1} / ${questions.length} · 难度 ${question.difficulty || 2}`;
+  renderQuestionPicker();
   els.questionText.textContent = question.text;
   renderSvg(els.questionDiagram, question.diagramSvg, "题目示意");
   els.knowledge.innerHTML = "";
@@ -451,6 +454,26 @@ function renderQuestion() {
   }
   renderRightPanel();
   updateChatQuestion(question);
+}
+
+function renderQuestionPicker() {
+  if (!els.questionPickerPanel) return;
+  els.questionPickerPanel.innerHTML = "";
+  questions.forEach((_question, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "question-number-button";
+    button.classList.toggle("current", index === currentIndex);
+    button.textContent = index + 1;
+    button.setAttribute("aria-label", `第 ${index + 1} 题`);
+    button.addEventListener("click", () => {
+      currentIndex = index;
+      els.questionPickerPanel.hidden = true;
+      els.meta?.setAttribute("aria-expanded", "false");
+      renderQuestion();
+    });
+    els.questionPickerPanel.append(button);
+  });
 }
 
 function moveQuestion(step) {
@@ -1496,6 +1519,19 @@ els.saveAiButton.addEventListener("click", () => runAction(els.saveAiButton, sav
 els.submitButton.addEventListener("click", () => runAction(els.submitButton, submitAnswer, "判题中…"));
 els.prevButton?.addEventListener("click", () => moveQuestion(-1));
 els.nextButton.addEventListener("click", () => moveQuestion(1));
+els.meta?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  if (!els.questionPickerPanel || !questions.length) return;
+  const nextHidden = !els.questionPickerPanel.hidden;
+  els.questionPickerPanel.hidden = nextHidden;
+  els.meta.setAttribute("aria-expanded", String(!nextHidden));
+});
+document.addEventListener("click", (event) => {
+  if (!els.questionPickerPanel || els.questionPickerPanel.hidden) return;
+  if (event.target === els.meta || els.questionPickerPanel.contains(event.target)) return;
+  els.questionPickerPanel.hidden = true;
+  els.meta?.setAttribute("aria-expanded", "false");
+});
 els.aiChatLauncher.addEventListener("click", openChat);
 els.closeChatButton.addEventListener("click", closeChat);
 setupChatDrag();
