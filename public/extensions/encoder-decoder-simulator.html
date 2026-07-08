@@ -89,6 +89,33 @@
             min-width: 260px;
         }
 
+        .topbar-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 38px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: #fff;
+            padding: 0 14px;
+            color: var(--primary-dark);
+            font-weight: 800;
+            text-decoration: none;
+            box-shadow: 0 4px 14px rgba(31, 45, 61, 0.08);
+        }
+
+        .back-link:hover {
+            border-color: rgba(15, 118, 110, .45);
+            background: #ecfdf5;
+        }
+
         .legend-pill {
             display: inline-flex;
             align-items: center;
@@ -868,10 +895,14 @@
                 display: block;
             }
 
+            .topbar-actions {
+                align-items: flex-start;
+                margin-top: 12px;
+            }
+
             .status-legend {
                 justify-content: flex-start;
                 min-width: 0;
-                margin-top: 12px;
             }
 
             main {
@@ -915,10 +946,13 @@
                     <h1>数字电路编码译码综合仿真平台</h1>
                     <p class="subtitle">把编码器、译码器和七段显示统一到一个页面，适合课堂演示、实验预习和真值表对照。</p>
                 </div>
-                <div class="status-legend" aria-label="电平颜色说明">
-                    <span class="legend-pill"><span class="legend-dot"></span>有效输入或选中输出</span>
-                    <span class="legend-pill"><span class="legend-dot high"></span>普通高电平</span>
-                    <span class="legend-pill"><span class="legend-dot warn"></span>无效或需注意状态</span>
+                <div class="topbar-actions">
+                    <a class="back-link" href="../extensions.html">返回扩展中心</a>
+                    <div class="status-legend" aria-label="电平颜色说明">
+                        <span class="legend-pill"><span class="legend-dot"></span>有效输入或选中输出</span>
+                        <span class="legend-pill"><span class="legend-dot high"></span>普通高电平</span>
+                        <span class="legend-pill"><span class="legend-dot warn"></span>无效或需注意状态</span>
+                    </div>
                 </div>
             </div>
             <nav class="nav-tabs" aria-label="模块导航">
