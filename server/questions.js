@@ -2,24 +2,22 @@ const halfAdderSvg = `<svg viewBox="0 0 640 230" role="img" aria-label="半加�
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/></marker></defs>
   <rect width="640" height="230" rx="16" fill="#071527"/>
   <g fill="none" stroke="#38bdf8" stroke-width="3">
-    <path d="M70 70 H180"/>
-    <path d="M70 150 H180"/>
-    <path d="M180 70 V92 H225" marker-end="url(#arrow)"/>
-    <path d="M180 150 V122 H225" marker-end="url(#arrow)"/>
-    <path d="M180 70 V158 H225" marker-end="url(#arrow)"/>
-    <path d="M180 150 V188 H225" marker-end="url(#arrow)"/>
-    <path d="M390 107 H525" marker-end="url(#arrow)"/>
-    <path d="M390 173 H525" marker-end="url(#arrow)"/>
+    <path d="M75 65 H185 V78 H235" marker-end="url(#arrow)"/>
+    <path d="M75 155 H185 V118 H235" marker-end="url(#arrow)"/>
+    <path d="M75 65 H160 V150 H235" marker-end="url(#arrow)"/>
+    <path d="M75 155 H235" marker-end="url(#arrow)"/>
+    <path d="M365 98 H520" marker-end="url(#arrow)"/>
+    <path d="M365 165 H520" marker-end="url(#arrow)"/>
   </g>
   <g fill="#0f213d" stroke="#7dd3fc" stroke-width="3">
-    <path d="M225 45 H300 Q360 45 390 107 Q360 169 300 169 H225 Q265 107 225 45Z"/>
-    <path d="M213 45 Q253 107 213 169"/>
-    <path d="M225 140 H315 Q375 140 390 173 Q375 206 315 206 H225 Z"/>
+    <rect x="235" y="48" width="130" height="82" rx="14"/>
+    <rect x="235" y="135" width="130" height="60" rx="14"/>
   </g>
   <g fill="#e0f2fe" font-family="Arial, sans-serif" font-size="20" font-weight="700">
-    <text x="38" y="76">A</text><text x="38" y="156">B</text>
-    <text x="270" y="113">XOR</text><text x="270" y="181">AND</text>
-    <text x="540" y="113">S=A⊕B</text><text x="540" y="179">C=AB</text>
+    <text x="38" y="72">A</text><text x="38" y="162">B</text>
+    <text x="273" y="96">XOR</text><text x="273" y="173">AND</text>
+    <text x="540" y="104">S=A⊕B</text><text x="540" y="171">C=AB</text>
+    <text x="205" y="32" fill="#93c5fd" font-size="16">A、B 同时送入异或门与与门</text>
   </g>
 </svg>`;
 
