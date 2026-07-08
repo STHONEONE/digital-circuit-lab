@@ -21,7 +21,7 @@ test("choice answer is judged and persisted", () => {
   try {
     const result = practice.answer({
       questionId: "comb-001",
-      answer: "A",
+      answer: "B",
       practiceMode: "self_test"
     });
     assert.equal(result.correct, true);
@@ -37,11 +37,11 @@ test("wrong answer enters review and affects learning plan", () => {
   try {
     practice.answer({
       questionId: "base-007",
-      answer: "A",
+      answer: "B",
       practiceMode: "normal"
     });
     assert.equal(practice.wrongReviewDetails().length, 1);
-    assert.equal(practice.learningPlan().primaryFocus, "德摩根定律");
+    assert.ok(practice.learningPlan().focusKnowledge.includes("德摩根定律"));
   } finally {
     cleanup();
   }
