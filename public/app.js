@@ -153,6 +153,15 @@ function showSystemNotice(message, type = "", autoHide = false) {
   }
 }
 
+function shuffled(list) {
+  const result = [...list];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+}
+
 async function runAction(button, action, pendingText) {
   const originalText = button?.textContent;
   if (button) {
@@ -175,7 +184,10 @@ async function loadQuestions() {
   const params = new URLSearchParams();
   if (currentScope !== "all") params.set("scope", currentScope);
   if (currentSource) params.set("source", currentSource);
-  questions = await fetchJson(`/api/questions?${params.toString()}`);
+  const loadedQuestions = await fetchJson(`/api/questions?${params.toString()}`);
+  questions = practiceMode === "normal" && currentScope === "all" && !currentSource
+    ? shuffled(loadedQuestions)
+    : loadedQuestions;
   currentIndex = Math.min(currentIndex, Math.max(0, questions.length - 1));
 }
 

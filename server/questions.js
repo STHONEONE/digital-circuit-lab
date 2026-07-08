@@ -1,16 +1,25 @@
 const halfAdderSvg = `<svg viewBox="0 0 640 230" role="img" aria-label="半加器电路图" xmlns="http://www.w3.org/2000/svg">
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/></marker></defs>
   <rect width="640" height="230" rx="16" fill="#071527"/>
-  <g fill="none" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)">
-    <path d="M70 70 H210"/><path d="M70 150 H210"/><path d="M330 90 H520"/><path d="M330 155 H520"/>
+  <g fill="none" stroke="#38bdf8" stroke-width="3">
+    <path d="M70 70 H180"/>
+    <path d="M70 150 H180"/>
+    <path d="M180 70 V92 H225" marker-end="url(#arrow)"/>
+    <path d="M180 150 V122 H225" marker-end="url(#arrow)"/>
+    <path d="M180 70 V158 H225" marker-end="url(#arrow)"/>
+    <path d="M180 150 V188 H225" marker-end="url(#arrow)"/>
+    <path d="M390 107 H525" marker-end="url(#arrow)"/>
+    <path d="M390 173 H525" marker-end="url(#arrow)"/>
   </g>
   <g fill="#0f213d" stroke="#7dd3fc" stroke-width="3">
-    <path d="M210 40 H275 Q335 40 360 110 Q335 180 275 180 H210 Q250 110 210 40Z"/>
-    <path d="M198 40 Q238 110 198 180"/>
-    <path d="M215 128 H300 Q342 128 360 155 Q342 182 300 182 H215 Z"/>
+    <path d="M225 45 H300 Q360 45 390 107 Q360 169 300 169 H225 Q265 107 225 45Z"/>
+    <path d="M213 45 Q253 107 213 169"/>
+    <path d="M225 140 H315 Q375 140 390 173 Q375 206 315 206 H225 Z"/>
   </g>
   <g fill="#e0f2fe" font-family="Arial, sans-serif" font-size="20" font-weight="700">
-    <text x="38" y="76">A</text><text x="38" y="156">B</text><text x="245" y="115">XOR</text><text x="250" y="162">AND</text><text x="540" y="96">S=A⊕B</text><text x="540" y="162">C=AB</text>
+    <text x="38" y="76">A</text><text x="38" y="156">B</text>
+    <text x="270" y="113">XOR</text><text x="270" y="181">AND</text>
+    <text x="540" y="113">S=A⊕B</text><text x="540" y="179">C=AB</text>
   </g>
 </svg>`;
 
