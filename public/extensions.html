@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>扩展仿真中心</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css?v=20260621-2">
+  <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
+  <style>
+    .extensions-shell {
+      width: min(1180px, calc(100vw - 48px));
+      margin: 0 auto;
+      padding: 34px 0 48px;
+    }
+
+    .extensions-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 24px;
+      padding: 28px;
+      border: 1px solid rgba(125, 211, 252, .25);
+      border-radius: 18px;
+      background: rgba(5, 14, 32, .68);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .06);
+      backdrop-filter: blur(14px);
+    }
+
+    .extensions-hero p {
+      margin: 0 0 8px;
+      color: #7dd3fc;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+
+    .extensions-hero h1 {
+      margin: 0;
+      color: #f8fdff;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.12;
+    }
+
+    .extensions-hero .summary {
+      max-width: 760px;
+      margin-top: 12px;
+      color: #c7dff2;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    .extension-module {
+      display: flex;
+      min-height: 260px;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+      border: 1px solid rgba(125, 211, 252, .24);
+      border-radius: 16px;
+      background: rgba(5, 14, 32, .72);
+      padding: 22px;
+      color: #eef9ff;
+      text-decoration: none;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .05);
+      backdrop-filter: blur(14px);
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .extension-module:hover {
+      transform: translateY(-3px);
+      border-color: rgba(34, 211, 238, .68);
+      box-shadow: 0 24px 52px rgba(34, 211, 238, .14), inset 0 1px 0 rgba(255, 255, 255, .08);
+    }
+
+    .extension-module .eyebrow {
+      display: inline-flex;
+      width: fit-content;
+      border: 1px solid rgba(56, 189, 248, .3);
+      border-radius: 999px;
+      background: rgba(14, 165, 233, .12);
+      padding: 7px 11px;
+      color: #7dd3fc;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .extension-module h2 {
+      margin: 16px 0 10px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .extension-module p {
+      margin: 0;
+      color: #c7dff2;
+      line-height: 1.7;
+    }
+
+    .module-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      color: #67e8f9;
+      font-weight: 900;
+    }
+
+    .module-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .module-tags span {
+      border: 1px solid rgba(148, 163, 184, .22);
+      border-radius: 999px;
+      background: rgba(15, 23, 42, .65);
+      padding: 6px 9px;
+      color: #cfeeff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 780px) {
+      .extensions-shell {
+        width: min(100vw - 28px, 1180px);
+        padding-top: 18px;
+      }
+
+      .extensions-hero {
+        grid-template-columns: 1fr;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body class="inner-page extensions-page">
+  <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>
+  <div class="circuit-bg-overlay" aria-hidden="true"></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <p>Digital Circuit Extension Modules</p>
+        <h1>扩展仿真中心</h1>
+      </div>
+      <div class="top-actions">
+        <a class="home-return-link" href="./home.html">回到首页</a>
+        <nav class="site-nav" aria-label="页面导航">
+          <a class="site-nav__link" href="./index.html">学习中心</a>
+          <a class="site-nav__link" href="./gate-builder-demo.html">实践中心</a>
+          <a class="site-nav__link" href="./labs.html">实验中心</a>
+          <a class="site-nav__link active" href="./extensions.html" aria-current="page">扩展仿真</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="extensions-shell">
+      <section class="extensions-hero">
+        <div>
+          <p>附属模块 / 同学作品集成</p>
+          <h1>把独立仿真页面统一收纳到平台中</h1>
+          <div class="summary">这里用于接入课程同学或小组成员完成的单页仿真作品。模块保持独立运行，同时由本系统提供统一入口，便于课程展示、项目答辩和后续扩展。</div>
+        </div>
+      </section>
+
+      <section class="module-grid" aria-label="扩展模块列表">
+        <a class="extension-module" href="./extensions/encoder-decoder-simulator.html">
+          <div>
+            <span class="eyebrow">组合逻辑扩展</span>
+            <h2>数字电路编码译码综合仿真平台</h2>
+            <p>面向编码器、译码器等组合逻辑内容的综合仿真页面，作为实践与实验模块的补充入口。</p>
+            <div class="module-tags">
+              <span>编码器</span>
+              <span>译码器</span>
+              <span>组合逻辑</span>
+              <span>附属页面</span>
+            </div>
+          </div>
+          <div class="module-footer">
+            <span>打开模块</span>
+            <span aria-hidden="true">›</span>
+          </div>
+        </a>
+      </section>
+    </main>
+  </div>
+
+  <script src="./circuit-background.js?v=20260622-1"></script>
+  <script src="./page-transition.js?v=20260622-1"></script>
+</body>
+</html>

@@ -1,0 +1,2428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字电路编码译码综合仿真平台</title>
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --surface: #ffffff;
+            --surface-soft: #eef3f8;
+            --surface-strong: #dfe7ef;
+            --ink: #16202a;
+            --muted: #647485;
+            --border: #ccd7e2;
+            --primary: #0f766e;
+            --primary-dark: #115e59;
+            --blue: #2563eb;
+            --amber: #b7791f;
+            --red: #dc2626;
+            --green: #14804a;
+            --shadow: 0 8px 24px rgba(31, 45, 61, 0.08);
+            --radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+            letter-spacing: 0;
+        }
+
+        button, input {
+            font: inherit;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.96);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 4px 16px rgba(31, 45, 61, 0.06);
+        }
+
+        .topbar-inner {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 16px 20px 12px;
+        }
+
+        .title-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(22px, 3vw, 34px);
+            line-height: 1.15;
+            font-weight: 800;
+            color: #10212b;
+        }
+
+        .subtitle {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .status-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+            min-width: 260px;
+        }
+
+        .legend-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: #fff;
+            font-size: 13px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--green);
+        }
+
+        .legend-dot.high {
+            background: var(--blue);
+        }
+
+        .legend-dot.warn {
+            background: var(--amber);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .nav-button,
+        .mode-button,
+        .action-button,
+        .pin-control,
+        .text-button {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #fff;
+            color: var(--ink);
+            cursor: pointer;
+            transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+        }
+
+        .nav-button {
+            flex: 0 0 auto;
+            padding: 10px 14px;
+            font-weight: 700;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .nav-button:hover,
+        .mode-button:hover,
+        .action-button:hover,
+        .pin-control:hover,
+        .text-button:hover {
+            border-color: var(--primary);
+            color: var(--primary-dark);
+        }
+
+        .nav-button.active,
+        .mode-button.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 6px 16px rgba(15, 118, 110, 0.22);
+        }
+
+        main {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 22px 20px 48px;
+        }
+
+        .module {
+            display: none;
+        }
+
+        .module.active {
+            display: block;
+        }
+
+        .module-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 24px;
+            line-height: 1.25;
+        }
+
+        .module-note {
+            max-width: 760px;
+            margin: 6px 0 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .wide-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .panel,
+        .table-panel,
+        .output-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .panel {
+            padding: 18px;
+        }
+
+        .table-panel,
+        .output-panel {
+            padding: 16px;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        h3 {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.3;
+        }
+
+        h4 {
+            margin: 0 0 10px;
+            font-size: 15px;
+            color: var(--muted);
+        }
+
+        .mode-row,
+        .action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .mode-button,
+        .action-button,
+        .text-button {
+            padding: 9px 12px;
+            font-weight: 700;
+        }
+
+        .action-button.primary {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+
+        .action-button.warning {
+            background: #fff7e6;
+            border-color: #e5b55d;
+            color: #8a5a13;
+        }
+
+        .pin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .pin-control {
+            min-height: 76px;
+            padding: 10px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            justify-content: space-between;
+        }
+
+        .pin-control.is-active {
+            background: #e8f6ef;
+            border-color: #66b892;
+            box-shadow: inset 0 0 0 1px rgba(20, 128, 74, 0.16);
+        }
+
+        .pin-control.is-control-active {
+            background: #eef5ff;
+            border-color: #7aa7f8;
+        }
+
+        .pin-name {
+            font-weight: 800;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 16px;
+        }
+
+        .pin-level {
+            align-self: flex-start;
+            min-width: 34px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: var(--surface-soft);
+            color: var(--muted);
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .pin-control.is-active .pin-level,
+        .pin-control.is-control-active .pin-level {
+            background: var(--green);
+            color: #fff;
+        }
+
+        .pin-control small {
+            color: var(--muted);
+            line-height: 1.35;
+        }
+
+        .result-box {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            background: #f8fbfd;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .result-main {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+        }
+
+        .bit-strip {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .bit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 34px;
+            border-radius: var(--radius);
+            background: #e7edf4;
+            border: 1px solid #cfdae6;
+            color: #253442;
+            font-family: Consolas, "Courier New", monospace;
+            font-weight: 900;
+        }
+
+        .bit.active-low {
+            background: #ffecec;
+            border-color: #ffb5b5;
+            color: #b42323;
+        }
+
+        .bit.active-high {
+            background: #e8f6ef;
+            border-color: #83c7a3;
+            color: #146c3f;
+        }
+
+        .result-note {
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .result-note.warn {
+            color: #8a5a13;
+        }
+
+        .led-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+            gap: 10px;
+        }
+
+        .led-item {
+            display: grid;
+            place-items: center;
+            gap: 6px;
+            min-height: 82px;
+            padding: 10px 6px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #f8fbfd;
+            color: var(--muted);
+        }
+
+        .led-item.selected {
+            border-color: #f0a5a5;
+            background: #fff1f1;
+            color: #9f1d1d;
+            font-weight: 800;
+        }
+
+        .led-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            background: #c7d0da;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.16);
+        }
+
+        .led-item.selected .led-dot {
+            background: var(--red);
+            box-shadow: 0 0 16px rgba(220, 38, 38, 0.55), inset 0 0 5px rgba(255,255,255,0.9);
+        }
+
+        .led-label {
+            font-family: Consolas, "Courier New", monospace;
+            font-weight: 800;
+        }
+
+        .led-value {
+            font-size: 12px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 640px;
+            background: #fff;
+        }
+
+        th, td {
+            padding: 9px 10px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            text-align: center;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: 0;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #edf3f8;
+            color: #22313f;
+            font-weight: 800;
+            z-index: 1;
+        }
+
+        tbody tr.highlight {
+            background: #fff4d6;
+            box-shadow: inset 4px 0 0 var(--amber);
+            font-weight: 800;
+        }
+
+        tbody tr.invalid {
+            color: #8a5a13;
+            background: #fff9ed;
+        }
+
+        .two-column-stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .chip-pair {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .chip-mini {
+            min-height: 96px;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            background: #f8fbfd;
+        }
+
+        .chip-mini.selected {
+            border-color: var(--green);
+            background: #e8f6ef;
+        }
+
+        .chip-mini strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+
+        .chip-mini span {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .seven-layout {
+            display: grid;
+            grid-template-columns: minmax(220px, 320px) minmax(240px, 1fr);
+            gap: 16px;
+            align-items: center;
+        }
+
+        .seven-display {
+            position: relative;
+            width: min(220px, 72vw);
+            height: 320px;
+            margin: 0 auto;
+            background: #15191f;
+            border-radius: var(--radius);
+            border: 1px solid #0e1116;
+            box-shadow: inset 0 0 22px rgba(0,0,0,0.65);
+        }
+
+        .segment {
+            position: absolute;
+            background: #313844;
+            border-radius: 8px;
+            opacity: 0.62;
+            transition: background 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+        }
+
+        .segment.on {
+            background: #f43f3f;
+            box-shadow: 0 0 18px rgba(244, 63, 63, 0.72);
+            opacity: 1;
+        }
+
+        .seg-a, .seg-d, .seg-g {
+            left: 48px;
+            width: 124px;
+            height: 18px;
+        }
+
+        .seg-a { top: 28px; }
+        .seg-g { top: 151px; }
+        .seg-d { bottom: 28px; }
+
+        .seg-b, .seg-c, .seg-e, .seg-f {
+            width: 18px;
+            height: 106px;
+        }
+
+        .seg-b { right: 30px; top: 48px; }
+        .seg-c { right: 30px; bottom: 48px; }
+        .seg-e { left: 30px; bottom: 48px; }
+        .seg-f { left: 30px; top: 48px; }
+
+        .segment-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(42px, 1fr));
+            gap: 8px;
+        }
+
+        .segment-cell {
+            padding: 10px 6px;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #f8fbfd;
+        }
+
+        .segment-cell.on {
+            background: #fff1f1;
+            border-color: #f4a6a6;
+            color: #b42323;
+            font-weight: 800;
+        }
+
+        .multi-controls {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .field label {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #fff;
+        }
+
+        .multi-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 126px;
+            padding: 14px;
+            background: #15191f;
+            border-radius: var(--radius);
+            overflow-x: auto;
+        }
+
+        .digit-small {
+            position: relative;
+            flex: 0 0 auto;
+            width: 58px;
+            height: 92px;
+            opacity: 1;
+        }
+
+        .digit-small.blank {
+            opacity: 0.22;
+        }
+
+        .small-seg {
+            position: absolute;
+            border-radius: 4px;
+            background: #313844;
+        }
+
+        .small-seg.on {
+            background: #f43f3f;
+            box-shadow: 0 0 8px rgba(244, 63, 63, 0.75);
+        }
+
+        .sa, .sd, .sg {
+            left: 12px;
+            width: 34px;
+            height: 7px;
+        }
+
+        .sa { top: 6px; }
+        .sg { top: 42px; }
+        .sd { bottom: 6px; }
+        .sb, .sc, .se, .sf {
+            width: 7px;
+            height: 34px;
+        }
+
+        .sb { right: 6px; top: 12px; }
+        .sc { right: 6px; bottom: 12px; }
+        .se { left: 6px; bottom: 12px; }
+        .sf { left: 6px; top: 12px; }
+
+        .decimal-dot {
+            color: #f43f3f;
+            font-size: 42px;
+            line-height: 1;
+            font-weight: 900;
+            padding-top: 56px;
+            text-shadow: 0 0 8px rgba(244, 63, 63, 0.75);
+        }
+
+        .decimal-dot.dim {
+            color: #3b424e;
+            text-shadow: none;
+        }
+
+        .quick-list {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .quick-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .quick-item strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .quick-item p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .chip-status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .chip-status-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            background: #f8fbfd;
+        }
+
+        .chip-status-card.selected {
+            border-color: #66b892;
+            background: #e8f6ef;
+        }
+
+        .chip-status-card strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .logic-form-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .logic-field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .logic-field label {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .logic-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #fff;
+            color: var(--ink);
+            font-family: Consolas, "Courier New", monospace;
+        }
+
+        .equation-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .equation-row {
+            display: grid;
+            grid-template-columns: minmax(70px, 110px) auto minmax(180px, 1fr) auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .equation-row span {
+            color: var(--muted);
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .engine-board {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .engine-layout {
+            display: grid;
+            gap: 16px;
+        }
+
+        .engine-io {
+            display: grid;
+            gap: 10px;
+        }
+
+        .engine-output-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+        }
+
+        .engine-output {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #f8fbfd;
+        }
+
+        .engine-output strong {
+            font-family: Consolas, "Courier New", monospace;
+        }
+
+        .engine-output .bit {
+            flex: 0 0 auto;
+        }
+
+        .error-box {
+            display: none;
+            margin-top: 10px;
+            padding: 10px 12px;
+            border: 1px solid #f0a5a5;
+            border-radius: var(--radius);
+            background: #fff1f1;
+            color: #9f1d1d;
+            font-weight: 700;
+            line-height: 1.55;
+        }
+
+        .error-box.active {
+            display: block;
+        }
+
+        .soft-note {
+            padding: 12px 14px;
+            border-left: 4px solid var(--primary);
+            background: #edf8f6;
+            color: #24524d;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1050px) {
+            .module-grid,
+            .wide-grid,
+            .seven-layout,
+            .engine-board {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-list {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .title-row {
+                display: block;
+            }
+
+            .status-legend {
+                justify-content: flex-start;
+                min-width: 0;
+                margin-top: 12px;
+            }
+
+            main {
+                padding: 16px 12px 36px;
+            }
+
+            .topbar-inner {
+                padding: 14px 12px 10px;
+            }
+
+            .module-heading {
+                display: block;
+            }
+
+            .multi-controls,
+            .chip-pair,
+            .quick-list,
+            .chip-status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .equation-row {
+                grid-template-columns: 1fr;
+            }
+
+            .equation-row span {
+                text-align: left;
+            }
+
+            .segment-grid {
+                grid-template-columns: repeat(4, minmax(42px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="title-row">
+                <div>
+                    <h1>数字电路编码译码综合仿真平台</h1>
+                    <p class="subtitle">把编码器、译码器和七段显示统一到一个页面，适合课堂演示、实验预习和真值表对照。</p>
+                </div>
+                <div class="status-legend" aria-label="电平颜色说明">
+                    <span class="legend-pill"><span class="legend-dot"></span>有效输入或选中输出</span>
+                    <span class="legend-pill"><span class="legend-dot high"></span>普通高电平</span>
+                    <span class="legend-pill"><span class="legend-dot warn"></span>无效或需注意状态</span>
+                </div>
+            </div>
+            <nav class="nav-tabs" aria-label="模块导航">
+                <button class="nav-button active" data-action="nav" data-section="encoder">编码器</button>
+                <button class="nav-button" data-action="nav" data-section="priority16">16-4优先编码</button>
+                <button class="nav-button" data-action="nav" data-section="hc138">74HC138</button>
+                <button class="nav-button" data-action="nav" data-section="hc42">74HC42</button>
+                <button class="nav-button" data-action="nav" data-section="seven">BCD-七段显示</button>
+                <button class="nav-button" data-action="nav" data-section="engine">逻辑引擎</button>
+                <button class="nav-button" data-action="nav" data-section="compare">速查对照</button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section id="encoder" class="module active">
+            <div class="module-heading">
+                <div>
+                    <h2>编码器实验</h2>
+                    <p class="module-note">覆盖普通 8 线-3 线编码器、74HC148 优先编码器和 74LS147 十进制优先编码器。低有效输入用 I' 表示，输出同样用撇号标明低有效。</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="panel">
+                    <div class="panel-title">
+                        <h3>输入控制</h3>
+                    </div>
+                    <div class="mode-row" id="encoder-mode-row"></div>
+                    <div id="encoder-control-area"></div>
+                    <div class="action-row">
+                        <button class="action-button primary" data-action="encoder-sample">课堂示例</button>
+                        <button class="action-button" data-action="encoder-random">随机测试</button>
+                        <button class="action-button warning" data-action="encoder-reset">复位</button>
+                    </div>
+                    <div class="soft-note" id="encoder-rule"></div>
+                </div>
+
+                <div class="two-column-stack">
+                    <div class="output-panel">
+                        <div class="panel-title">
+                            <h3>输出结果</h3>
+                        </div>
+                        <div class="result-box" id="encoder-result"></div>
+                    </div>
+                    <div class="table-panel">
+                        <div class="panel-title">
+                            <h3>真值表高亮</h3>
+                        </div>
+                        <div class="table-wrap" id="encoder-table"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="priority16" class="module">
+            <div class="module-heading">
+                <div>
+                    <h2>两片 74HC148 级联 16 线-4 线优先编码器</h2>
+                    <p class="module-note">高位片负责 I15' 到 I8'，低位片负责 I7' 到 I0'；高位片无有效输入时，低位片才参与编码。</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="panel">
+                    <div class="panel-title">
+                        <h3>16 路输入</h3>
+                    </div>
+                    <h4>高位片 I15' 到 I8'</h4>
+                    <div class="pin-grid" id="priority16-high-controls"></div>
+                    <h4>低位片 I7' 到 I0'</h4>
+                    <div class="pin-grid" id="priority16-low-controls"></div>
+                    <div class="action-row">
+                        <button class="action-button primary" data-action="priority16-sample">课堂示例</button>
+                        <button class="action-button" data-action="priority16-random">随机测试</button>
+                        <button class="action-button warning" data-action="priority16-reset">复位</button>
+                    </div>
+                    <div class="soft-note">规则很简单：只要高位片 I15'-I8' 中任意一路为 L，低位片就被禁止；只有高位片无有效输入时，低位片才参与编码。</div>
+                </div>
+
+                <div class="two-column-stack">
+                    <div class="output-panel">
+                        <div class="panel-title">
+                            <h3>级联输出</h3>
+                        </div>
+                        <div class="result-box" id="priority16-result"></div>
+                    </div>
+
+                    <div class="output-panel">
+                        <div class="panel-title">
+                            <h3>两片芯片状态</h3>
+                        </div>
+                        <div class="chip-status-grid" id="priority16-chip-status"></div>
+                    </div>
+
+                    <div class="table-panel">
+                        <div class="panel-title">
+                            <h3>16-4 优先编码真值表</h3>
+                        </div>
+                        <div class="table-wrap" id="priority16-table"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="hc138" class="module">
+            <div class="module-heading">
+                <div>
+                    <h2>74HC138 三线-八线译码器</h2>
+                    <p class="module-note">74HC138 的输出为低有效。只有 S1=1、S2'=0、S3'=0 同时满足时，地址 A2A1A0 对应的一个输出端为 L。</p>
+                </div>
+            </div>
+
+            <div class="wide-grid">
+                <div class="panel">
+                    <div class="panel-title">
+                        <h3>单片 74HC138</h3>
+                    </div>
+                    <h4>使能端</h4>
+                    <div class="pin-grid" id="hc138-enable-controls"></div>
+                    <h4>地址端</h4>
+                    <div class="pin-grid" id="hc138-address-controls"></div>
+                    <div class="result-box" id="hc138-result"></div>
+                </div>
+
+                <div class="output-panel">
+                    <div class="panel-title">
+                        <h3>输出端 Y0' 到 Y7'</h3>
+                    </div>
+                    <div class="led-grid" id="hc138-output-grid"></div>
+                </div>
+
+                <div class="table-panel">
+                    <div class="panel-title">
+                        <h3>74HC138 真值表</h3>
+                    </div>
+                    <div class="table-wrap" id="hc138-table"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">
+                        <h3>两片级联成 4 线-16 线译码</h3>
+                    </div>
+                    <h4>输入 D3D2D1D0</h4>
+                    <div class="pin-grid" id="cascade-controls"></div>
+                    <div class="chip-pair" id="cascade-chip-status"></div>
+                    <div class="result-box" id="cascade-result"></div>
+                </div>
+            </div>
+
+            <div class="table-panel" style="margin-top:16px;">
+                <div class="panel-title">
+                    <h3>级联输出 Y0' 到 Y15'</h3>
+                </div>
+                <div class="led-grid" id="cascade-output-grid"></div>
+            </div>
+        </section>
+
+        <section id="hc42" class="module">
+            <div class="module-heading">
+                <div>
+                    <h2>74HC42 BCD-十进制译码器</h2>
+                    <p class="module-note">输入 D C B A 组成一个 BCD 码。0 到 9 选中对应的一个低有效输出；10 到 15 不是有效 BCD，本页面按所有输出为 H 处理并高亮为无效状态。</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="panel">
+                    <div class="panel-title">
+                        <h3>BCD 输入</h3>
+                    </div>
+                    <div class="pin-grid" id="hc42-controls"></div>
+                    <div class="result-box" id="hc42-result"></div>
+                </div>
+
+                <div class="two-column-stack">
+                    <div class="output-panel">
+                        <div class="panel-title">
+                            <h3>十进制输出 Y0' 到 Y9'</h3>
+                        </div>
+                        <div class="led-grid" id="hc42-output-grid"></div>
+                    </div>
+                    <div class="table-panel">
+                        <div class="panel-title">
+                            <h3>74HC42 真值表</h3>
+                        </div>
+                        <div class="table-wrap" id="hc42-table"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="seven" class="module">
+            <div class="module-heading">
+                <div>
+                    <h2>BCD-七段显示译码器</h2>
+                    <p class="module-note">演示 BCD 码到 a-g 七段的显示关系，并加入 LT' 灯测、BI' 灭灯、RBI' 前导零熄灭控制。页面显示按 1=亮处理；若对照 74LS47 共阳数码管，芯片段输出是低有效。</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="panel">
+                    <div class="panel-title">
+                        <h3>单个数字控制</h3>
+                    </div>
+                    <h4>BCD 输入 D C B A</h4>
+                    <div class="pin-grid" id="seven-bcd-controls"></div>
+                    <h4>控制端</h4>
+                    <div class="pin-grid" id="seven-control-pins"></div>
+                    <div class="result-box" id="seven-result"></div>
+                </div>
+
+                <div class="output-panel">
+                    <div class="panel-title">
+                        <h3>七段数码管</h3>
+                    </div>
+                    <div class="seven-layout">
+                        <div class="seven-display" id="seven-display" aria-label="七段数码管显示"></div>
+                        <div>
+                            <h4>a-g 段状态</h4>
+                            <div class="segment-grid" id="segment-output-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wide-grid" style="margin-top:16px;">
+                <div class="table-panel">
+                    <div class="panel-title">
+                        <h3>七段显示真值表</h3>
+                    </div>
+                    <div class="table-wrap" id="seven-table"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">
+                        <h3>多位数灭零演示</h3>
+                    </div>
+                    <div class="multi-controls">
+                        <div class="field">
+                            <label for="multi-int">整数部分</label>
+                            <input id="multi-int" data-multi-input value="00123" inputmode="numeric" maxlength="8">
+                        </div>
+                        <div class="field">
+                            <label for="multi-frac">小数部分</label>
+                            <input id="multi-frac" data-multi-input value="00" inputmode="numeric" maxlength="6">
+                        </div>
+                        <div class="field">
+                            <label>RBI' 灭零</label>
+                            <button class="text-button" id="multi-rbi-button" data-action="toggle-multi-rbi"></button>
+                        </div>
+                    </div>
+                    <div class="multi-display" id="multi-display"></div>
+                    <p class="module-note" id="multi-note" style="margin-top:12px;"></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="engine" class="module">
+            <div class="module-heading">
+                <div>
+                    <h2>通用数字逻辑引擎</h2>
+                    <p class="module-note">输入变量和输出方程后，可交互切换输入并自动生成真值表。</p>
+                </div>
+            </div>
+
+            <div class="engine-layout">
+                <div class="panel">
+                    <div class="panel-title">
+                        <h3>系统定义</h3>
+                    </div>
+                    <div class="logic-form-grid">
+                        <div class="logic-field">
+                            <label for="engine-vars">输入变量，用英文逗号分隔</label>
+                            <input class="logic-input" id="engine-vars" data-engine-field="vars" value="D, C, B, A">
+                        </div>
+                        <div class="logic-field">
+                            <label>输出方程，支持 !、&、|、^ 和 NOT、AND、OR、XOR</label>
+                            <div class="equation-list" id="engine-equations"></div>
+                        </div>
+                        <div class="action-row">
+                            <button class="action-button" data-action="engine-add-equation">添加方程</button>
+                            <button class="action-button warning" data-action="engine-default">恢复示例</button>
+                            <button class="action-button primary" data-action="engine-compile">编译并生成</button>
+                        </div>
+                        <div class="error-box" id="engine-error"></div>
+                    </div>
+                </div>
+
+                <div class="output-panel">
+                    <div class="panel-title">
+                        <h3>交互测试</h3>
+                    </div>
+                    <div id="engine-sim"></div>
+                </div>
+
+                <div class="table-panel">
+                    <div class="panel-title">
+                        <h3>完整真值表</h3>
+                    </div>
+                    <div class="table-wrap" id="engine-table"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="compare" class="module">
+            <div class="module-heading">
+                <div>
+                    <h2>速查对照</h2>
+                    <p class="module-note">把本章几个容易混淆的器件按“输入、输出、有效电平、典型用途”放在一起，课堂切换时不用来回翻页面。</p>
+                </div>
+            </div>
+
+            <div class="quick-list">
+                <div class="quick-item">
+                    <strong>普通 8-3 编码器</strong>
+                    <p>8 个输入中只允许一个为 1，输出该输入编号的 3 位二进制码。多个输入同时有效时状态不可靠。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>74HC148</strong>
+                    <p>8 线-3 线优先编码器，输入和输出均低有效，I7 优先级最高，带 EI'、GS'、EO' 便于级联。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>两片 74HC148 级联</strong>
+                    <p>高位片检测 I15'-I8'，无有效输入时才允许低位片编码，可形成 16 线-4 线优先编码器。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>74LS147</strong>
+                    <p>十进制到 BCD 优先编码器，I9 优先级最高，输出为低有效 BCD 码，适合键盘输入编码。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>74HC138</strong>
+                    <p>3 线-8 线译码器，S1=1 且 S2'=S3'=0 时工作，输出 Y0' 到 Y7' 中只有一个为 L。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>级联 74HC138</strong>
+                    <p>用最高位控制两片芯片的使能，低位片负责 Y0-Y7，高位片负责 Y8-Y15。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>74HC42</strong>
+                    <p>BCD-十进制译码器，0 到 9 选通一个低有效输出，10 到 15 属于非法 BCD 输入。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>BCD-七段译码</strong>
+                    <p>把 4 位 BCD 码转换为 a-g 段亮灭。LT' 用于灯测，BI' 用于强制灭灯，RBI' 用于前导零熄灭。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>通用逻辑引擎</strong>
+                    <p>把任意组合逻辑表达式转成交互测试和真值表，适合验证自定义编码、译码或化简后的表达式。</p>
+                </div>
+                <div class="quick-item">
+                    <strong>讲课建议</strong>
+                    <p>先讲“有效电平”，再讲“优先级”，最后讲“使能级联”。学生会更容易把编码器和译码器区分开。</p>
+                </div>
+            </div>
+
+            <div class="table-panel" style="margin-top:16px;">
+                <div class="panel-title">
+                    <h3>器件对照表</h3>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>器件</th>
+                                <th>输入</th>
+                                <th>输出</th>
+                                <th>有效电平</th>
+                                <th>核心规律</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>普通 8-3 编码器</td><td>I0-I7</td><td>Y2Y1Y0</td><td>高有效</td><td>单个输入有效时输出其编号</td></tr>
+                            <tr><td>74HC148</td><td>EI', I0'-I7'</td><td>Y2'Y1'Y0', GS', EO'</td><td>低有效</td><td>最高有效输入优先，I7 最高</td></tr>
+                            <tr><td>两片 74HC148</td><td>I0'-I15'</td><td>Z3Z2Z1Z0</td><td>输入低有效</td><td>高位片优先，无高位请求时低位片工作</td></tr>
+                            <tr><td>74LS147</td><td>I1'-I9'</td><td>Y3'Y2'Y1'Y0'</td><td>低有效</td><td>十进制优先编码，I9 最高</td></tr>
+                            <tr><td>74HC138</td><td>S1, S2', S3', A2A1A0</td><td>Y0'-Y7'</td><td>输出低有效</td><td>使能成立后按地址选中一个输出</td></tr>
+                            <tr><td>74HC42</td><td>D C B A</td><td>Y0'-Y9'</td><td>输出低有效</td><td>BCD 0-9 对应一个十进制输出</td></tr>
+                            <tr><td>BCD-七段译码</td><td>D C B A, LT', BI', RBI'</td><td>a-g</td><td>依器件和数码管类型而定</td><td>按数字形状点亮对应段</td></tr>
+                            <tr><td>通用逻辑引擎</td><td>自定义变量</td><td>自定义方程</td><td>按表达式定义</td><td>自动计算交互输出和真值表</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        "use strict";
+
+        const $ = (id) => document.getElementById(id);
+        const SEGMENTS = ["a", "b", "c", "d", "e", "f", "g"];
+        const SEGMENT_MAP = {
+            0: ["a", "b", "c", "d", "e", "f"],
+            1: ["b", "c"],
+            2: ["a", "b", "d", "e", "g"],
+            3: ["a", "b", "c", "d", "g"],
+            4: ["b", "c", "f", "g"],
+            5: ["a", "c", "d", "f", "g"],
+            6: ["a", "c", "d", "e", "f", "g"],
+            7: ["a", "b", "c"],
+            8: ["a", "b", "c", "d", "e", "f", "g"],
+            9: ["a", "b", "c", "d", "f", "g"]
+        };
+
+        const state = {
+            section: "encoder",
+            encoderMode: "normal",
+            encoder: {
+                normal: { inputs: Array(8).fill(0) },
+                hc148: { ei: 0, inputs: Array(8).fill(1) },
+                ls147: { inputs: Array(10).fill(1) }
+            },
+            priority16: { inputs: Array(16).fill(1) },
+            hc138: { s1: 1, s2n: 0, s3n: 0, address: [0, 0, 0] },
+            cascade: { bits: [0, 0, 0, 0] },
+            hc42: { bits: [0, 0, 0, 0] },
+            seven: { bits: [0, 0, 0, 0], lt: 1, bi: 1, rbi: 1, multiRbi: 0 },
+            engine: {
+                varsText: "D, C, B, A",
+                equations: [
+                    { name: "Y2", expr: "(D & C) | (D & B & A)" },
+                    { name: "Y1", expr: "(!D & C & B) | (D & !C & !B) | (D & !C & !A)" },
+                    { name: "Y0", expr: "(!D & !C) | (!D & !B)" }
+                ],
+                inputs: {},
+                compiled: null,
+                error: ""
+            }
+        };
+
+        function bits(value, width) {
+            return value.toString(2).padStart(width, "0").split("").map(Number);
+        }
+
+        function invert(bitArray) {
+            return bitArray.map((value) => value ? 0 : 1);
+        }
+
+        function numberFromBits(bitArray) {
+            return bitArray.reduce((sum, value) => sum * 2 + value, 0);
+        }
+
+        function bitString(bitArray) {
+            return bitArray.join("");
+        }
+
+        function escapeAttr(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/"/g, "&quot;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
+        function pinButton(action, key, label, value, activeLow, hint) {
+            const active = activeLow ? value === 0 : value === 1;
+            const activeClass = active ? (activeLow ? "is-active" : "is-control-active") : "";
+            const level = value ? "H" : "L";
+            return `
+                <button class="pin-control ${activeClass}" data-action="${action}" data-key="${key}" aria-pressed="${active}">
+                    <span class="pin-name">${label}</span>
+                    <span class="pin-level">${level}</span>
+                    <small>${hint}</small>
+                </button>
+            `;
+        }
+
+        function bitBoxes(bitArray, activeLow = false) {
+            return `<span class="bit-strip">${bitArray.map((value) => {
+                const cls = activeLow && value === 0 ? "active-low" : (!activeLow && value === 1 ? "active-high" : "");
+                return `<span class="bit ${cls}">${value}</span>`;
+            }).join("")}</span>`;
+        }
+
+        function ledGrid(outputs, prefix, activeLow = true) {
+            return outputs.map((value, index) => {
+                const selected = activeLow ? value === 0 : value === 1;
+                const level = value ? "H" : "L";
+                return `
+                    <div class="led-item ${selected ? "selected" : ""}">
+                        <span class="led-dot"></span>
+                        <span class="led-label">${prefix}${index}${activeLow ? "'" : ""}</span>
+                        <span class="led-value">${level}${selected ? " 选中" : ""}</span>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function showSection(sectionId) {
+            state.section = sectionId;
+            document.querySelectorAll(".module").forEach((section) => {
+                section.classList.toggle("active", section.id === sectionId);
+            });
+            document.querySelectorAll(".nav-button").forEach((button) => {
+                button.classList.toggle("active", button.dataset.section === sectionId);
+            });
+        }
+
+        function renderEncoder() {
+            const modes = [
+                ["normal", "普通 8-3"],
+                ["hc148", "74HC148"],
+                ["ls147", "74LS147"]
+            ];
+            $("encoder-mode-row").innerHTML = modes.map(([id, label]) => `
+                <button class="mode-button ${state.encoderMode === id ? "active" : ""}" data-action="encoder-mode" data-mode="${id}">${label}</button>
+            `).join("");
+
+            if (state.encoderMode === "normal") {
+                renderNormalEncoder();
+            } else if (state.encoderMode === "hc148") {
+                renderHc148();
+            } else {
+                renderLs147();
+            }
+        }
+
+        function calcNormalEncoder() {
+            const input = state.encoder.normal.inputs;
+            const active = input.map((value, index) => value === 1 ? index : -1).filter((index) => index >= 0);
+            const formulaOut = [
+                input[4] || input[5] || input[6] || input[7] ? 1 : 0,
+                input[2] || input[3] || input[6] || input[7] ? 1 : 0,
+                input[1] || input[3] || input[5] || input[7] ? 1 : 0
+            ];
+            return { active, formulaOut, valid: active.length === 1, selected: active.length === 1 ? active[0] : -1 };
+        }
+
+        function renderNormalEncoder() {
+            const input = state.encoder.normal.inputs;
+            $("encoder-control-area").innerHTML = `
+                <h4>输入端 I7 到 I0，高电平 1 有效</h4>
+                <div class="pin-grid">
+                    ${[7,6,5,4,3,2,1,0].map((index) => pinButton("encoder-pin", `normal-${index}`, `I${index}`, input[index], false, "1 = 有效输入")).join("")}
+                </div>
+            `;
+
+            const calc = calcNormalEncoder();
+            let note;
+            if (calc.valid) {
+                note = `I${calc.selected}=1，输出二进制编号 ${bitString(bits(calc.selected, 3))}。`;
+            } else if (calc.active.length === 0) {
+                note = "当前没有输入为 1。普通编码器没有被选中的输入，输出不应当作为有效编码使用。";
+            } else {
+                note = `当前 I${calc.active.join("、I")} 同时为 1。普通编码器不处理优先级，这种状态应判为无效。`;
+            }
+
+            $("encoder-result").innerHTML = `
+                <div class="result-main">
+                    <span>Y2Y1Y0</span>
+                    ${bitBoxes(calc.valid ? bits(calc.selected, 3) : calc.formulaOut)}
+                </div>
+                <div class="result-note ${calc.valid ? "" : "warn"}">${note}</div>
+            `;
+            $("encoder-rule").textContent = "普通编码器适合讲“编码”的基本概念，但实际键盘等多输入场景通常需要优先编码器。";
+            renderNormalEncoderTable(calc);
+        }
+
+        function renderNormalEncoderTable(calc) {
+            const rows = Array.from({ length: 8 }, (_, index) => {
+                const rowInputs = Array(8).fill(0);
+                rowInputs[index] = 1;
+                const out = bits(index, 3);
+                return `
+                    <tr class="${calc.valid && calc.selected === index ? "highlight" : ""}">
+                        ${[7,6,5,4,3,2,1,0].map((pin) => `<td>${rowInputs[pin]}</td>`).join("")}
+                        ${out.map((value) => `<td>${value}</td>`).join("")}
+                    </tr>
+                `;
+            }).join("");
+            $("encoder-table").innerHTML = `
+                <table>
+                    <thead><tr>${[7,6,5,4,3,2,1,0].map((pin) => `<th>I${pin}</th>`).join("")}<th>Y2</th><th>Y1</th><th>Y0</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function calcHc148Chip(ei, inputs) {
+            if (ei === 1) {
+                return { selected: -1, output: [1, 1, 1], gs: 1, eo: 1 };
+            }
+            let selected = -1;
+            for (let index = 7; index >= 0; index -= 1) {
+                if (inputs[index] === 0) {
+                    selected = index;
+                    break;
+                }
+            }
+            if (selected < 0) {
+                return { selected: -1, output: [1, 1, 1], gs: 1, eo: 0 };
+            }
+            return { selected, output: invert(bits(selected, 3)), gs: 0, eo: 1 };
+        }
+
+        function calcHc148() {
+            const chip = state.encoder.hc148;
+            if (chip.ei === 1) {
+                return { match: "disabled", selected: -1, output: [1, 1, 1], gs: 1, eo: 1, note: "EI'=1，芯片禁止，所有编码输出保持 H。" };
+            }
+            let selected = -1;
+            for (let index = 7; index >= 0; index -= 1) {
+                if (chip.inputs[index] === 0) {
+                    selected = index;
+                    break;
+                }
+            }
+            if (selected < 0) {
+                return { match: "none", selected: -1, output: [1, 1, 1], gs: 1, eo: 0, note: "EI'=0 但没有输入为 L，EO'=0 可用于级联下一片。" };
+            }
+            const output = invert(bits(selected, 3));
+            return {
+                match: `i${selected}`,
+                selected,
+                output,
+                gs: 0,
+                eo: 1,
+                note: `最高优先级的有效输入是 I${selected}'，输出为低有效编码 ${bitString(output)}。`
+            };
+        }
+
+        function renderHc148() {
+            const chip = state.encoder.hc148;
+            $("encoder-control-area").innerHTML = `
+                <h4>使能端</h4>
+                <div class="pin-grid">${pinButton("encoder-pin", "hc148-ei", "EI'", chip.ei, true, "0 = 允许编码")}</div>
+                <h4>输入端 I7' 到 I0'，低电平 L 有效</h4>
+                <div class="pin-grid">
+                    ${[7,6,5,4,3,2,1,0].map((index) => pinButton("encoder-pin", `hc148-${index}`, `I${index}'`, chip.inputs[index], true, "L = 请求编码")).join("")}
+                </div>
+            `;
+            const calc = calcHc148();
+            $("encoder-result").innerHTML = `
+                <div class="result-main">
+                    <span>Y2'Y1'Y0'</span>
+                    ${bitBoxes(calc.output, true)}
+                    <span>GS'=${calc.gs}</span>
+                    <span>EO'=${calc.eo}</span>
+                </div>
+                <div class="result-note">${calc.note}</div>
+            `;
+            $("encoder-rule").textContent = "74HC148 的关键是“低有效”和“优先级”：多个输入同时为 L 时，I7 优先级最高。";
+            renderHc148Table(calc);
+        }
+
+        function renderHc148Table(calc) {
+            const tableRows = [
+                { key: "disabled", ei: "1", input: "任意", out: [1,1,1], gs: 1, eo: 1, note: "禁止" },
+                { key: "none", ei: "0", input: "全部为 H", out: [1,1,1], gs: 1, eo: 0, note: "无输入有效" },
+                ...[7,6,5,4,3,2,1,0].map((index) => ({ key: `i${index}`, ei: "0", input: `I${index}'=L`, out: invert(bits(index, 3)), gs: 0, eo: 1, note: `选中 I${index}` }))
+            ];
+            $("encoder-table").innerHTML = `
+                <table>
+                    <thead><tr><th>EI'</th><th>最高有效输入</th><th>Y2'</th><th>Y1'</th><th>Y0'</th><th>GS'</th><th>EO'</th><th>说明</th></tr></thead>
+                    <tbody>
+                        ${tableRows.map((row) => `
+                            <tr class="${calc.match === row.key ? "highlight" : ""}">
+                                <td>${row.ei}</td><td>${row.input}</td>${row.out.map((value) => `<td>${value}</td>`).join("")}
+                                <td>${row.gs}</td><td>${row.eo}</td><td>${row.note}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function calcLs147() {
+            const chip = state.encoder.ls147;
+            let selected = -1;
+            for (let index = 9; index >= 1; index -= 1) {
+                if (chip.inputs[index] === 0) {
+                    selected = index;
+                    break;
+                }
+            }
+            if (selected < 0) {
+                return { match: "none", selected: -1, output: [1,1,1,1], note: "没有十进制输入为 L，输出保持 1111。" };
+            }
+            const output = invert(bits(selected, 4));
+            return { match: `i${selected}`, selected, output, note: `最高优先级的有效输入是 I${selected}'，输出为低有效 BCD ${bitString(output)}。` };
+        }
+
+        function renderLs147() {
+            const chip = state.encoder.ls147;
+            $("encoder-control-area").innerHTML = `
+                <h4>十进制输入 I9' 到 I1'，低电平 L 有效</h4>
+                <div class="pin-grid">
+                    ${[9,8,7,6,5,4,3,2,1].map((index) => pinButton("encoder-pin", `ls147-${index}`, `I${index}'`, chip.inputs[index], true, "L = 请求编码")).join("")}
+                </div>
+            `;
+            const calc = calcLs147();
+            $("encoder-result").innerHTML = `
+                <div class="result-main">
+                    <span>Y3'Y2'Y1'Y0'</span>
+                    ${bitBoxes(calc.output, true)}
+                </div>
+                <div class="result-note">${calc.note}</div>
+            `;
+            $("encoder-rule").textContent = "74LS147 常用于十进制按键编码。多个按键同时按下时，编号大的输入优先。";
+            renderLs147Table(calc);
+        }
+
+        function renderLs147Table(calc) {
+            const rows = [
+                { key: "none", input: "全部为 H", out: [1,1,1,1], note: "无有效输入" },
+                ...[9,8,7,6,5,4,3,2,1].map((index) => ({ key: `i${index}`, input: `I${index}'=L`, out: invert(bits(index, 4)), note: `选中 ${index}` }))
+            ];
+            $("encoder-table").innerHTML = `
+                <table>
+                    <thead><tr><th>最高有效输入</th><th>Y3'</th><th>Y2'</th><th>Y1'</th><th>Y0'</th><th>说明</th></tr></thead>
+                    <tbody>
+                        ${rows.map((row) => `
+                            <tr class="${calc.match === row.key ? "highlight" : ""}">
+                                <td>${row.input}</td>${row.out.map((value) => `<td>${value}</td>`).join("")}<td>${row.note}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function resetEncoder() {
+            if (state.encoderMode === "normal") {
+                state.encoder.normal.inputs = Array(8).fill(0);
+            } else if (state.encoderMode === "hc148") {
+                state.encoder.hc148.ei = 0;
+                state.encoder.hc148.inputs = Array(8).fill(1);
+            } else {
+                state.encoder.ls147.inputs = Array(10).fill(1);
+            }
+        }
+
+        function sampleEncoder() {
+            resetEncoder();
+            if (state.encoderMode === "normal") {
+                state.encoder.normal.inputs[5] = 1;
+            } else if (state.encoderMode === "hc148") {
+                state.encoder.hc148.inputs[2] = 0;
+                state.encoder.hc148.inputs[6] = 0;
+            } else {
+                state.encoder.ls147.inputs[3] = 0;
+                state.encoder.ls147.inputs[8] = 0;
+            }
+        }
+
+        function randomEncoder() {
+            resetEncoder();
+            if (state.encoderMode === "normal") {
+                const count = Math.random() < 0.78 ? 1 : 2;
+                for (let turn = 0; turn < count; turn += 1) {
+                    state.encoder.normal.inputs[Math.floor(Math.random() * 8)] = 1;
+                }
+            } else if (state.encoderMode === "hc148") {
+                state.encoder.hc148.ei = Math.random() < 0.9 ? 0 : 1;
+                const count = 1 + Math.floor(Math.random() * 3);
+                for (let turn = 0; turn < count; turn += 1) {
+                    state.encoder.hc148.inputs[Math.floor(Math.random() * 8)] = 0;
+                }
+            } else {
+                const count = 1 + Math.floor(Math.random() * 3);
+                for (let turn = 0; turn < count; turn += 1) {
+                    state.encoder.ls147.inputs[1 + Math.floor(Math.random() * 9)] = 0;
+                }
+            }
+        }
+
+        function calcPriority16() {
+            const highInputs = state.priority16.inputs.slice(8, 16);
+            const lowInputs = state.priority16.inputs.slice(0, 8);
+            const high = calcHc148Chip(0, highInputs);
+            const low = calcHc148Chip(high.eo, lowInputs);
+            let selected = -1;
+            for (let index = 15; index >= 0; index -= 1) {
+                if (state.priority16.inputs[index] === 0) {
+                    selected = index;
+                    break;
+                }
+            }
+            const finalBits = selected >= 0 ? bits(selected, 4) : [0, 0, 0, 0];
+            return { selected, high, low, finalBits };
+        }
+
+        function renderPriority16() {
+            $("priority16-high-controls").innerHTML = [15,14,13,12,11,10,9,8].map((index) =>
+                pinButton("priority16-pin", String(index), `I${index}'`, state.priority16.inputs[index], true, "L = 请求编码")
+            ).join("");
+            $("priority16-low-controls").innerHTML = [7,6,5,4,3,2,1,0].map((index) =>
+                pinButton("priority16-pin", String(index), `I${index}'`, state.priority16.inputs[index], true, "L = 请求编码")
+            ).join("");
+
+            const calc = calcPriority16();
+            const highActive = calc.high.selected >= 0;
+            const lowEnabled = calc.high.eo === 0;
+            const lowActive = calc.low.selected >= 0;
+            $("priority16-result").innerHTML = `
+                <div class="result-main">
+                    <span>Z3Z2Z1Z0</span>
+                    ${bitBoxes(calc.finalBits)}
+                    <span>${calc.selected >= 0 ? `选中 I${calc.selected}'` : "无有效输入"}</span>
+                </div>
+                <div class="result-note ${calc.selected >= 0 ? "" : "warn"}">
+                    ${calc.selected >= 0 ? `最终输出为输入编号 ${calc.selected} 的 4 位二进制码。` : "当前 16 路输入全部为 H，没有有效请求。"}
+                </div>
+            `;
+            $("priority16-chip-status").innerHTML = `
+                <div class="chip-status-card ${highActive ? "selected" : ""}">
+                    <strong>高位片 I15'-I8'</strong>
+                    <div>Y2'Y1'Y0' ${bitBoxes(calc.high.output, true)}</div>
+                    <div>GS'=${calc.high.gs}，EO'=${calc.high.eo}</div>
+                    <div>${highActive ? `本片选中局部 I${calc.high.selected}'，对应全局 I${calc.high.selected + 8}'。` : "本片无有效输入，允许低位片工作。"}</div>
+                </div>
+                <div class="chip-status-card ${lowActive ? "selected" : ""}">
+                    <strong>低位片 I7'-I0'</strong>
+                    <div>EI'=${calc.high.eo}，Y2'Y1'Y0' ${bitBoxes(calc.low.output, true)}</div>
+                    <div>GS'=${calc.low.gs}，EO'=${calc.low.eo}</div>
+                    <div>${lowEnabled ? (lowActive ? `本片选中 I${calc.low.selected}'。` : "本片已使能，但无有效输入。") : "高位片已有有效输入，本片被禁止。"}</div>
+                </div>
+            `;
+            renderPriority16Table(calc);
+        }
+
+        function renderPriority16Table(calc) {
+            const rows = [
+                `<tr class="${calc.selected < 0 ? "highlight" : ""}"><td>全部为 H</td><td>0000</td><td>无有效输入</td></tr>`,
+                ...Array.from({ length: 16 }, (_, offset) => {
+                    const index = 15 - offset;
+                    return `
+                        <tr class="${calc.selected === index ? "highlight" : ""}">
+                            <td>I${index}'=L</td>
+                            <td>${bitString(bits(index, 4))}</td>
+                            <td>${index >= 8 ? "高位片优先" : "高位片无输入时由低位片编码"}</td>
+                        </tr>
+                    `;
+                })
+            ].join("");
+            $("priority16-table").innerHTML = `
+                <table>
+                    <thead><tr><th>最高有效输入</th><th>Z3Z2Z1Z0</th><th>说明</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function resetPriority16() {
+            state.priority16.inputs = Array(16).fill(1);
+        }
+
+        function samplePriority16() {
+            resetPriority16();
+            state.priority16.inputs[3] = 0;
+            state.priority16.inputs[11] = 0;
+            state.priority16.inputs[14] = 0;
+        }
+
+        function randomPriority16() {
+            resetPriority16();
+            const count = 1 + Math.floor(Math.random() * 4);
+            for (let turn = 0; turn < count; turn += 1) {
+                state.priority16.inputs[Math.floor(Math.random() * 16)] = 0;
+            }
+        }
+
+        function calcHc138() {
+            const chip = state.hc138;
+            const enabled = chip.s1 === 1 && chip.s2n === 0 && chip.s3n === 0;
+            const address = numberFromBits(chip.address);
+            const outputs = Array(8).fill(1);
+            if (enabled) outputs[address] = 0;
+            return { enabled, address, outputs };
+        }
+
+        function renderHc138() {
+            const chip = state.hc138;
+            $("hc138-enable-controls").innerHTML = [
+                pinButton("hc138-pin", "s1", "S1", chip.s1, false, "1 = 使能"),
+                pinButton("hc138-pin", "s2n", "S2'", chip.s2n, true, "0 = 使能"),
+                pinButton("hc138-pin", "s3n", "S3'", chip.s3n, true, "0 = 使能")
+            ].join("");
+            $("hc138-address-controls").innerHTML = ["A2", "A1", "A0"].map((label, index) =>
+                pinButton("hc138-address", String(index), label, chip.address[index], false, "地址位")
+            ).join("");
+
+            const calc = calcHc138();
+            $("hc138-output-grid").innerHTML = ledGrid(calc.outputs, "Y", true);
+            $("hc138-result").innerHTML = `
+                <div class="result-main">
+                    <span>A2A1A0</span>${bitBoxes(chip.address)}
+                    <span>十进制地址 ${calc.address}</span>
+                </div>
+                <div class="result-note ${calc.enabled ? "" : "warn"}">
+                    ${calc.enabled ? `使能成立，Y${calc.address}' 输出 L，其余输出 H。` : "使能条件不成立，所有输出保持 H。"}
+                </div>
+            `;
+            renderHc138Table(calc);
+            renderCascade();
+        }
+
+        function renderHc138Table(calc) {
+            const rows = [
+                `<tr class="${calc.enabled ? "" : "highlight"}"><td>不满足</td><td>任意</td><td colspan="8">全部为 H</td></tr>`,
+                ...Array.from({ length: 8 }, (_, index) => {
+                    const out = Array(8).fill(1);
+                    out[index] = 0;
+                    return `
+                        <tr class="${calc.enabled && calc.address === index ? "highlight" : ""}">
+                            <td>S1=1, S2'=0, S3'=0</td>
+                            <td>${bitString(bits(index, 3))}</td>
+                            ${out.map((value) => `<td>${value}</td>`).join("")}
+                        </tr>
+                    `;
+                })
+            ].join("");
+            $("hc138-table").innerHTML = `
+                <table>
+                    <thead><tr><th>使能条件</th><th>A2A1A0</th>${Array.from({ length: 8 }, (_, index) => `<th>Y${index}'</th>`).join("")}</tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function calcCascade() {
+            const value = numberFromBits(state.cascade.bits);
+            const d3 = state.cascade.bits[0];
+            const outputs = Array(16).fill(1);
+            outputs[value] = 0;
+            return { value, lowChip: d3 === 0, highChip: d3 === 1, outputs };
+        }
+
+        function renderCascade() {
+            $("cascade-controls").innerHTML = ["D3", "D2", "D1", "D0"].map((label, index) =>
+                pinButton("cascade-bit", String(index), label, state.cascade.bits[index], false, "输入地址位")
+            ).join("");
+            const calc = calcCascade();
+            $("cascade-chip-status").innerHTML = `
+                <div class="chip-mini ${calc.lowChip ? "selected" : ""}">
+                    <strong>低位片 74HC138</strong>
+                    <span>D3=0 时工作，负责 Y0' 到 Y7'。</span>
+                </div>
+                <div class="chip-mini ${calc.highChip ? "selected" : ""}">
+                    <strong>高位片 74HC138</strong>
+                    <span>D3=1 时工作，负责 Y8' 到 Y15'。</span>
+                </div>
+            `;
+            $("cascade-result").innerHTML = `
+                <div class="result-main">
+                    <span>D3D2D1D0</span>${bitBoxes(state.cascade.bits)}
+                    <span>选中 Y${calc.value}'</span>
+                </div>
+                <div class="result-note">最高位 D3 只负责选择哪一片 74HC138，低三位 D2D1D0 进入被选中的芯片作为地址。</div>
+            `;
+            $("cascade-output-grid").innerHTML = ledGrid(calc.outputs, "Y", true);
+        }
+
+        function calcHc42() {
+            const value = numberFromBits(state.hc42.bits);
+            const valid = value <= 9;
+            const outputs = Array(10).fill(1);
+            if (valid) outputs[value] = 0;
+            return { value, valid, outputs };
+        }
+
+        function renderHc42() {
+            $("hc42-controls").innerHTML = [
+                ["D", 0, "8 位"],
+                ["C", 1, "4 位"],
+                ["B", 2, "2 位"],
+                ["A", 3, "1 位"]
+            ].map(([label, index, hint]) => pinButton("hc42-bit", String(index), label, state.hc42.bits[index], false, hint)).join("");
+            const calc = calcHc42();
+            $("hc42-output-grid").innerHTML = ledGrid(calc.outputs, "Y", true);
+            $("hc42-result").innerHTML = `
+                <div class="result-main">
+                    <span>DCBA</span>${bitBoxes(state.hc42.bits)}
+                    <span>十进制 ${calc.value}</span>
+                </div>
+                <div class="result-note ${calc.valid ? "" : "warn"}">
+                    ${calc.valid ? `有效 BCD 输入，Y${calc.value}' 被拉低。` : "10 到 15 不是 BCD 有效数字，本平台将全部输出保持 H。"}
+                </div>
+            `;
+            renderHc42Table(calc);
+        }
+
+        function renderHc42Table(calc) {
+            const rows = Array.from({ length: 16 }, (_, value) => {
+                const valid = value <= 9;
+                const out = Array(10).fill(1);
+                if (valid) out[value] = 0;
+                return `
+                    <tr class="${calc.value === value ? "highlight" : ""} ${valid ? "" : "invalid"}">
+                        <td>${value}</td><td>${bitString(bits(value, 4))}</td>
+                        ${out.map((bit) => `<td>${valid ? bit : "H"}</td>`).join("")}
+                        <td>${valid ? `Y${value}' 有效` : "非法 BCD"}</td>
+                    </tr>
+                `;
+            }).join("");
+            $("hc42-table").innerHTML = `
+                <table>
+                    <thead><tr><th>十进制</th><th>DCBA</th>${Array.from({ length: 10 }, (_, index) => `<th>Y${index}'</th>`).join("")}<th>状态</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function calcSeven() {
+            const value = numberFromBits(state.seven.bits);
+            let active = [];
+            let note = "";
+            let rbo = 1;
+
+            if (state.seven.bi === 0) {
+                active = [];
+                rbo = 0;
+                note = "BI'=0，强制灭灯，所有段熄灭。";
+            } else if (state.seven.lt === 0) {
+                active = [...SEGMENTS];
+                note = "LT'=0，灯测试，a-g 全部点亮。";
+            } else if (state.seven.rbi === 0 && value === 0) {
+                active = [];
+                rbo = 0;
+                note = "RBI'=0 且输入为 0000，前导零被熄灭，RBO'=0。";
+            } else if (value > 9) {
+                active = [];
+                note = "输入为 10-15，属于非 BCD 数字，本平台默认熄灭。";
+            } else {
+                active = SEGMENT_MAP[value];
+                note = `正常显示数字 ${value}。`;
+            }
+
+            const outputs = SEGMENTS.map((segment) => active.includes(segment) ? 1 : 0);
+            return { value, active, outputs, note, rbo };
+        }
+
+        function renderSeven() {
+            $("seven-bcd-controls").innerHTML = [
+                ["D", 0, "8 位"],
+                ["C", 1, "4 位"],
+                ["B", 2, "2 位"],
+                ["A", 3, "1 位"]
+            ].map(([label, index, hint]) => pinButton("seven-bit", String(index), label, state.seven.bits[index], false, hint)).join("");
+            $("seven-control-pins").innerHTML = [
+                pinButton("seven-control", "lt", "LT'", state.seven.lt, true, "0 = 全亮测试"),
+                pinButton("seven-control", "bi", "BI'", state.seven.bi, true, "0 = 强制灭灯"),
+                pinButton("seven-control", "rbi", "RBI'", state.seven.rbi, true, "0 = 灭前导零")
+            ].join("");
+
+            const calc = calcSeven();
+            $("seven-display").innerHTML = SEGMENTS.map((segment) => `<span class="segment seg-${segment} ${calc.active.includes(segment) ? "on" : ""}"></span>`).join("");
+            $("segment-output-grid").innerHTML = SEGMENTS.map((segment, index) => `
+                <div class="segment-cell ${calc.outputs[index] ? "on" : ""}">
+                    <strong>${segment}</strong><br>${calc.outputs[index] ? "1 亮" : "0 灭"}
+                </div>
+            `).join("");
+            $("seven-result").innerHTML = `
+                <div class="result-main">
+                    <span>DCBA</span>${bitBoxes(state.seven.bits)}
+                    <span>十进制 ${calc.value}</span>
+                    <span>RBO'=${calc.rbo}</span>
+                </div>
+                <div class="result-note ${calc.value > 9 ? "warn" : ""}">${calc.note}</div>
+            `;
+            renderSevenTable(calc);
+            renderMultiDisplay();
+        }
+
+        function renderSevenTable(calc) {
+            const rows = Array.from({ length: 16 }, (_, value) => {
+                const valid = value <= 9;
+                const active = valid ? SEGMENT_MAP[value] : [];
+                return `
+                    <tr class="${calc.value === value ? "highlight" : ""} ${valid ? "" : "invalid"}">
+                        <td>${value}</td><td>${bitString(bits(value, 4))}</td>
+                        ${SEGMENTS.map((segment) => `<td>${valid ? (active.includes(segment) ? 1 : 0) : "-"}</td>`).join("")}
+                        <td>${valid ? "有效 BCD" : "非 BCD"}</td>
+                    </tr>
+                `;
+            }).join("");
+            $("seven-table").innerHTML = `
+                <table>
+                    <thead><tr><th>数字</th><th>DCBA</th>${SEGMENTS.map((segment) => `<th>${segment}</th>`).join("")}<th>说明</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function smallDigitHtml(digit, blank) {
+            const active = blank ? [] : SEGMENT_MAP[Number(digit)] || [];
+            const map = [
+                ["a", "sa"], ["b", "sb"], ["c", "sc"], ["d", "sd"], ["e", "se"], ["f", "sf"], ["g", "sg"]
+            ];
+            return `
+                <div class="digit-small ${blank ? "blank" : ""}">
+                    ${map.map(([segment, cls]) => `<span class="small-seg ${cls} ${active.includes(segment) ? "on" : ""}"></span>`).join("")}
+                </div>
+            `;
+        }
+
+        function renderMultiDisplay() {
+            const intField = $("multi-int");
+            const fracField = $("multi-frac");
+            if (!intField || !fracField) return;
+
+            let integer = intField.value.replace(/\D/g, "").slice(0, 8);
+            let fraction = fracField.value.replace(/\D/g, "").slice(0, 6);
+            if (!integer) integer = "0";
+            if (intField.value !== integer) intField.value = integer;
+            if (fracField.value !== fraction) fracField.value = fraction;
+
+            const allowBlank = state.seven.multiRbi === 0;
+            const intDigits = integer.split("");
+            const fracDigits = fraction.split("");
+            const intBlank = intDigits.map(() => false);
+            const fracBlank = fracDigits.map(() => false);
+
+            if (allowBlank) {
+                const firstNonZero = intDigits.findIndex((digit) => digit !== "0");
+                if (firstNonZero === -1) {
+                    for (let index = 0; index < intDigits.length - 1; index += 1) intBlank[index] = true;
+                } else {
+                    for (let index = 0; index < firstNonZero; index += 1) intBlank[index] = true;
+                }
+
+                let lastFracNonZero = -1;
+                for (let index = fracDigits.length - 1; index >= 0; index -= 1) {
+                    if (fracDigits[index] !== "0") {
+                        lastFracNonZero = index;
+                        break;
+                    }
+                }
+                for (let index = fracDigits.length - 1; index > lastFracNonZero; index -= 1) {
+                    fracBlank[index] = true;
+                }
+            }
+
+            const fractionVisible = fracDigits.some((_, index) => !fracBlank[index]);
+            const html = [
+                ...intDigits.map((digit, index) => smallDigitHtml(digit, intBlank[index])),
+                fraction.length ? `<span class="decimal-dot ${fractionVisible ? "" : "dim"}">.</span>` : "",
+                ...fracDigits.map((digit, index) => smallDigitHtml(digit, fracBlank[index]))
+            ].join("");
+
+            $("multi-display").innerHTML = html;
+            $("multi-rbi-button").textContent = state.seven.multiRbi === 0 ? "RBI'=0，允许灭零" : "RBI'=1，全部显示";
+            $("multi-rbi-button").classList.toggle("active", state.seven.multiRbi === 0);
+            $("multi-note").textContent = allowBlank
+                ? "当前允许灭零：整数前导 0 会熄灭，小数末尾无效 0 会熄灭。"
+                : "当前不灭零：所有输入数字都会显示。";
+        }
+
+        function tokenizeLogicExpression(expr) {
+            const tokens = [];
+            let pos = 0;
+            while (pos < expr.length) {
+                const ch = expr[pos];
+                if (/\s/.test(ch)) {
+                    pos += 1;
+                } else if (/[A-Za-z_]/.test(ch)) {
+                    let end = pos + 1;
+                    while (end < expr.length && /[A-Za-z0-9_]/.test(expr[end])) end += 1;
+                    const word = expr.slice(pos, end);
+                    const upper = word.toUpperCase();
+                    if (upper === "AND") tokens.push({ type: "&" });
+                    else if (upper === "OR") tokens.push({ type: "|" });
+                    else if (upper === "NOT") tokens.push({ type: "!" });
+                    else if (upper === "XOR") tokens.push({ type: "^" });
+                    else tokens.push({ type: "id", value: word });
+                    pos = end;
+                } else if (ch === "0" || ch === "1") {
+                    tokens.push({ type: "lit", value: Number(ch) });
+                    pos += 1;
+                } else if ("!&|^()".includes(ch)) {
+                    tokens.push({ type: ch });
+                    pos += 1;
+                } else if (ch === "*") {
+                    tokens.push({ type: "&" });
+                    pos += 1;
+                } else if (ch === "+") {
+                    tokens.push({ type: "|" });
+                    pos += 1;
+                } else {
+                    throw new Error(`无法识别的符号：${ch}`);
+                }
+            }
+            return tokens;
+        }
+
+        function parseLogicExpression(expr, vars) {
+            const tokens = tokenizeLogicExpression(expr);
+            const allowed = new Set(vars);
+            let pos = 0;
+
+            const peek = () => tokens[pos];
+            const take = (type) => {
+                if (peek() && peek().type === type) {
+                    pos += 1;
+                    return true;
+                }
+                return false;
+            };
+
+            function parseOr() {
+                let node = parseXor();
+                while (take("|")) node = { type: "or", left: node, right: parseXor() };
+                return node;
+            }
+
+            function parseXor() {
+                let node = parseAnd();
+                while (take("^")) node = { type: "xor", left: node, right: parseAnd() };
+                return node;
+            }
+
+            function parseAnd() {
+                let node = parseNot();
+                while (take("&")) node = { type: "and", left: node, right: parseNot() };
+                return node;
+            }
+
+            function parseNot() {
+                if (take("!")) return { type: "not", value: parseNot() };
+                return parsePrimary();
+            }
+
+            function parsePrimary() {
+                const token = peek();
+                if (!token) throw new Error("表达式不完整");
+                if (take("(")) {
+                    const node = parseOr();
+                    if (!take(")")) throw new Error("缺少右括号");
+                    return node;
+                }
+                if (token.type === "lit") {
+                    pos += 1;
+                    return { type: "lit", value: token.value };
+                }
+                if (token.type === "id") {
+                    pos += 1;
+                    if (!allowed.has(token.value)) throw new Error(`未知变量：${token.value}`);
+                    return { type: "var", name: token.value };
+                }
+                throw new Error(`表达式位置错误：${token.type}`);
+            }
+
+            const ast = parseOr();
+            if (pos !== tokens.length) throw new Error("表达式末尾存在多余内容");
+            return ast;
+        }
+
+        function evalLogicAst(node, values) {
+            if (node.type === "lit") return node.value ? 1 : 0;
+            if (node.type === "var") return values[node.name] ? 1 : 0;
+            if (node.type === "not") return evalLogicAst(node.value, values) ? 0 : 1;
+            if (node.type === "and") return evalLogicAst(node.left, values) && evalLogicAst(node.right, values) ? 1 : 0;
+            if (node.type === "or") return evalLogicAst(node.left, values) || evalLogicAst(node.right, values) ? 1 : 0;
+            if (node.type === "xor") return evalLogicAst(node.left, values) ^ evalLogicAst(node.right, values) ? 1 : 0;
+            throw new Error("未知表达式节点");
+        }
+
+        function parseEngineVars() {
+            const vars = state.engine.varsText.split(",").map((item) => item.trim()).filter(Boolean);
+            if (!vars.length) throw new Error("请至少填写一个输入变量");
+            if (vars.length > 8) throw new Error("变量数量最多支持 8 个");
+            const seen = new Set();
+            vars.forEach((name) => {
+                if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`变量名不合法：${name}`);
+                if (seen.has(name)) throw new Error(`变量名重复：${name}`);
+                seen.add(name);
+            });
+            return vars;
+        }
+
+        function compileEngine() {
+            try {
+                const vars = parseEngineVars();
+                const equations = state.engine.equations
+                    .map((eq) => ({ name: eq.name.trim(), expr: eq.expr.trim() }))
+                    .filter((eq) => eq.name || eq.expr);
+                if (!equations.length) throw new Error("请至少填写一个输出方程");
+                const seenOutputs = new Set();
+                const compiledEquations = equations.map((eq) => {
+                    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(eq.name)) throw new Error(`输出名不合法：${eq.name || "(空)"}`);
+                    if (seenOutputs.has(eq.name)) throw new Error(`输出名重复：${eq.name}`);
+                    if (!eq.expr) throw new Error(`${eq.name} 缺少表达式`);
+                    seenOutputs.add(eq.name);
+                    return { ...eq, ast: parseLogicExpression(eq.expr, vars) };
+                });
+                const inputs = {};
+                vars.forEach((name) => {
+                    inputs[name] = state.engine.inputs[name] ? 1 : 0;
+                });
+                state.engine.inputs = inputs;
+                state.engine.compiled = { vars, equations: compiledEquations };
+                state.engine.error = "";
+            } catch (error) {
+                state.engine.compiled = null;
+                state.engine.error = error.message;
+            }
+        }
+
+        function engineDefault() {
+            state.engine.varsText = "D, C, B, A";
+            state.engine.equations = [
+                { name: "Y2", expr: "(D & C) | (D & B & A)" },
+                { name: "Y1", expr: "(!D & C & B) | (D & !C & !B) | (D & !C & !A)" },
+                { name: "Y0", expr: "(!D & !C) | (!D & !B)" }
+            ];
+            state.engine.inputs = {};
+            state.engine.compiled = null;
+            state.engine.error = "";
+        }
+
+        function renderEngine() {
+            const varsInput = $("engine-vars");
+            if (varsInput) varsInput.value = state.engine.varsText;
+            $("engine-equations").innerHTML = state.engine.equations.map((eq, index) => `
+                <div class="equation-row">
+                    <input class="logic-input" data-engine-equation="${index}" data-engine-prop="name" value="${escapeAttr(eq.name)}" aria-label="输出名 ${index + 1}">
+                    <span>=</span>
+                    <input class="logic-input" data-engine-equation="${index}" data-engine-prop="expr" value="${escapeAttr(eq.expr)}" aria-label="逻辑表达式 ${index + 1}">
+                    <button class="action-button warning" data-action="engine-delete-equation" data-index="${index}">删除</button>
+                </div>
+            `).join("");
+            const errorBox = $("engine-error");
+            errorBox.textContent = state.engine.error;
+            errorBox.classList.toggle("active", Boolean(state.engine.error));
+
+            if (!state.engine.compiled) {
+                $("engine-sim").innerHTML = `<div class="soft-note">输入变量和方程后，编译生成交互测试与真值表。</div>`;
+                $("engine-table").innerHTML = "";
+                return;
+            }
+
+            const compiled = state.engine.compiled;
+            const values = {};
+            compiled.vars.forEach((name) => {
+                values[name] = state.engine.inputs[name] ? 1 : 0;
+            });
+            const currentKey = compiled.vars.map((name) => values[name]).join("");
+            const outputHtml = compiled.equations.map((eq) => {
+                const result = evalLogicAst(eq.ast, values);
+                return `
+                    <div class="engine-output">
+                        <strong>${eq.name}</strong>
+                        <span class="bit ${result ? "active-high" : ""}">${result}</span>
+                    </div>
+                `;
+            }).join("");
+
+            $("engine-sim").innerHTML = `
+                <div class="engine-board">
+                    <div class="engine-io">
+                        <h4>输入</h4>
+                        <div class="pin-grid">
+                            ${compiled.vars.map((name) => pinButton("engine-bit", name, name, values[name], false, "1 = 高电平")).join("")}
+                        </div>
+                    </div>
+                    <div class="engine-io">
+                        <h4>输出</h4>
+                        <div class="engine-output-grid">${outputHtml}</div>
+                    </div>
+                </div>
+            `;
+            renderEngineTable(currentKey);
+        }
+
+        function renderEngineTable(currentKey) {
+            const compiled = state.engine.compiled;
+            if (!compiled) return;
+            const totalRows = 2 ** compiled.vars.length;
+            const rows = Array.from({ length: totalRows }, (_, value) => {
+                const rowBits = bits(value, compiled.vars.length);
+                const rowValues = {};
+                compiled.vars.forEach((name, index) => {
+                    rowValues[name] = rowBits[index];
+                });
+                const key = rowBits.join("");
+                return `
+                    <tr class="${key === currentKey ? "highlight" : ""}">
+                        ${rowBits.map((bit) => `<td>${bit}</td>`).join("")}
+                        ${compiled.equations.map((eq) => `<td>${evalLogicAst(eq.ast, rowValues)}</td>`).join("")}
+                    </tr>
+                `;
+            }).join("");
+            $("engine-table").innerHTML = `
+                <table>
+                    <thead><tr>${compiled.vars.map((name) => `<th>${name}</th>`).join("")}${compiled.equations.map((eq) => `<th>${eq.name}</th>`).join("")}</tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function renderAll() {
+            renderEncoder();
+            renderPriority16();
+            renderHc138();
+            renderHc42();
+            renderSeven();
+            renderEngine();
+        }
+
+        document.addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-action]");
+            if (!button) return;
+            const action = button.dataset.action;
+
+            if (action === "nav") {
+                showSection(button.dataset.section);
+                return;
+            }
+
+            if (action === "encoder-mode") {
+                state.encoderMode = button.dataset.mode;
+            } else if (action === "encoder-pin") {
+                const [mode, rawIndex] = button.dataset.key.split("-");
+                if (mode === "normal") {
+                    const index = Number(rawIndex);
+                    state.encoder.normal.inputs[index] = state.encoder.normal.inputs[index] ? 0 : 1;
+                } else if (mode === "hc148") {
+                    if (rawIndex === "ei") {
+                        state.encoder.hc148.ei = state.encoder.hc148.ei ? 0 : 1;
+                    } else {
+                        const index = Number(rawIndex);
+                        state.encoder.hc148.inputs[index] = state.encoder.hc148.inputs[index] ? 0 : 1;
+                    }
+                } else if (mode === "ls147") {
+                    const index = Number(rawIndex);
+                    state.encoder.ls147.inputs[index] = state.encoder.ls147.inputs[index] ? 0 : 1;
+                }
+            } else if (action === "encoder-reset") {
+                resetEncoder();
+            } else if (action === "encoder-sample") {
+                sampleEncoder();
+            } else if (action === "encoder-random") {
+                randomEncoder();
+            } else if (action === "priority16-pin") {
+                const index = Number(button.dataset.key);
+                state.priority16.inputs[index] = state.priority16.inputs[index] ? 0 : 1;
+            } else if (action === "priority16-reset") {
+                resetPriority16();
+            } else if (action === "priority16-sample") {
+                samplePriority16();
+            } else if (action === "priority16-random") {
+                randomPriority16();
+            } else if (action === "hc138-pin") {
+                const key = button.dataset.key;
+                state.hc138[key] = state.hc138[key] ? 0 : 1;
+            } else if (action === "hc138-address") {
+                const index = Number(button.dataset.key);
+                state.hc138.address[index] = state.hc138.address[index] ? 0 : 1;
+            } else if (action === "cascade-bit") {
+                const index = Number(button.dataset.key);
+                state.cascade.bits[index] = state.cascade.bits[index] ? 0 : 1;
+            } else if (action === "hc42-bit") {
+                const index = Number(button.dataset.key);
+                state.hc42.bits[index] = state.hc42.bits[index] ? 0 : 1;
+            } else if (action === "seven-bit") {
+                const index = Number(button.dataset.key);
+                state.seven.bits[index] = state.seven.bits[index] ? 0 : 1;
+            } else if (action === "seven-control") {
+                const key = button.dataset.key;
+                state.seven[key] = state.seven[key] ? 0 : 1;
+            } else if (action === "toggle-multi-rbi") {
+                state.seven.multiRbi = state.seven.multiRbi ? 0 : 1;
+            } else if (action === "engine-add-equation") {
+                state.engine.equations.push({ name: "Y_new", expr: "" });
+                state.engine.compiled = null;
+                state.engine.error = "";
+            } else if (action === "engine-delete-equation") {
+                const index = Number(button.dataset.index);
+                state.engine.equations.splice(index, 1);
+                if (!state.engine.equations.length) state.engine.equations.push({ name: "Y", expr: "" });
+                state.engine.compiled = null;
+                state.engine.error = "";
+            } else if (action === "engine-default") {
+                engineDefault();
+            } else if (action === "engine-compile") {
+                compileEngine();
+            } else if (action === "engine-bit") {
+                const key = button.dataset.key;
+                state.engine.inputs[key] = state.engine.inputs[key] ? 0 : 1;
+            }
+
+            renderAll();
+        });
+
+        document.addEventListener("input", (event) => {
+            if (event.target.matches("[data-multi-input]")) {
+                renderMultiDisplay();
+            } else if (event.target.matches("[data-engine-field='vars']")) {
+                state.engine.varsText = event.target.value;
+                state.engine.compiled = null;
+                state.engine.error = "";
+            } else if (event.target.matches("[data-engine-equation]")) {
+                const index = Number(event.target.dataset.engineEquation);
+                const prop = event.target.dataset.engineProp;
+                if (state.engine.equations[index]) {
+                    state.engine.equations[index][prop] = event.target.value;
+                    state.engine.compiled = null;
+                    state.engine.error = "";
+                }
+            }
+        });
+
+        renderAll();
+    </script>
+</body>
+</html>
