@@ -33,6 +33,7 @@ test("health, pages and question APIs are available", async () => {
   const mainStyle = await fetch(`${baseUrl}/styles.css`).then((response) => response.text());
   const labStyle = await fetch(`${baseUrl}/labs.css`).then((response) => response.text());
   const siteNavStyle = await fetch(`${baseUrl}/site-nav.css`).then((response) => response.text());
+  const appScript = await fetch(`${baseUrl}/app.js`).then((response) => response.text());
   const labsScript = await fetch(`${baseUrl}/labs.js`).then((response) => response.text());
   const transitionScript = await fetch(`${baseUrl}/page-transition.js`).then((response) => response.text());
 
@@ -75,11 +76,13 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /href="\.\/labs\.html">实验中心/);
   assert.doesNotMatch(appHome, /page-transition\.js/);
   assert.match(appHome, /gate-builder-demo\.html/);
-  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /function renderSvg/);
-  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /moveQuestion\(-1\)/);
-  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /setupScopePanelToggle/);
-  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /\/api\/wrong-remediation/);
-  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /generatedVariant/);
+  assert.match(appScript, /function renderSvg/);
+  assert.match(appScript, /moveQuestion\(-1\)/);
+  assert.match(appScript, /setupScopePanelToggle/);
+  assert.match(appScript, /\/api\/wrong-remediation/);
+  assert.match(appScript, /generatedVariant/);
+  assert.match(appScript, /orderLearningCenterQuestions/);
+  assert.match(appScript, /method: "POST"/);
   assert.match(labs, /交互仿真实验中心/);
   assert.match(labs, /site-nav\.css/);
   assert.match(labs, /href="\.\/index\.html">学习中心/);
@@ -203,12 +206,19 @@ test("health, pages and question APIs are available", async () => {
   assert.doesNotMatch(labsScript, /name: "D 触发器"/);
 });
 
-test("self-test and targeted paper generation return usable lists", async () => {
-  const paper = await fetch(`${baseUrl}/api/self-test?count=5`).then((response) => response.json());
+test("AI self-test requires configuration and targeted practice still uses the question bank", async () => {
+  const selfTestResponse = await fetch(`${baseUrl}/api/self-test`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ count: 5, scope: "all" })
+  });
+  const selfTestBody = await selfTestResponse.json();
   const targeted = await fetch(`${baseUrl}/api/targeted-questions?knowledge=${encodeURIComponent("比较器")}&count=5`)
     .then((response) => response.json());
 
-  assert.equal(paper.length, 5);
+  assert.equal(selfTestResponse.status, 503);
+  assert.equal(selfTestBody.code, "AI_NOT_CONFIGURED");
+  assert.match(selfTestBody.error, /未配置 AI Key/);
   assert.ok(targeted.length > 0);
   assert.ok(targeted.every((question) => question.knowledge.includes("比较器")));
 });

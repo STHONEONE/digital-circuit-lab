@@ -24,10 +24,13 @@ export class Store {
     this.importedFile = path.join(dataDir, "imported-questions.json");
     this.recordsFile = path.join(dataDir, "answer-records.json");
     this.configFile = path.join(dataDir, "ai-config.json");
+    this.generatedSelfTestsFile = path.join(dataDir, "generated-self-test-questions.json");
     fs.mkdirSync(dataDir, { recursive: true });
     this.imported = readJson(this.importedFile, []);
     this.records = readJson(this.recordsFile, []);
     this.config = readJson(this.configFile, {});
+    const generatedSelfTests = readJson(this.generatedSelfTestsFile, []);
+    this.generatedSelfTests = Array.isArray(generatedSelfTests) ? generatedSelfTests : [];
   }
 
   questions({ scope, source } = {}) {
@@ -39,7 +42,24 @@ export class Store {
   }
 
   question(id) {
-    return this.questions().find((question) => question.id === id);
+    return this.questions().find((question) => question.id === id)
+      || this.generatedSelfTests.find((question) => question.id === id);
+  }
+
+  addGeneratedSelfTestQuestions(questions) {
+    const usable = (Array.isArray(questions) ? questions : [])
+      .filter((question) => question?.id && question?.text);
+    const incomingIds = new Set(usable.map((question) => question.id));
+    const combined = [
+      ...this.generatedSelfTests.filter((question) => !incomingIds.has(question.id)),
+      ...usable
+    ];
+    const answeredIds = new Set(this.records.map((record) => record.questionId));
+    const answeredQuestions = combined.filter((question) => answeredIds.has(question.id));
+    const recentUnanswered = combined.filter((question) => !answeredIds.has(question.id)).slice(-200);
+    this.generatedSelfTests = [...answeredQuestions, ...recentUnanswered];
+    writeJson(this.generatedSelfTestsFile, this.generatedSelfTests);
+    return usable;
   }
 
   sources() {
@@ -81,11 +101,13 @@ export class Store {
     writeJson(this.recordsFile, this.records);
   }
 
-  clearRecords() {
-    const removed = this.records.length;
-    this.records = [];
+  clearRecords(learnerId = "") {
+    const before = this.records.length;
+    this.records = learnerId
+      ? this.records.filter((record) => record.learnerId !== learnerId)
+      : [];
     writeJson(this.recordsFile, this.records);
-    return removed;
+    return before - this.records.length;
   }
 
   aiConfig() {

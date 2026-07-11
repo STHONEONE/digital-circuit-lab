@@ -13,9 +13,26 @@ function mode(modeName) {
   return allowedModes.has(modeName) ? modeName : "normal";
 }
 
+function buildTargetKnowledgePlan(weakKnowledge, availableKnowledge, count) {
+  const targets = weakKnowledge.length
+    ? weakKnowledge
+    : availableKnowledge.map((name) => ({ name, wrongCount: 1 }));
+  if (!targets.length) return [];
+  const plan = targets.slice(0, count).map((item) => item.name);
+  const weighted = targets.flatMap((item) => Array.from(
+    { length: Math.max(1, Math.min(Number(item.wrongCount) || 1, 4)) },
+    () => item.name
+  ));
+  for (let index = 0; plan.length < count; index += 1) {
+    plan.push(weighted[index % weighted.length]);
+  }
+  return plan.slice(0, count);
+}
+
 export class PracticeService {
-  constructor(store) {
+  constructor(store, ai = null) {
     this.store = store;
+    this.ai = ai;
   }
 
   answer(request) {
@@ -42,7 +59,8 @@ export class PracticeService {
       correct,
       knowledge: question.knowledge || [],
       practiceMode: mode(request.practiceMode),
-      focusKnowledge: request.focusKnowledge || ""
+      focusKnowledge: request.focusKnowledge || "",
+      ...(request.learnerId ? { learnerId: request.learnerId } : {})
     });
 
     return {
@@ -56,9 +74,18 @@ export class PracticeService {
     };
   }
 
-  wrongKnowledgeCounts() {
+  recordsForLearner(learnerId = "") {
+    if (!learnerId) return this.store.records;
+    return this.store.records.filter((record) => record.learnerId === learnerId);
+  }
+
+  wrongKnowledgeCounts(scope = "all", learnerId = "") {
     const counts = {};
-    this.store.records.filter((record) => !record.correct).forEach((record) => {
+    this.recordsForLearner(learnerId).filter((record) => {
+      if (record.correct) return false;
+      if (!scope || scope === "all") return true;
+      return this.store.question(record.questionId)?.scope === scope;
+    }).forEach((record) => {
       (record.knowledge || []).forEach((item) => {
         counts[item] = (counts[item] || 0) + 1;
       });
@@ -162,11 +189,11 @@ export class PracticeService {
       ],
       review: hasRecords && knowledge.length
         ? `已完成 ${this.store.records.length} 次作答；当前“${knowledge[0].knowledge}”正确率为 ${knowledge[0].rate}%，下一轮优先安排该方向。`
-        : "尚未形成学习轨迹。建议先进行智能组卷自测，完成初始诊断。"
+        : "尚未形成学习轨迹。建议先进行 AI 阶段自测，完成初始诊断。"
     };
   }
 
-  selfTest(scope, count) {
+  selectBankQuestions(scope, count) {
     const weak = this.wrongKnowledgeCounts();
     const answered = new Set(this.store.records.map((record) => record.questionId));
     return this.store.questions({ scope }).map((question) => ({
@@ -179,6 +206,61 @@ export class PracticeService {
       .map((entry) => entry.question);
   }
 
+  selfTestProfile(scope, count, learnerId = "") {
+    const selectedScope = scope && scope !== "all" ? String(scope) : "all";
+    const selectedCount = Math.max(1, Math.min(Number(count) || 5, 10));
+    const weakKnowledge = Object.entries(this.wrongKnowledgeCounts(selectedScope, learnerId))
+      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+      .slice(0, 10)
+      .map(([name, wrongCount]) => ({ name: String(name).slice(0, 80), wrongCount }));
+    const availableKnowledge = [...new Set(this.store.questions({ scope: selectedScope })
+      .flatMap((question) => question.knowledge || []))]
+      .map((name) => String(name).slice(0, 80)).slice(0, 24);
+    const targetKnowledgePlan = buildTargetKnowledgePlan(
+      weakKnowledge,
+      availableKnowledge,
+      selectedCount
+    );
+    const seenQuestions = new Set();
+    const wrongQuestions = [...this.recordsForLearner(learnerId)].reverse()
+      .filter((record) => !record.correct)
+      .map((record) => ({ record, question: this.store.question(record.questionId) }))
+      .filter(({ question }) => question
+        && (selectedScope === "all" || question.scope === selectedScope)
+        && !seenQuestions.has(question.id)
+        && seenQuestions.add(question.id))
+      .slice(0, 8)
+      .map(({ record, question }) => ({
+        text: String(question.text || "").slice(0, 600),
+        type: question.type,
+        knowledge: (question.knowledge || []).slice(0, 8)
+          .map((item) => String(item).slice(0, 80)),
+        difficulty: question.difficulty || 2,
+        userAnswer: String(record.userAnswer || "").slice(0, 300)
+      }));
+
+    return {
+      scope: selectedScope,
+      count: selectedCount,
+      weakKnowledge,
+      focusKnowledge: [...new Set(targetKnowledgePlan)],
+      targetKnowledgePlan,
+      availableKnowledge,
+      wrongQuestions
+    };
+  }
+
+  async selfTest(scope, count, learnerId = "") {
+    if (!this.ai?.generateSelfTest) {
+      const error = new Error("阶段自测的大模型服务不可用，请稍后重试。");
+      error.status = 503;
+      error.code = "AI_SELF_TEST_UNAVAILABLE";
+      throw error;
+    }
+    const questions = await this.ai.generateSelfTest(this.selfTestProfile(scope, count, learnerId));
+    return this.store.addGeneratedSelfTestQuestions(questions);
+  }
+
   targeted(knowledge, count) {
     const focus = String(knowledge || Object.entries(this.wrongKnowledgeCounts())
       .sort((left, right) => right[1] - left[1])[0]?.[0] || "").trim();
@@ -186,7 +268,7 @@ export class PracticeService {
       .filter((question) => !focus || question.knowledge?.includes(focus))
       .sort((left, right) => left.difficulty - right.difficulty)
       .slice(0, Math.max(1, Math.min(Number(count) || 5, 20)));
-    return matched.length ? matched : this.selfTest(null, count);
+    return matched.length ? matched : this.selectBankQuestions(null, count);
   }
 
   progress() {

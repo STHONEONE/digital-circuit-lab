@@ -17,12 +17,28 @@ const completedSelfTestQuestions = new Set();
 const correctedReviewQuestions = new Set();
 const wrongReviewAttempts = new Map();
 const scopePanelStorageKey = "learning-scope-panel-collapsed";
+const learnerIdStorageKey = "digital-circuit-learner-id";
+
+function getLearnerId() {
+  try {
+    const existing = localStorage.getItem(learnerIdStorageKey);
+    if (existing) return existing;
+    const created = globalThis.crypto?.randomUUID?.()
+      || `learner-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(learnerIdStorageKey, created);
+    return created;
+  } catch {
+    return `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
+const learnerId = getLearnerId();
 
 const modeLabels = {
   normal: "普通练习",
   targeted: "针对训练",
   wrong_review: "错题复盘",
-  self_test: "智能组卷",
+  self_test: "AI 阶段自测",
   ai_variant: "AI 变式训练"
 };
 
@@ -156,11 +172,11 @@ function setActivePracticeModule(module, pending = false) {
   els.selfTestNavButton?.setAttribute("aria-pressed", String(module === "self_test"));
 
   if (module === "self_test" && pending) {
-    els.rightPanelTitle.textContent = "正在智能组卷";
-    els.rightPanelSubtitle.textContent = "正在结合当前范围和薄弱知识点选择题目";
-    els.rightPanelBadge.textContent = "生成中";
+    els.rightPanelTitle.textContent = "AI 正在组卷";
+    els.rightPanelSubtitle.textContent = "根据历史错题知识点生成全新试题";
+    els.rightPanelBadge.textContent = "AI 生成中";
     els.recommendations.className = "review-directory paper-directory";
-    els.recommendations.innerHTML = '<div class="review-directory-empty pending">试卷生成后，这里会显示可点击的题目目录。</div>';
+    els.recommendations.innerHTML = '<div class="review-directory-empty pending">大模型正在分析薄弱知识点，生成后这里会显示题目目录。</div>';
   }
 }
 
@@ -217,6 +233,20 @@ function shuffled(list) {
   return result;
 }
 
+function learningQuestionTypeRank(question) {
+  if (question.type === "single_choice") return 0;
+  if (question.type === "analysis") return 2;
+  return 1;
+}
+
+function orderLearningCenterQuestions(list, randomize = false) {
+  const source = randomize ? shuffled(list) : [...list];
+  return source.map((question, index) => ({ question, index }))
+    .sort((left, right) => learningQuestionTypeRank(left.question) - learningQuestionTypeRank(right.question)
+      || left.index - right.index)
+    .map((entry) => entry.question);
+}
+
 async function runAction(button, action, pendingText) {
   const originalContent = button?.innerHTML;
   if (button) {
@@ -240,8 +270,8 @@ async function loadQuestions() {
   if (currentScope !== "all") params.set("scope", currentScope);
   if (currentSource) params.set("source", currentSource);
   const loadedQuestions = await fetchJson(`/api/questions?${params.toString()}`);
-  questions = practiceMode === "normal" && currentScope === "all" && !currentSource
-    ? shuffled(loadedQuestions)
+  questions = practiceMode === "normal"
+    ? orderLearningCenterQuestions(loadedQuestions, currentScope === "all" && !currentSource)
     : loadedQuestions;
   currentIndex = Math.min(currentIndex, Math.max(0, questions.length - 1));
 }
@@ -1064,7 +1094,10 @@ async function loadRecommendations() {
       let index = questions.findIndex((questionItem) => questionItem.id === item.id);
       if (index < 0) {
         questions.push(item);
-        index = questions.length - 1;
+        if (practiceMode === "normal") {
+          questions = orderLearningCenterQuestions(questions);
+        }
+        index = questions.findIndex((questionItem) => questionItem.id === item.id);
       }
       currentIndex = index;
       renderQuestion();
@@ -1096,8 +1129,8 @@ function renderSelfTestDirectory() {
   const completedCount = questions.filter((question) => completedSelfTestQuestions.has(question.id)).length;
   els.rightPanelTitle.textContent = "试卷目录";
   els.rightPanelSubtitle.textContent = questions.length
-    ? `本次组卷进度：已完成 ${completedCount} / ${questions.length}`
-    : "当前范围没有可用于组卷的题目";
+    ? `本次 AI 试卷进度：已完成 ${completedCount} / ${questions.length}`
+    : "大模型暂未返回可用题目";
   els.rightPanelBadge.textContent = questions.length ? `${completedCount}/${questions.length}` : "空试卷";
   els.recommendations.innerHTML = "";
   els.recommendations.className = "review-directory paper-directory";
@@ -1105,7 +1138,7 @@ function renderSelfTestDirectory() {
   if (!questions.length) {
     const empty = document.createElement("div");
     empty.className = "review-directory-empty";
-    empty.textContent = "请调整练习范围或导入更多题目后重新组卷。";
+    empty.textContent = "请检查 AI 配置或稍后重新生成阶段自测。";
     els.recommendations.append(empty);
     return;
   }
@@ -1204,8 +1237,8 @@ function renderWrongReviewDirectory() {
   });
 }
 
-async function setPracticeSet(url, mode, status, focus = "") {
-  const list = await fetchJson(url);
+async function setPracticeSet(url, mode, status, focus = "", requestOptions) {
+  const list = await fetchJson(url, requestOptions);
   questions = list;
   currentIndex = 0;
   practiceMode = mode;
@@ -1233,13 +1266,15 @@ async function composeSelfTest() {
   setActivePracticeModule("self_test", true);
   completedSelfTestQuestions.clear();
   const count = els.paperCount.value;
-  const params = new URLSearchParams({ count });
-  if (currentScope !== "all") params.set("scope", currentScope);
   try {
-    await setPracticeSet(`/api/self-test?${params.toString()}`, "self_test", "智能组卷自测");
+    await setPracticeSet("/api/self-test", "self_test", "AI 阶段自测", "", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ count, scope: currentScope })
+    });
   } catch (error) {
     els.rightPanelTitle.textContent = "组卷失败";
-    els.rightPanelSubtitle.textContent = "请检查题库后重试";
+    els.rightPanelSubtitle.textContent = "请检查 AI 配置或稍后重试";
     els.rightPanelBadge.textContent = "失败";
     els.recommendations.className = "review-directory paper-directory";
     els.recommendations.innerHTML = `<div class="review-directory-empty error">${escapeHtml(error.message)}</div>`;
@@ -1964,7 +1999,11 @@ async function clearRecords() {
 }
 
 async function fetchJson(url, options) {
-  const response = await fetch(url, options);
+  const requestOptions = { ...(options || {}) };
+  const headers = new Headers(requestOptions.headers || {});
+  headers.set("X-Learner-Id", learnerId);
+  requestOptions.headers = headers;
+  const response = await fetch(url, requestOptions);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(data.error || "请求失败");

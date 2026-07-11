@@ -66,6 +66,92 @@ function normalizeGeneratedVariant(sourceQuestion, rawQuestion = {}) {
   };
 }
 
+function normalizeSelfTestQuestion(rawQuestion = {}, profile, index) {
+  const options = Array.isArray(rawQuestion.options)
+    ? rawQuestion.options
+      .map((option) => String(option || "").trim().replace(/^[A-D][\s.。．、:：]+/i, ""))
+      .filter(Boolean)
+      .slice(0, 4)
+    : [];
+  const requestedType = String(rawQuestion.type || "").trim().toLowerCase();
+  const isChoice = requestedType === "single_choice" || options.length > 0;
+  const answer = answerIndex(rawQuestion.answer ?? rawQuestion.answerText);
+  const answerText = isChoice && Number.isInteger(answer) && options[answer]
+    ? `${String.fromCharCode(65 + answer)}. ${options[answer]}`
+    : String(rawQuestion.answerText || rawQuestion.answer || "").trim();
+  const focusKnowledge = Array.isArray(profile.focusKnowledge) ? profile.focusKnowledge : [];
+  const targetKnowledgePlan = Array.isArray(profile.targetKnowledgePlan) ? profile.targetKnowledgePlan : [];
+  const fallbackKnowledge = targetKnowledgePlan[index]
+    || focusKnowledge[index % Math.max(1, focusKnowledge.length)]
+    || "";
+  const knowledge = Array.isArray(rawQuestion.knowledge)
+    ? rawQuestion.knowledge.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 6)
+    : [];
+  const keywords = Array.isArray(rawQuestion.keywords)
+    ? rawQuestion.keywords.map((keyword) => String(keyword || "").trim()).filter(Boolean).slice(0, 8)
+    : [];
+
+  return {
+    id: `ai-selftest-${randomUUID()}`,
+    scope: profile.scope === "all" ? String(rawQuestion.scope || "custom").trim() || "custom" : profile.scope,
+    chapter: "AI 阶段自测",
+    title: String(rawQuestion.title || `阶段自测第 ${index + 1} 题`).trim(),
+    type: isChoice ? "single_choice" : "analysis",
+    text: String(rawQuestion.text || "").trim(),
+    options: isChoice ? options : [],
+    answer: isChoice && Number.isInteger(answer) ? answer : null,
+    answerText,
+    explanation: String(rawQuestion.explanation || "").trim(),
+    knowledge,
+    targetKnowledge: String(rawQuestion.targetKnowledge || fallbackKnowledge).trim(),
+    keywords: isChoice ? [] : keywords,
+    difficulty: Math.max(1, Math.min(Number(rawQuestion.difficulty) || 2, 5)),
+    generatedSelfTest: true,
+    source: "AI 阶段自测"
+  };
+}
+
+function validateSelfTestQuestions(questions, profile) {
+  if (questions.length !== profile.count) {
+    throw new Error(`大模型应生成 ${profile.count} 题，实际返回 ${questions.length} 题`);
+  }
+  const choiceCount = questions.filter((question) => question.type === "single_choice").length;
+  if (Number.isInteger(profile.choiceCount) && choiceCount !== profile.choiceCount) {
+    throw new Error(`大模型应生成 ${profile.choiceCount} 道选择题，实际返回 ${choiceCount} 道`);
+  }
+  const focus = new Set(profile.focusKnowledge || []);
+  const targetPlan = Array.isArray(profile.targetKnowledgePlan) ? profile.targetKnowledgePlan : [];
+  const seen = new Set();
+  questions.forEach((question, index) => {
+    if (!question.text || !question.title || !question.explanation) {
+      throw new Error(`第 ${index + 1} 题缺少题干、标题或解析`);
+    }
+    const key = question.text.toLowerCase().replace(/\s+/g, "");
+    if (seen.has(key)) throw new Error(`第 ${index + 1} 题与其他题目重复`);
+    seen.add(key);
+    if (!question.knowledge.length) throw new Error(`第 ${index + 1} 题缺少知识点`);
+    if (targetPlan[index] && question.targetKnowledge !== targetPlan[index]) {
+      throw new Error(`第 ${index + 1} 题没有按照知识点配额命题`);
+    }
+    if (question.targetKnowledge && !question.knowledge.includes(question.targetKnowledge)) {
+      throw new Error(`第 ${index + 1} 题没有覆盖指定知识点 ${question.targetKnowledge}`);
+    }
+    if (focus.size && !question.knowledge.some((item) => focus.has(item))) {
+      throw new Error(`第 ${index + 1} 题没有覆盖目标薄弱知识点`);
+    }
+    if (question.type === "single_choice") {
+      if (question.options.length !== 4 || !Number.isInteger(question.answer)
+        || question.answer < 0 || question.answer >= question.options.length
+        || new Set(question.options.map((option) => option.toLowerCase().replace(/\s+/g, ""))).size !== 4) {
+        throw new Error(`第 ${index + 1} 道选择题的选项或答案无效`);
+      }
+    } else if (!question.answerText || question.keywords.length < 2) {
+      throw new Error(`第 ${index + 1} 道简答题缺少参考答案或判题关键词`);
+    }
+  });
+  return questions;
+}
+
 export class AiService {
   constructor(store) {
     this.store = store;
@@ -207,6 +293,68 @@ export class AiService {
       analysis: String(parsed.analysis || "已根据本题生成同知识点变式训练。").trim(),
       variantQuestion
     };
+  }
+
+  async generateSelfTest(profile) {
+    if (!this.configured()) {
+      const error = new Error("尚未配置 AI Key，无法由大模型生成阶段自测。请先在右下角 AI 助教的“设置”中完成配置。");
+      error.status = 503;
+      error.code = "AI_NOT_CONFIGURED";
+      throw error;
+    }
+
+    const count = Math.max(1, Math.min(Number(profile.count) || 5, 10));
+    const analysisCount = count >= 2 ? Math.max(1, Math.round(count * 0.25)) : 0;
+    const choiceCount = count - analysisCount;
+    const hasWrongHistory = (profile.weakKnowledge || []).length > 0;
+    const prompt = [
+      `请生成一套包含 ${count} 道题的大学数字电路阶段自测试卷。`,
+      hasWrongHistory
+        ? "试卷必须针对学生历史答错的知识点，不得改成泛泛的随机题。"
+        : "当前没有历史错题，请依据当前练习范围生成一套初始诊断卷。",
+      `练习范围：${profile.scope || "all"}`,
+      `薄弱知识点及错误次数：${JSON.stringify(profile.weakKnowledge || [])}`,
+      `本范围可用知识点：${JSON.stringify(profile.availableKnowledge || [])}`,
+      `近期错题摘要：${JSON.stringify(profile.wrongQuestions || [])}`,
+      `逐题知识点配额（questions 必须按此顺序对应）：${JSON.stringify(profile.targetKnowledgePlan || [])}`,
+      `题型数量：${choiceCount} 道单项选择题，${analysisCount} 道简答题。`,
+      "输出严格 JSON，不要输出 Markdown、代码围栏或额外说明。JSON 结构必须为：",
+      '{"questions":[{"title":"标题","type":"single_choice 或 analysis","targetKnowledge":"本题指定知识点","text":"题干","options":["选项1","选项2","选项3","选项4"],"answer":0,"answerText":"参考答案","explanation":"解析","knowledge":["知识点"],"keywords":["关键词1","关键词2"],"difficulty":3,"scope":"basic-logic/combinational/sequential/custom"}]}',
+      "要求：",
+      `1. 必须恰好生成 ${count} 道互不重复的新题，不能照抄近期错题。`,
+      "2. questions 的第 N 题必须使用知识点配额中的第 N 项；targetKnowledge 和 knowledge 都要原样包含该名称。",
+      "3. 选择题必须有 4 个不重复选项，answer 使用 0-3 表示正确选项。",
+      "4. 简答题的 options 必须为空数组、answer 必须为 null，并提供完整 answerText 和 3-6 个 keywords。",
+      "5. 每题都要提供准确解析，难度为 1-5；题干中不得泄露答案。",
+      "6. 数字电路符号使用清晰普通文本，例如 F=A·B、Q(n+1)=D、非Y0。"
+    ].join("\n");
+
+    try {
+      const response = await this.model({
+        temperature: 0.25,
+        maxTokens: Math.max(3200, count * 650)
+      }).invoke([
+        {
+          role: "system",
+          content: "你是大学数字电路课程的命题教师。你只输出合法 JSON，并确保每道题可独立作答和判分。"
+        },
+        { role: "user", content: prompt }
+      ]);
+      const parsed = JSON.parse(cleanJson(contentText(response.content)));
+      const rawQuestions = Array.isArray(parsed) ? parsed : parsed.questions;
+      if (!Array.isArray(rawQuestions)) throw new Error("大模型没有返回 questions 数组");
+      const validationProfile = { ...profile, count, choiceCount, analysisCount };
+      const questions = rawQuestions.slice(0, count)
+        .map((question, index) => normalizeSelfTestQuestion(question, validationProfile, index));
+      validateSelfTestQuestions(questions, validationProfile);
+      return questions.sort((left, right) => Number(left.type !== "single_choice") - Number(right.type !== "single_choice"));
+    } catch (cause) {
+      const error = new Error("AI 阶段自测生成失败，请稍后重试。");
+      error.status = 502;
+      error.code = "AI_SELF_TEST_FAILED";
+      error.cause = cause;
+      throw error;
+    }
   }
 
   async streamTutor(question, request, onChunk) {

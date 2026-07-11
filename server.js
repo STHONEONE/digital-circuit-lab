@@ -18,15 +18,25 @@ const dataDir = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : path.join(root, "data");
 const store = new Store(dataDir);
-const practice = new PracticeService(store);
 const ai = new AiService(store);
+const practice = new PracticeService(store, ai);
 const importer = new ImportService(store, ai);
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 }
 });
+const selfTestGenerationState = new Map();
+const selfTestCooldownMs = 15000;
+
+function learnerId(request) {
+  const supplied = request.get("X-Learner-Id");
+  const fallback = `client-${request.ip || request.socket.remoteAddress || "unknown"}`;
+  return String(supplied || fallback)
+    .trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
+}
 
 app.disable("x-powered-by");
+app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
 app.get("/", (_request, response) => {
   response.sendFile(path.join(root, "public", "home.html"));
@@ -41,12 +51,53 @@ app.get("/api/questions", (request, response) => {
   response.json(store.questions({ scope: request.query.scope, source: request.query.source }));
 });
 app.get("/api/sources", (_request, response) => response.json(store.sources()));
-app.post("/api/answers", (request, response) => response.json(practice.answer(request.body)));
+app.post("/api/answers", (request, response) => response.json(practice.answer({
+  ...request.body,
+  learnerId: learnerId(request)
+})));
 app.get("/api/recommendations", (request, response) => response.json(practice.recommend(request.query.questionId)));
 app.get("/api/stats", (_request, response) => response.json(practice.stats()));
 app.get("/api/learning-plan", (_request, response) => response.json(practice.learningPlan()));
-app.get("/api/self-test", (request, response) => {
-  response.json(practice.selfTest(request.query.scope, request.query.count));
+app.post("/api/self-test", async (request, response, next) => {
+  const clientKey = request.ip || request.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const previous = selfTestGenerationState.get(clientKey);
+  if (ai.configured() && previous?.active) {
+    return response.status(429).json({
+      code: "AI_SELF_TEST_BUSY",
+      error: "阶段自测正在生成，请等待本次组卷完成。"
+    });
+  }
+  const retryAfterMs = ai.configured() && previous
+    ? Math.max(0, selfTestCooldownMs - (now - previous.finishedAt))
+    : 0;
+  if (retryAfterMs > 0) {
+    const retryAfterSeconds = Math.ceil(retryAfterMs / 1000);
+    response.set("Retry-After", String(retryAfterSeconds));
+    return response.status(429).json({
+      code: "AI_SELF_TEST_RATE_LIMITED",
+      error: `AI 组卷请求过于频繁，请 ${retryAfterSeconds} 秒后重试。`
+    });
+  }
+  if (ai.configured()) {
+    selfTestGenerationState.set(clientKey, { active: true, finishedAt: 0 });
+  }
+  try {
+    const body = request.body || {};
+    response.json(await practice.selfTest(body.scope, body.count, learnerId(request)));
+  } catch (error) {
+    next(error);
+  } finally {
+    if (ai.configured()) {
+      selfTestGenerationState.set(clientKey, { active: false, finishedAt: Date.now() });
+      if (selfTestGenerationState.size > 1000) {
+        const staleBefore = Date.now() - 60 * 60 * 1000;
+        selfTestGenerationState.forEach((state, key) => {
+          if (!state.active && state.finishedAt < staleBefore) selfTestGenerationState.delete(key);
+        });
+      }
+    }
+  }
 });
 app.get("/api/wrong-review", (_request, response) => {
   response.json(practice.wrongReviewDetails().map((item) => item.question));
@@ -57,7 +108,9 @@ app.get("/api/targeted-questions", (request, response) => {
 });
 app.get("/api/progress", (_request, response) => response.json(practice.progress()));
 app.get("/api/motivation", (_request, response) => response.json(practice.motivation()));
-app.delete("/api/records", (_request, response) => response.json({ removed: store.clearRecords() }));
+app.delete("/api/records", (request, response) => response.json({
+  removed: store.clearRecords(learnerId(request))
+}));
 app.delete("/api/imported", (_request, response) => response.json({ removed: store.clearImported() }));
 
 app.get("/api/ai-config", (_request, response) => {
@@ -156,8 +209,11 @@ app.post("/api/shutdown", (_request, response) => {
 });
 
 app.use((error, _request, response, _next) => {
-  console.error(error);
-  response.status(error.status || 400).json({ error: error.message || "服务器处理失败" });
+  if (error.code !== "AI_NOT_CONFIGURED") console.error(error);
+  response.status(error.status || 400).json({
+    error: error.message || "服务器处理失败",
+    ...(error.code ? { code: error.code } : {})
+  });
 });
 
 server = app.listen(port, host, () => {
