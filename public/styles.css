@@ -2789,3 +2789,285 @@ body.inner-page .details-body {
   text-shadow: 0 1px 4px rgba(0, 0, 0, .45);
 }
 
+/* Desktop study-console layout. Visual theme tokens intentionally remain unchanged. */
+.sidebar-learning-title {
+  display: none;
+}
+
+.learning-review-button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.round-learning-summary {
+  display: grid;
+}
+
+.round-learning-summary[hidden] {
+  display: none;
+}
+
+@media (min-width: 1081px) {
+  .app {
+    padding-inline: 20px;
+  }
+
+  .topbar,
+  .layout {
+    max-width: 1480px;
+  }
+
+  .system-notice {
+    position: fixed;
+    z-index: 40;
+    top: 104px;
+    right: 24px;
+    width: min(420px, calc(100vw - 48px));
+    margin: 0;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .34);
+  }
+
+  .layout {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  body.inner-page .sidebar {
+    display: block;
+    min-height: calc(100vh - 146px);
+    border: 1px solid rgba(125, 211, 252, .22);
+    border-radius: 14px;
+    background: rgba(5, 14, 30, .54);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, .24);
+    overflow: hidden;
+  }
+
+  .sidebar-learning-title {
+    display: grid;
+    gap: 3px;
+    border-left: 4px solid var(--accent);
+    border-bottom: 1px solid rgba(125, 211, 252, .16);
+    padding: 17px 14px 16px;
+  }
+
+  .sidebar-learning-title strong {
+    color: #f8fdff;
+    font-size: 17px;
+  }
+
+  .sidebar-learning-title span {
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  body.inner-page .sidebar > .panel {
+    border: 0;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .sidebar > .panel + .panel {
+    border-top: 1px solid rgba(125, 211, 252, .16);
+  }
+
+  .sidebar .panel {
+    padding: 14px 12px;
+  }
+
+  .sidebar .collapsible-heading h2,
+  .sidebar .panel-title-row h2 {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: .04em;
+  }
+
+  .sidebar #scopeToggleButton {
+    display: none;
+  }
+
+  .segments {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .segments button {
+    min-height: 38px;
+    border-color: transparent;
+    background: transparent;
+    padding: 8px 10px;
+    text-align: left;
+  }
+
+  .segments button.active {
+    border-color: rgba(56, 189, 248, .38);
+    border-left: 3px solid var(--accent);
+  }
+
+  .sidebar-details {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  .sidebar-details summary {
+    font-size: 12px;
+  }
+
+  .route-actions {
+    gap: 4px;
+    margin-top: 10px;
+  }
+
+  .route-primary-action,
+  .route-secondary-action {
+    min-height: 0;
+    border-color: transparent;
+    border-radius: 8px;
+    background: transparent;
+    padding: 9px 10px;
+  }
+
+  .route-primary-action strong,
+  .route-secondary-action strong,
+  .self-test-action label {
+    font-size: 13px;
+  }
+
+  .route-primary-action span,
+  .route-secondary-action span {
+    font-size: 10px;
+  }
+
+  .self-test-action {
+    gap: 6px;
+  }
+
+  .self-test-action > div {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .self-test-action select,
+  .self-test-action button {
+    min-height: 32px;
+    font-size: 11px;
+  }
+
+  .mode-status-row {
+    grid-template-columns: 1fr;
+    margin-bottom: 0;
+  }
+
+  .mode-reset-button {
+    min-height: 34px;
+    font-size: 11px;
+  }
+
+  .learning-panel .learning-plan {
+    display: none;
+  }
+
+  .workspace {
+    gap: 14px;
+  }
+
+  .question-layout {
+    grid-template-columns: minmax(0, 1fr) 286px;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .question-card {
+    min-height: calc(100vh - 146px);
+    padding: 28px 30px;
+  }
+
+  .question-head {
+    min-height: 76px;
+    margin-bottom: 12px;
+    padding: 0;
+  }
+
+  .question-head h2 {
+    font-size: clamp(25px, 2.2vw, 32px);
+  }
+
+  .question-card .tags {
+    margin-top: 4px;
+  }
+
+  .question-text {
+    margin-top: 22px;
+  }
+
+  .options {
+    gap: 12px;
+  }
+
+  .options button {
+    min-height: 62px;
+  }
+
+  .actions {
+    margin-top: 24px;
+  }
+
+  .question-recommendations {
+    min-height: calc(100vh - 146px);
+    max-height: calc(100vh - 146px);
+    padding: 24px 20px;
+  }
+
+  .recommendation-heading {
+    margin-bottom: 0;
+    padding-bottom: 18px;
+  }
+
+  .round-learning-summary section {
+    display: grid;
+    gap: 7px;
+    border-bottom: 1px solid rgba(125, 211, 252, .16);
+    padding: 20px 0;
+  }
+
+  .round-learning-summary section > span {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .round-learning-summary section strong {
+    color: #f8fdff;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .round-learning-summary .route-review {
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .round-learning-summary h3 {
+    margin: 20px 0 10px;
+    color: #f8fdff;
+    font-size: 14px;
+  }
+
+  .recommendations button {
+    padding: 11px;
+    font-size: 12px;
+  }
+
+  .desktop-insights > summary {
+    margin-top: 0;
+  }
+}
+

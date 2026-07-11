@@ -110,6 +110,10 @@ const els = {
   knowledgeProgress: document.querySelector("#knowledgeProgress")
 };
 
+els.learningReviewButton = document.querySelector("#learningReviewButton");
+els.roundLearningSummary = document.querySelector("#roundLearningSummary");
+els.relatedQuestionsTitle = document.querySelector("#relatedQuestionsTitle");
+
 const desktopLayoutMedia = window.matchMedia("(min-width: 1081px)");
 
 function syncInsightsLayout(event) {
@@ -256,7 +260,10 @@ function renderStats(stats) {
 function renderLearningPlan(plan) {
   currentFocusKnowledge = plan.primaryFocus || "";
   els.planFocus.textContent = currentFocusKnowledge || "综合基础";
-  els.routeReview.textContent = plan.review || "完成练习后生成路线复盘。";
+  els.routeReview.textContent = currentFocusKnowledge
+    ? `加强练习：${currentFocusKnowledge}`
+    : "完成练习后生成下一步建议。";
+  els.routeReview.title = plan.review || "";
   els.learningPlan.innerHTML = "";
 
   (plan.steps || []).forEach((step) => {
@@ -1022,8 +1029,11 @@ async function loadRecommendations() {
   if (!question) return;
   const list = await fetchJson(`/api/recommendations?questionId=${encodeURIComponent(question.id)}`);
   const visibleRecommendations = window.matchMedia("(min-width: 1081px)").matches
-    ? list.slice(0, 3)
+    ? list.slice(0, 2)
     : list;
+  if (els.relatedQuestionsTitle) {
+    els.relatedQuestionsTitle.textContent = `相关题目（${visibleRecommendations.length}）`;
+  }
   visibleRecommendations.forEach((item) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -1042,9 +1052,10 @@ async function loadRecommendations() {
 }
 
 function setRecommendationHeading() {
-  els.rightPanelTitle.textContent = "同类推荐";
-  els.rightPanelSubtitle.textContent = "结合当前题目与薄弱知识点";
-  els.rightPanelBadge.textContent = "推荐";
+  if (els.roundLearningSummary) els.roundLearningSummary.hidden = false;
+  els.rightPanelTitle.textContent = "本轮学习";
+  els.rightPanelSubtitle.textContent = "聚焦当前薄弱点并继续练习";
+  els.rightPanelBadge.hidden = true;
 }
 
 function renderRightPanel() {
@@ -1058,6 +1069,8 @@ function renderRightPanel() {
 }
 
 function renderSelfTestDirectory() {
+  if (els.roundLearningSummary) els.roundLearningSummary.hidden = true;
+  els.rightPanelBadge.hidden = false;
   const completedCount = questions.filter((question) => completedSelfTestQuestions.has(question.id)).length;
   els.rightPanelTitle.textContent = "试卷目录";
   els.rightPanelSubtitle.textContent = questions.length
@@ -1114,6 +1127,8 @@ function renderSelfTestDirectory() {
 }
 
 function renderWrongReviewDirectory() {
+  if (els.roundLearningSummary) els.roundLearningSummary.hidden = true;
+  els.rightPanelBadge.hidden = false;
   const correctedCount = questions.filter((question) => correctedReviewQuestions.has(question.id)).length;
   els.rightPanelTitle.textContent = "错题目录";
   els.rightPanelSubtitle.textContent = questions.length
@@ -2037,6 +2052,12 @@ els.planButton.addEventListener("click", () => runAction(els.planButton, startPe
 els.selfTestButton.addEventListener("click", () => runAction(els.selfTestButton, composeSelfTest, "组卷中…"));
 els.wrongReviewButton.addEventListener("click", () => runAction(els.wrongReviewButton, startWrongReview, "加载中…"));
 els.normalPracticeButton.addEventListener("click", () => runAction(els.normalPracticeButton, returnToNormalPractice, "返回中…"));
+els.learningReviewButton?.addEventListener("click", () => {
+  const insights = document.querySelector("#desktopInsights");
+  if (!insights) return;
+  insights.open = true;
+  insights.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 setupScopePanelToggle();
 loadAll();

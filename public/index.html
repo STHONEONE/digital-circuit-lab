@@ -59,6 +59,10 @@
 
     <main class="layout">
       <aside class="sidebar">
+        <div class="sidebar-learning-title">
+          <strong>学习中心</strong>
+          <span>课程练习与个性化训练</span>
+        </div>
         <section class="panel collapsible-panel" id="scopePanel">
           <div class="collapsible-heading">
             <h2>练习范围</h2>
@@ -92,12 +96,11 @@
 
         <section class="panel learning-panel">
           <div class="panel-title-row">
-            <h2>个性化学习路线</h2>
-            <span id="planFocus" class="focus-chip">待诊断</span>
+            <h2>学习工具</h2>
           </div>
           <div class="route-actions">
             <button id="planButton" class="practice-mode-button route-primary-action" data-practice-module="route" type="button" aria-pressed="false">
-              <strong>开始推荐路线</strong>
+              <strong>个性化学习路线</strong>
               <span>按薄弱点生成 5 题针对训练</span>
             </button>
             <button id="wrongReviewButton" class="practice-mode-button route-secondary-action" data-practice-module="wrong_review" type="button" aria-pressed="false">
@@ -115,31 +118,33 @@
                 <button id="selfTestButton" class="practice-mode-button" data-practice-module="self_test" type="button" aria-pressed="false">智能组卷</button>
               </div>
             </div>
+            <button id="learningReviewButton" class="route-secondary-action learning-review-button" type="button">
+              <strong>学习复盘</strong>
+              <span>查看成长轨迹与学习统计</span>
+            </button>
           </div>
           <div class="mode-status-row">
             <p id="practiceModeStatus" class="mode-status">当前：普通练习</p>
             <button id="normalPracticeButton" class="practice-mode-button mode-reset-button active" data-practice-module="normal" type="button" aria-pressed="true">回到普通练习</button>
           </div>
           <div id="learningPlan" class="learning-plan"></div>
-          <p id="routeReview" class="route-review">完成练习后生成路线复盘。</p>
         </section>
       </aside>
 
       <section class="workspace">
         <section class="practice">
-          <div class="question-head">
-            <div>
-              <p id="chapter">章节</p>
-              <h2 id="title">题目加载中</h2>
-            </div>
-            <div class="question-picker">
-              <button id="meta" class="question-picker-toggle" type="button" aria-expanded="false" aria-controls="questionPickerPanel">1 / 1</button>
-              <div id="questionPickerPanel" class="question-picker-panel" hidden></div>
-            </div>
-          </div>
-
           <div class="question-layout">
             <article class="question-card">
+              <div class="question-head">
+                <div>
+                  <p id="chapter">章节</p>
+                  <h2 id="title">题目加载中</h2>
+                </div>
+                <div class="question-picker">
+                  <button id="meta" class="question-picker-toggle" type="button" aria-expanded="false" aria-controls="questionPickerPanel">1 / 1</button>
+                  <div id="questionPickerPanel" class="question-picker-panel" hidden></div>
+                </div>
+              </div>
               <div id="knowledge" class="tags"></div>
               <p id="questionText" class="question-text"></p>
               <div id="questionDiagram" class="question-diagram" aria-label="题目示意图"></div>
@@ -156,10 +161,21 @@
             <aside class="panel question-recommendations">
               <div class="recommendation-heading">
                 <div>
-                  <h2 id="rightPanelTitle">同类推荐</h2>
-                  <p id="rightPanelSubtitle">结合当前题目与薄弱知识点</p>
+                  <h2 id="rightPanelTitle">本轮学习</h2>
+                  <p id="rightPanelSubtitle">聚焦当前薄弱点并继续练习</p>
                 </div>
                 <span id="rightPanelBadge">推荐</span>
+              </div>
+              <div id="roundLearningSummary" class="round-learning-summary">
+                <section>
+                  <span>当前薄弱点</span>
+                  <strong id="planFocus">待诊断</strong>
+                </section>
+                <section>
+                  <span>下一步推荐</span>
+                  <p id="routeReview" class="route-review">完成练习后生成路线复盘。</p>
+                </section>
+                <h3 id="relatedQuestionsTitle">相关题目</h3>
               </div>
               <div id="recommendations" class="recommendations"></div>
             </aside>
