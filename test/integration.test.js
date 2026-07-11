@@ -78,6 +78,8 @@ test("health, pages and question APIs are available", async () => {
   assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /function renderSvg/);
   assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /moveQuestion\(-1\)/);
   assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /setupScopePanelToggle/);
+  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /\/api\/wrong-remediation/);
+  assert.match(await fetch(`${baseUrl}/app.js`).then((response) => response.text()), /generatedVariant/);
   assert.match(labs, /交互仿真实验中心/);
   assert.match(labs, /site-nav\.css/);
   assert.match(labs, /href="\.\/index\.html">学习中心/);
@@ -227,4 +229,65 @@ test("lab assistant streams a local fallback without an API key", async () => {
   assert.match(response.headers.get("content-type"), /text\/event-stream/);
   assert.match(body, /"type":"delta"/);
   assert.match(body, /"type":"done"/);
+});
+
+test("wrong-answer remediation stream requires AI configuration for variant generation", async () => {
+  const response = await fetch(`${baseUrl}/api/tutor/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      questionId: "base-007",
+      mode: "wrong_remediation",
+      userAnswer: "B. A + B"
+    })
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /text\/event-stream/);
+  assert.match(body, /无法调用大模型生成个性化错因分析和变式题/);
+  assert.match(body, /"ai":false/);
+});
+
+test("wrong-answer remediation endpoint returns no generated variant without AI configuration", async () => {
+  const response = await fetch(`${baseUrl}/api/wrong-remediation`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      questionId: "base-007",
+      userAnswer: "B. A + B",
+      referenceAnswer: "A. A·B"
+    })
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.ai, false);
+  assert.equal(body.variantQuestion, null);
+  assert.match(body.analysis, /未配置 AI Key/);
+});
+
+test("wrong-answer remediation accepts an AI variant as the next remediation source", async () => {
+  const response = await fetch(`${baseUrl}/api/wrong-remediation`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      questionId: "temporary-ai-variant",
+      sourceQuestion: {
+        id: "temporary-ai-variant",
+        type: "single_choice",
+        text: "与门输入为 1 和 0 时输出是什么？",
+        options: ["0", "1", "高阻态", "不确定"],
+        answer: 0,
+        knowledge: ["与门"]
+      },
+      userAnswer: "B. 1",
+      referenceAnswer: "A. 0"
+    })
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.ai, false);
+  assert.equal(body.variantQuestion, null);
+  assert.match(body.analysis, /未配置 AI Key/);
 });

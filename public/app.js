@@ -8,6 +8,10 @@ let practiceMode = "normal";
 let currentFocusKnowledge = "";
 let lastChatQuestionId = "";
 let tutorConversation = [];
+let activeAiVariant = null;
+let activeAiVariantAnalysis = "";
+let selectedAiVariantOption = null;
+let aiVariantRound = 0;
 let activePracticeModule = "normal";
 const completedSelfTestQuestions = new Set();
 const correctedReviewQuestions = new Set();
@@ -18,7 +22,8 @@ const modeLabels = {
   normal: "普通练习",
   targeted: "针对训练",
   wrong_review: "错题复盘",
-  self_test: "智能组卷"
+  self_test: "智能组卷",
+  ai_variant: "AI 变式训练"
 };
 
 const els = {
@@ -58,6 +63,21 @@ const els = {
   followupInput: document.querySelector("#followupInput"),
   followupButton: document.querySelector("#followupButton"),
   aiChatLauncher: document.querySelector("#aiChatLauncher"),
+  aiVariantLauncher: document.querySelector("#aiVariantLauncher"),
+  aiVariantFloat: document.querySelector("#aiVariantFloat"),
+  aiVariantFloatTitle: document.querySelector("#aiVariantFloatTitle"),
+  aiVariantFloatKnowledge: document.querySelector("#aiVariantFloatKnowledge"),
+  aiVariantExplanation: document.querySelector("#aiVariantExplanation"),
+  aiVariantExplanationCard: document.querySelector("#aiVariantExplanationCard"),
+  aiVariantFloatText: document.querySelector("#aiVariantFloatText"),
+  aiVariantAnswerArea: document.querySelector("#aiVariantAnswerArea"),
+  aiVariantOptions: document.querySelector("#aiVariantOptions"),
+  aiVariantAnswerInput: document.querySelector("#aiVariantAnswerInput"),
+  submitAiVariantButton: document.querySelector("#submitAiVariantButton"),
+  aiVariantFeedback: document.querySelector("#aiVariantFeedback"),
+  closeAiVariantFloat: document.querySelector("#closeAiVariantFloat"),
+  answerAiVariantButton: document.querySelector("#answerAiVariantButton"),
+  laterAiVariantButton: document.querySelector("#laterAiVariantButton"),
   aiChatPanel: document.querySelector("#aiChatPanel"),
   closeChatButton: document.querySelector("#closeChatButton"),
   toggleAiConfigButton: document.querySelector("#toggleAiConfigButton"),
@@ -73,7 +93,6 @@ const els = {
   clearRecordsButton: document.querySelector("#clearRecordsButton"),
   planButton: document.querySelector("#planButton"),
   wrongReviewButton: document.querySelector("#wrongReviewButton"),
-  targetedButton: document.querySelector("#targetedButton"),
   normalPracticeButton: document.querySelector("#normalPracticeButton"),
   selfTestButton: document.querySelector("#selfTestButton"),
   paperCount: document.querySelector("#paperCount"),
@@ -85,12 +104,22 @@ const els = {
   points: document.querySelector("#points"),
   streak: document.querySelector("#streak"),
   motivationMessage: document.querySelector("#motivationMessage"),
-  badges: document.querySelector("#badges"),
   trajectory: document.querySelector("#trajectory"),
+  trajectoryTrend: document.querySelector("#trajectoryTrend"),
   effectiveness: document.querySelector("#effectiveness"),
-  knowledgeProgress: document.querySelector("#knowledgeProgress"),
-  coreCenter: document.querySelector(".core-center")
+  knowledgeProgress: document.querySelector("#knowledgeProgress")
 };
+
+const desktopLayoutMedia = window.matchMedia("(min-width: 1081px)");
+
+function syncInsightsLayout(event) {
+  const insights = document.querySelector("#desktopInsights");
+  if (!insights) return;
+  insights.open = !event.matches;
+}
+
+syncInsightsLayout(desktopLayoutMedia);
+desktopLayoutMedia.addEventListener("change", syncInsightsLayout);
 
 async function loadAll() {
   showSystemNotice("正在加载题库和学习数据…");
@@ -216,7 +245,12 @@ function renderStats(stats) {
   const lines = Object.entries(wrong)
     .sort((left, right) => right[1] - left[1])
     .map(([name, count]) => `${name}: ${count} 次`);
-  els.weakness.textContent = lines.length ? lines.join("\n") : "暂无错题数据";
+  const desktopLayout = window.matchMedia("(min-width: 1081px)").matches;
+  const visibleLines = desktopLayout ? lines.slice(0, 5) : lines;
+  if (desktopLayout && lines.length > visibleLines.length) {
+    visibleLines.push(`其余 ${lines.length - visibleLines.length} 个知识点已收起`);
+  }
+  els.weakness.textContent = visibleLines.length ? visibleLines.join("\n") : "暂无错题数据";
 }
 
 function renderLearningPlan(plan) {
@@ -254,26 +288,9 @@ function renderProgress(progress) {
   els.trajectory.innerHTML = "";
   els.trajectory.classList.toggle("empty", rounds.length === 0);
   if (!rounds.length) {
-    els.trajectory.innerHTML = '<div class="trajectory-empty-title">暂无学习轮次</div><small>完成 5 次答题后，这里会显示每轮正确率变化。</small>';
+    els.trajectory.innerHTML = '<div class="trajectory-empty-title">暂无学习轮次</div><small>完成 5 次答题后，这里会显示每轮正确率折线。</small>';
   } else {
-    rounds.forEach((round) => {
-      const item = document.createElement("div");
-      item.className = "trajectory-item";
-      item.title = `${round.mode}，${round.answered} 次作答，正确率 ${round.correctRate}%`;
-
-      const bar = document.createElement("div");
-      bar.className = "trajectory-bar";
-      bar.style.height = `${Math.max(4, round.correctRate)}%`;
-      const roundName = document.createElement("span");
-      roundName.className = "trajectory-round";
-      roundName.textContent = round.round;
-      const rate = document.createElement("strong");
-      rate.textContent = `${round.correctRate}%`;
-      const label = document.createElement("small");
-      label.textContent = `${round.answered}题 / ${round.mode}`;
-      item.append(bar, roundName, rate, label);
-      els.trajectory.append(item);
-    });
+    renderTrajectoryChart(rounds);
   }
 
   const effect = progress.effectiveness || {};
@@ -282,13 +299,10 @@ function renderProgress(progress) {
     ? `，针对训练正确率 ${effect.personalizedRate || 0}%`
     : "";
   els.effectiveness.textContent = `${effect.conclusion || "完成更多练习后，系统会判断个性化训练是否有效。"} 初始正确率 ${effect.baselineRate || 0}%，最近正确率 ${effect.recentRate || 0}%，变化 ${sign}${effect.improvement || 0}%${targetedText}`;
+  renderTrajectoryTrend(rounds, effect);
 
   els.knowledgeProgress.innerHTML = "";
   const knowledge = (progress.knowledge || []).slice(0, 6);
-  const coreProgress = knowledge.length
-    ? Math.round(knowledge.reduce((sum, item) => sum + (item.rate || 0), 0) / knowledge.length)
-    : 0;
-  if (els.coreCenter) els.coreCenter.textContent = `${coreProgress}%`;
   if (!knowledge.length) {
     els.knowledgeProgress.textContent = "完成答题后显示各知识点掌握度。";
   }
@@ -310,17 +324,133 @@ function renderProgress(progress) {
     els.knowledgeProgress.append(row);
   });
 }
+
+function renderTrajectoryTrend(rounds, effect) {
+  if (!els.trajectoryTrend) return;
+  const improvement = effect.improvement || 0;
+  els.trajectoryTrend.className = "trajectory-trend";
+  if (rounds.length < 2) {
+    els.trajectoryTrend.textContent = "等待对比";
+    return;
+  }
+  if (improvement > 0) {
+    els.trajectoryTrend.textContent = `提升 +${improvement}%`;
+    els.trajectoryTrend.classList.add("positive");
+  } else if (improvement < 0) {
+    els.trajectoryTrend.textContent = `回落 ${improvement}%`;
+    els.trajectoryTrend.classList.add("negative");
+  } else {
+    els.trajectoryTrend.textContent = "保持稳定";
+  }
+}
+
+function renderTrajectoryChart(rounds) {
+  const visibleRounds = rounds.slice(-10);
+  const width = 620;
+  const height = 270;
+  const padding = { top: 28, right: 28, bottom: 54, left: 48 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const lastIndex = Math.max(1, visibleRounds.length - 1);
+  const svg = createSvgElement("svg", {
+    class: "trajectory-svg",
+    viewBox: `0 0 ${width} ${height}`,
+    role: "img",
+    "aria-label": "每轮练习正确率折线图"
+  });
+  const defs = createSvgElement("defs");
+  const gradient = createSvgElement("linearGradient", { id: "trajectoryAreaGradient", x1: "0", y1: "0", x2: "0", y2: "1" });
+  gradient.append(
+    createSvgElement("stop", { offset: "0%", "stop-color": "#38bdf8", "stop-opacity": ".34" }),
+    createSvgElement("stop", { offset: "100%", "stop-color": "#38bdf8", "stop-opacity": "0" })
+  );
+  defs.append(gradient);
+  svg.append(defs);
+
+  [100, 75, 50, 25, 0].forEach((value) => {
+    const y = rateToY(value, padding.top, plotHeight);
+    svg.append(
+      createSvgElement("line", {
+        class: "trajectory-grid-line",
+        x1: padding.left,
+        y1: y,
+        x2: width - padding.right,
+        y2: y
+      }),
+      createSvgElement("text", {
+        class: "trajectory-axis-label",
+        x: padding.left - 12,
+        y: y + 4,
+        "text-anchor": "end"
+      }, `${value}%`)
+    );
+  });
+
+  const points = visibleRounds.map((round, index) => ({
+    x: padding.left + (visibleRounds.length === 1 ? plotWidth / 2 : (plotWidth * index) / lastIndex),
+    y: rateToY(round.correctRate || 0, padding.top, plotHeight),
+    round
+  }));
+  const linePath = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  const lastPoint = points[points.length - 1];
+  const areaPath = `${linePath} L ${lastPoint.x.toFixed(1)} ${(padding.top + plotHeight).toFixed(1)} L ${points[0].x.toFixed(1)} ${(padding.top + plotHeight).toFixed(1)} Z`;
+
+  if (points.length > 1) {
+    svg.append(createSvgElement("path", { class: "trajectory-area", d: areaPath, fill: "url(#trajectoryAreaGradient)" }));
+  }
+  svg.append(createSvgElement("path", { class: "trajectory-line", d: linePath }));
+
+  const labelEvery = visibleRounds.length > 7 ? 2 : 1;
+  points.forEach((point, index) => {
+    const group = createSvgElement("g", { class: "trajectory-point" });
+    group.append(createSvgElement("title", {}, `${point.round.round}：${point.round.correctRate}% · ${point.round.answered}题 · ${point.round.mode}`));
+    group.append(createSvgElement("circle", { cx: point.x, cy: point.y, r: 5 }));
+    group.append(createSvgElement("text", {
+      class: "trajectory-rate-label",
+      x: point.x,
+      y: Math.max(16, point.y - 12),
+      "text-anchor": "middle"
+    }, `${point.round.correctRate}%`));
+    if (index % labelEvery === 0 || index === points.length - 1) {
+      group.append(createSvgElement("text", {
+        class: "trajectory-round-label",
+        x: point.x,
+        y: height - 24,
+        "text-anchor": "middle"
+      }, point.round.round));
+    }
+    svg.append(group);
+  });
+
+  const summary = document.createElement("div");
+  summary.className = "trajectory-chart-summary";
+  const first = visibleRounds[0];
+  const last = visibleRounds[visibleRounds.length - 1];
+  summary.innerHTML = `
+    <span><strong>${visibleRounds.length}</strong> 轮次</span>
+    <span>起点 <strong>${first.correctRate}%</strong></span>
+    <span>最近 <strong>${last.correctRate}%</strong></span>
+  `;
+  els.trajectory.append(svg, summary);
+}
+
+function rateToY(rate, top, plotHeight) {
+  const normalized = Math.max(0, Math.min(100, Number(rate) || 0));
+  return top + plotHeight - (normalized / 100) * plotHeight;
+}
+
+function createSvgElement(name, attributes = {}, text = "") {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+  Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+  if (text) node.textContent = text;
+  return node;
+}
+
 function renderMotivation(motivation) {
   els.level.innerHTML = `<small>当前等级</small><strong>Lv.${motivation.level || 1}</strong>`;
   els.points.textContent = motivation.points || 0;
   els.streak.textContent = motivation.streakDays || 0;
   els.motivationMessage.textContent = motivation.message || "完成练习后，这里会说明当前学习状态和下一步建议。";
-  els.badges.innerHTML = "";
-  (motivation.badges || []).forEach((badge) => {
-    const item = document.createElement("span");
-    item.textContent = badge;
-    els.badges.append(item);
-  });
 }
 async function loadAiConfig() {
   const config = await fetchJson("/api/ai-config");
@@ -432,7 +562,9 @@ function renderQuestion() {
     return;
   }
 
-  els.chapter.textContent = `${question.chapter || "数字电路"} · ${modeLabels[practiceMode]}`;
+  const modeLabel = question.generatedVariant ? modeLabels.ai_variant : modeLabels[practiceMode];
+  const chapterLabel = question.chapter || "数字电路";
+  els.chapter.textContent = question.generatedVariant ? chapterLabel : `${chapterLabel} · ${modeLabel}`;
   els.title.textContent = question.title || "未命名题目";
   els.meta.textContent = `${currentIndex + 1} / ${questions.length} · 难度 ${question.difficulty || 2}`;
   renderQuestionPicker();
@@ -466,6 +598,7 @@ function renderQuestion() {
   }
   renderRightPanel();
   updateChatQuestion(question);
+  renderGeneratedVariantIntro(question);
 }
 
 function renderQuestionPicker() {
@@ -505,6 +638,13 @@ async function submitAnswer() {
     return;
   }
 
+  if (question.generatedVariant) {
+    const result = gradeGeneratedVariant(question, answer);
+    showFeedback(result.correct, `${result.message}\n参考答案：${result.referenceAnswer}\n\n${result.explanation}`);
+    els.practiceModeStatus.textContent = `当前：AI 变式训练 · 已完成第 ${currentIndex + 1} 题`;
+    return;
+  }
+
   const result = await fetchJson("/api/answers", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -517,6 +657,9 @@ async function submitAnswer() {
   });
   const text = `${result.message}\n参考答案：${result.referenceAnswer || ""}\n\n${result.explanation || ""}`;
   showFeedback(result.correct, text, question.explanationSvg);
+  if (!result.correct) {
+    triggerWrongRemediation(question, result, answer);
+  }
   if (activePracticeModule === "self_test") {
     completedSelfTestQuestions.add(question.id);
     renderSelfTestDirectory();
@@ -546,6 +689,323 @@ function showFeedback(ok, text, svg = "") {
   }
 }
 
+function referenceAnswerForQuestion(question) {
+  if (question.type === "single_choice" && Number.isInteger(question.answer)) {
+    return displaySubmittedAnswer(question, String(question.answer));
+  }
+  return question.answerText || (question.keywords || []).join(" / ") || "见解析";
+}
+
+function normalizeTextForJudge(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[，。,.；;：:、（）()【】[\]{}"']/g, "");
+}
+
+function gradeGeneratedVariant(question, answer) {
+  const referenceAnswer = referenceAnswerForQuestion(question);
+  const explanation = question.explanation || "这道变式题用于巩固上一题暴露出的薄弱点。";
+  if (question.type === "single_choice") {
+    const correct = Number(answer) === Number(question.answer);
+    return {
+      correct,
+      message: correct ? "AI 变式题回答正确。" : `AI 变式题还需要订正。你的答案：${displaySubmittedAnswer(question, answer)}`,
+      referenceAnswer,
+      explanation
+    };
+  }
+
+  const normalizedAnswer = normalizeTextForJudge(answer);
+  const keywords = (question.keywords || [])
+    .map((keyword) => normalizeTextForJudge(keyword))
+    .filter(Boolean);
+  const matchedCount = keywords.filter((keyword) => normalizedAnswer.includes(keyword)).length;
+  const fallbackReference = normalizeTextForJudge(referenceAnswer);
+  const correct = keywords.length
+    ? matchedCount >= Math.min(2, keywords.length)
+    : normalizedAnswer.length >= 4 && fallbackReference.includes(normalizedAnswer);
+  const keywordHint = keywords.length
+    ? `命中关键词 ${matchedCount}/${keywords.length}。`
+    : "系统按参考答案相似度做了快速判定。";
+  return {
+    correct,
+    message: correct ? `AI 变式题回答基本正确。${keywordHint}` : `AI 变式题还需要订正。${keywordHint}`,
+    referenceAnswer,
+    explanation
+  };
+}
+
+function displaySubmittedAnswer(question, answer) {
+  if (question.type !== "single_choice") return String(answer || "");
+  const index = Number(answer);
+  if (!Number.isInteger(index) || index < 0) return String(answer || "");
+  const letter = String.fromCharCode(65 + index);
+  const option = question.options?.[index] || "";
+  return option ? `${letter}. ${option}` : letter;
+}
+
+function createWrongRemediationCard({ title, statusText, statusWarning = false, bodyText, bodyClass = "" }) {
+  const card = document.createElement("section");
+  card.className = "wrong-remediation-card";
+
+  const heading = document.createElement("div");
+  heading.className = "wrong-remediation-heading";
+  const headingTitle = document.createElement("h3");
+  headingTitle.textContent = title;
+  const status = document.createElement("span");
+  status.className = "wrong-remediation-status";
+  status.classList.toggle("warning", statusWarning);
+  status.textContent = statusText;
+  heading.append(headingTitle, status);
+
+  const body = document.createElement("div");
+  body.className = `wrong-remediation-body ${bodyClass}`.trim();
+  if (bodyText) {
+    renderChatContent(body, bodyText);
+  }
+  card.append(heading, body);
+
+  return { card, status, body };
+}
+
+function renderGeneratedVariantIntro(question) {
+  if (!question.generatedVariant) return;
+  const analysis = question.remediationAnalysis || "AI 已根据上一题生成同知识点变式训练。";
+  const { card } = createWrongRemediationCard({
+    title: "上一题错因分析",
+    statusText: "请完成变式题",
+    bodyText: `${analysis}\n\n下面这道题已进入正常作答流程，请像普通题目一样选择或填写答案后提交。`
+  });
+  els.feedback.append(card);
+}
+
+function hideAiVariantFloat() {
+  if (!els.aiVariantFloat) return;
+  els.aiVariantFloat.classList.remove("is-visible");
+  if (activeAiVariant && els.aiVariantLauncher) {
+    els.aiVariantLauncher.hidden = false;
+  }
+  window.setTimeout(() => {
+    if (!els.aiVariantFloat.classList.contains("is-visible")) {
+      els.aiVariantFloat.hidden = true;
+    }
+  }, 220);
+}
+
+function showAiVariantFloat(question, analysis = activeAiVariantAnalysis) {
+  if (!els.aiVariantFloat) return;
+  const knowledge = question.knowledge?.length
+    ? question.knowledge.join(" · ")
+    : "同知识点强化训练";
+  els.aiVariantFloatKnowledge.textContent = knowledge;
+  els.aiVariantFloatTitle.textContent = "先回顾这个知识点";
+  els.aiVariantExplanation.textContent = analysis || "先回顾相关知识点，再通过变式题巩固。";
+  els.aiVariantExplanationCard.hidden = false;
+  els.aiVariantFloatText.textContent = question.text || "AI 类似题已生成，请进入题目区域作答。";
+  els.aiVariantFloatText.hidden = true;
+  els.aiVariantAnswerArea.hidden = true;
+  els.aiVariantFeedback.hidden = true;
+  els.answerAiVariantButton.hidden = false;
+  els.answerAiVariantButton.textContent = "我已理解，开始练习";
+  els.laterAiVariantButton.textContent = "稍后学习";
+  if (els.aiVariantLauncher) els.aiVariantLauncher.hidden = true;
+  els.aiVariantFloat.hidden = false;
+  requestAnimationFrame(() => els.aiVariantFloat.classList.add("is-visible"));
+  els.answerAiVariantButton?.focus({ preventScroll: true });
+}
+
+function reopenAiVariantFloat() {
+  if (!activeAiVariant || !els.aiVariantFloat) return;
+  if (els.aiVariantLauncher) els.aiVariantLauncher.hidden = true;
+  els.aiVariantFloat.hidden = false;
+  requestAnimationFrame(() => els.aiVariantFloat.classList.add("is-visible"));
+  const focusTarget = els.aiVariantAnswerArea.hidden
+    ? els.answerAiVariantButton
+    : els.aiVariantOptions.querySelector(".selected") || els.aiVariantOptions.querySelector("button") || els.aiVariantAnswerInput;
+  focusTarget?.focus({ preventScroll: true });
+}
+
+function focusGeneratedVariant() {
+  if (!activeAiVariant) return;
+  els.aiVariantFloatTitle.textContent = "开始变式练习";
+  els.aiVariantExplanationCard.hidden = true;
+  els.aiVariantFloatText.hidden = false;
+  els.aiVariantAnswerArea.hidden = false;
+  els.aiVariantOptions.innerHTML = "";
+  els.aiVariantAnswerInput.value = "";
+  selectedAiVariantOption = null;
+  const isChoice = activeAiVariant.type === "single_choice";
+  els.aiVariantOptions.hidden = !isChoice;
+  els.aiVariantAnswerInput.hidden = isChoice;
+  if (isChoice) {
+    activeAiVariant.options.forEach((option, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ai-variant-option";
+      button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+      button.addEventListener("click", () => {
+        selectedAiVariantOption = index;
+        [...els.aiVariantOptions.children].forEach((item, itemIndex) => {
+          item.classList.toggle("selected", itemIndex === index);
+        });
+      });
+      els.aiVariantOptions.append(button);
+    });
+  }
+  els.answerAiVariantButton.hidden = true;
+  els.laterAiVariantButton.textContent = "收起题卡";
+  (els.aiVariantOptions.querySelector("button") || els.aiVariantAnswerInput)?.focus();
+}
+
+async function submitAiVariantAnswer() {
+  if (!activeAiVariant) return;
+  const answer = activeAiVariant.type === "single_choice"
+    ? String(selectedAiVariantOption ?? "")
+    : els.aiVariantAnswerInput.value.trim();
+  els.aiVariantFeedback.hidden = false;
+  if (!answer) {
+    els.aiVariantFeedback.className = "ai-variant-feedback bad";
+    els.aiVariantFeedback.textContent = "请先完成作答。";
+    return;
+  }
+  const result = gradeGeneratedVariant(activeAiVariant, answer);
+  els.aiVariantFeedback.className = `ai-variant-feedback ${result.correct ? "ok" : "bad"}`;
+  els.aiVariantFeedback.textContent = `${result.message}\n参考答案：${result.referenceAnswer}\n${result.explanation}`;
+  if (result.correct) {
+    els.submitAiVariantButton.textContent = "已掌握，本轮结束";
+    els.submitAiVariantButton.disabled = true;
+    return;
+  }
+
+  const answeredVariant = activeAiVariant;
+  els.submitAiVariantButton.disabled = true;
+  els.submitAiVariantButton.textContent = "正在生成下一道强化题…";
+  try {
+    const response = await fetchJson("/api/wrong-remediation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        questionId: answeredVariant.id,
+        sourceQuestion: answeredVariant,
+        userAnswer: displaySubmittedAnswer(answeredVariant, answer),
+        referenceAnswer: result.referenceAnswer
+      })
+    });
+    if (!response.ai || !response.variantQuestion) {
+      els.aiVariantFeedback.textContent += `\n\n${response.analysis || "暂时无法继续生成强化题。"}`;
+      els.submitAiVariantButton.textContent = "暂时无法继续推送";
+      return;
+    }
+    pushGeneratedVariant(response.variantQuestion, response.analysis, currentIndex, answeredVariant.id);
+  } catch (error) {
+    els.aiVariantFeedback.textContent += `\n\n下一题生成失败：${error.message}`;
+    els.submitAiVariantButton.textContent = "重试生成下一题";
+    els.submitAiVariantButton.disabled = false;
+  }
+}
+
+function enableFloatingWindowDrag(floatingWindow) {
+  const handle = floatingWindow?.querySelector("[data-floating-handle]");
+  if (!handle) return;
+  let drag = null;
+  handle.addEventListener("pointerdown", (event) => {
+    if (event.target.closest("button, input, textarea, select, a")) return;
+    const rect = floatingWindow.getBoundingClientRect();
+    drag = { pointerId: event.pointerId, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top };
+    floatingWindow.style.left = `${rect.left}px`;
+    floatingWindow.style.top = `${rect.top}px`;
+    floatingWindow.style.right = "auto";
+    floatingWindow.style.bottom = "auto";
+    floatingWindow.classList.add("is-dragging");
+    handle.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  handle.addEventListener("pointermove", (event) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const rect = floatingWindow.getBoundingClientRect();
+    const left = Math.min(Math.max(8, event.clientX - drag.offsetX), window.innerWidth - rect.width - 8);
+    const top = Math.min(Math.max(8, event.clientY - drag.offsetY), window.innerHeight - rect.height - 8);
+    floatingWindow.style.left = `${left}px`;
+    floatingWindow.style.top = `${top}px`;
+  });
+  const stopDrag = (event) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drag = null;
+    floatingWindow.classList.remove("is-dragging");
+    if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+  };
+  handle.addEventListener("pointerup", stopDrag);
+  handle.addEventListener("pointercancel", stopDrag);
+}
+
+function pushGeneratedVariant(rawQuestion, analysis, sourceIndex, sourceQuestionId) {
+  const variantQuestion = {
+    id: rawQuestion.id || `ai-var-${Date.now()}`,
+    scope: rawQuestion.scope || currentScope || "custom",
+    chapter: rawQuestion.chapter || "AI 变式训练",
+    title: rawQuestion.title || "AI 变式题",
+    type: rawQuestion.type === "single_choice" ? "single_choice" : "analysis",
+    text: rawQuestion.text || "",
+    options: Array.isArray(rawQuestion.options) ? rawQuestion.options : [],
+    answer: Number.isInteger(rawQuestion.answer) ? rawQuestion.answer : null,
+    answerText: rawQuestion.answerText || "",
+    explanation: rawQuestion.explanation || "",
+    knowledge: Array.isArray(rawQuestion.knowledge) ? rawQuestion.knowledge : [],
+    keywords: Array.isArray(rawQuestion.keywords) ? rawQuestion.keywords : [],
+    difficulty: rawQuestion.difficulty || 3,
+    generatedVariant: true,
+    remediationAnalysis: analysis,
+    sourceQuestionId
+  };
+  activeAiVariant = variantQuestion;
+  activeAiVariantAnalysis = analysis || "AI 已根据上一题的错误生成针对性讲解。";
+  aiVariantRound += 1;
+  els.submitAiVariantButton.disabled = false;
+  els.submitAiVariantButton.textContent = "提交答案";
+  els.practiceModeStatus.textContent = `AI 类似题第 ${aiVariantRound} 题已在独立悬浮窗中推送，不计入普通练习`;
+  showAiVariantFloat(variantQuestion, activeAiVariantAnalysis);
+  showSystemNotice("AI 类似题已生成，已在页面右侧弹出独立题卡。", "ok", true);
+}
+
+async function triggerWrongRemediation(question, result, answer) {
+  const sourceIndex = currentIndex;
+  const { card, status, body } = createWrongRemediationCard({
+    title: "AI 错因分析与变式题",
+    statusText: "调用大模型中",
+    bodyText: "正在结合你的错误答案分析错因，并生成同知识点变式题…",
+    bodyClass: "thinking"
+  });
+  els.feedback.append(card);
+
+  try {
+    const response = await fetchJson("/api/wrong-remediation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        questionId: question.id,
+        userAnswer: displaySubmittedAnswer(question, answer),
+        referenceAnswer: result.referenceAnswer || ""
+      })
+    });
+    body.classList.remove("thinking", "streaming");
+    renderChatContent(body, response.analysis || "已完成错因分析。");
+    if (!response.ai || !response.variantQuestion) {
+      status.textContent = "需配置 AI";
+      status.classList.add("warning");
+      return;
+    }
+    status.textContent = "已推送";
+    aiVariantRound = 0;
+    pushGeneratedVariant(response.variantQuestion, response.analysis, sourceIndex, question.id);
+  } catch (error) {
+    body.classList.remove("thinking", "streaming");
+    status.textContent = "生成失败";
+    status.classList.add("warning");
+    renderChatContent(body, `暂时无法生成错因分析和变式题：${error.message}`);
+  }
+}
+
 async function loadRecommendations() {
   if (activePracticeModule === "wrong_review") {
     renderWrongReviewDirectory();
@@ -561,7 +1021,10 @@ async function loadRecommendations() {
   els.recommendations.innerHTML = "";
   if (!question) return;
   const list = await fetchJson(`/api/recommendations?questionId=${encodeURIComponent(question.id)}`);
-  list.forEach((item) => {
+  const visibleRecommendations = window.matchMedia("(min-width: 1081px)").matches
+    ? list.slice(0, 3)
+    : list;
+  visibleRecommendations.forEach((item) => {
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = `${item.title} · ${(item.knowledge || []).join("/")}`;
@@ -765,18 +1228,6 @@ async function startWrongReview() {
   showSystemNotice(questions.length
     ? `已加载 ${questions.length} 道待复盘错题。`
     : "当前没有待复盘错题。", questions.length ? "ok" : "");
-}
-
-async function startTargetedPractice() {
-  setActivePracticeModule("targeted");
-  const plan = await loadDashboard();
-  const focus = plan.primaryFocus || "";
-  await setPracticeSet(
-    `/api/targeted-questions?knowledge=${encodeURIComponent(focus)}&count=5`,
-    "targeted",
-    `针对性出题（${focus || "综合基础"}）`,
-    focus
-  );
 }
 
 async function returnToNormalPractice() {
@@ -1545,7 +1996,15 @@ document.addEventListener("click", (event) => {
   els.meta?.setAttribute("aria-expanded", "false");
 });
 els.aiChatLauncher.addEventListener("click", openChat);
+els.aiVariantLauncher?.addEventListener("click", () => {
+  reopenAiVariantFloat();
+});
 els.closeChatButton.addEventListener("click", closeChat);
+els.closeAiVariantFloat?.addEventListener("click", hideAiVariantFloat);
+els.laterAiVariantButton?.addEventListener("click", hideAiVariantFloat);
+els.answerAiVariantButton?.addEventListener("click", focusGeneratedVariant);
+els.submitAiVariantButton?.addEventListener("click", submitAiVariantAnswer);
+document.querySelectorAll("[data-floating-window]").forEach(enableFloatingWindowDrag);
 setupChatDrag();
 setupChatResize();
 els.toggleAiConfigButton.addEventListener("click", () => {
@@ -1577,7 +2036,6 @@ els.clearRecordsButton.addEventListener("click", () => runAction(els.clearRecord
 els.planButton.addEventListener("click", () => runAction(els.planButton, startPersonalizedRoute, "生成中…"));
 els.selfTestButton.addEventListener("click", () => runAction(els.selfTestButton, composeSelfTest, "组卷中…"));
 els.wrongReviewButton.addEventListener("click", () => runAction(els.wrongReviewButton, startWrongReview, "加载中…"));
-els.targetedButton.addEventListener("click", () => runAction(els.targetedButton, startTargetedPractice, "出题中…"));
 els.normalPracticeButton.addEventListener("click", () => runAction(els.normalPracticeButton, returnToNormalPractice, "返回中…"));
 
 setupScopePanelToggle();

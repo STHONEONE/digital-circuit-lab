@@ -92,6 +92,34 @@ app.post("/api/tutor/stream", async (request, response) => {
   }
 });
 
+app.post("/api/wrong-remediation", async (request, response) => {
+  const storedQuestion = store.question(request.body.questionId);
+  const suppliedQuestion = request.body.sourceQuestion;
+  const question = storedQuestion || (suppliedQuestion?.text
+    ? {
+        id: String(suppliedQuestion.id || "ai-variant").slice(0, 160),
+        title: String(suppliedQuestion.title || "AI 变式题").slice(0, 200),
+        type: suppliedQuestion.type === "single_choice" ? "single_choice" : "analysis",
+        text: String(suppliedQuestion.text).slice(0, 4000),
+        options: Array.isArray(suppliedQuestion.options)
+          ? suppliedQuestion.options.slice(0, 8).map((option) => String(option).slice(0, 500))
+          : [],
+        answer: Number.isInteger(suppliedQuestion.answer) ? suppliedQuestion.answer : null,
+        answerText: String(suppliedQuestion.answerText || "").slice(0, 2000),
+        explanation: String(suppliedQuestion.explanation || "").slice(0, 3000),
+        knowledge: Array.isArray(suppliedQuestion.knowledge)
+          ? suppliedQuestion.knowledge.slice(0, 12).map((item) => String(item).slice(0, 100))
+          : []
+      }
+    : null);
+  if (!question) return response.status(404).json({ error: "题目不存在" });
+  try {
+    response.json(await ai.wrongRemediation(question, request.body));
+  } catch (error) {
+    response.status(502).json({ error: error.message });
+  }
+});
+
 app.post("/api/lab/stream", async (request, response) => {
   const startedAt = Date.now();
   response.status(200);

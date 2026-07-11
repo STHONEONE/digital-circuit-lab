@@ -88,6 +88,7 @@
 @media (max-width: 780px) {
   .site-nav {
     width: 100%;
+    flex-wrap: wrap;
     justify-content: stretch;
   }
 
@@ -96,7 +97,7 @@
   }
 
   .site-nav .site-nav__link {
-    flex: 1 1 0;
+    flex: 1 1 calc(50% - 6px);
     min-width: 0;
     padding: 0 10px;
   }

@@ -95,22 +95,31 @@
             <h2>个性化学习路线</h2>
             <span id="planFocus" class="focus-chip">待诊断</span>
           </div>
-          <div class="mode-grid">
-            <button id="planButton" class="practice-mode-button" data-practice-module="route" type="button" aria-pressed="false">开始推荐路线</button>
-            <button id="wrongReviewButton" class="practice-mode-button" data-practice-module="wrong_review" type="button" aria-pressed="false">错题复盘</button>
-            <button id="targetedButton" class="practice-mode-button" data-practice-module="targeted" type="button" aria-pressed="false">针对性出题</button>
-            <button id="normalPracticeButton" class="practice-mode-button active" data-practice-module="normal" type="button" aria-pressed="true">普通练习</button>
+          <div class="route-actions">
+            <button id="planButton" class="practice-mode-button route-primary-action" data-practice-module="route" type="button" aria-pressed="false">
+              <strong>开始推荐路线</strong>
+              <span>按薄弱点生成 5 题针对训练</span>
+            </button>
+            <button id="wrongReviewButton" class="practice-mode-button route-secondary-action" data-practice-module="wrong_review" type="button" aria-pressed="false">
+              <strong>错题复盘</strong>
+              <span>集中订正当前错题</span>
+            </button>
+            <div class="route-secondary-action self-test-action">
+              <label for="paperCount">阶段自测</label>
+              <div>
+                <select id="paperCount">
+                  <option value="5">5 题</option>
+                  <option value="8">8 题</option>
+                  <option value="10">10 题</option>
+                </select>
+                <button id="selfTestButton" class="practice-mode-button" data-practice-module="self_test" type="button" aria-pressed="false">智能组卷</button>
+              </div>
+            </div>
           </div>
-          <div class="paper-row">
-            <label for="paperCount">自测</label>
-            <select id="paperCount">
-              <option value="5">5 题</option>
-              <option value="8">8 题</option>
-              <option value="10">10 题</option>
-            </select>
-            <button id="selfTestButton" class="practice-mode-button" data-practice-module="self_test" type="button" aria-pressed="false">智能组卷</button>
+          <div class="mode-status-row">
+            <p id="practiceModeStatus" class="mode-status">当前：普通练习</p>
+            <button id="normalPracticeButton" class="practice-mode-button mode-reset-button active" data-practice-module="normal" type="button" aria-pressed="true">回到普通练习</button>
           </div>
-          <p id="practiceModeStatus" class="mode-status">当前：普通练习</p>
           <div id="learningPlan" class="learning-plan"></div>
           <p id="routeReview" class="route-review">完成练习后生成路线复盘。</p>
         </section>
@@ -157,12 +166,17 @@
           </div>
         </section>
 
+        <details id="desktopInsights" class="desktop-insights" open>
+          <summary>
+            <span><strong>学习复盘与统计</strong><small>查看成长轨迹、知识点掌握和学习数据</small></span>
+            <span class="desktop-insights__action">展开查看</span>
+          </summary>
         <section class="dashboard-grid">
           <section class="panel growth-panel learning-map-panel">
             <div class="growth-map-header">
               <div>
                 <h2>成长与学习轨迹</h2>
-                <p>中轴控制台 V2.0</p>
+                <p>每 5 次作答生成一个迭代点</p>
               </div>
               <span id="level" class="level-chip"><small>当前等级</small><strong>Lv.1</strong></span>
             </div>
@@ -173,24 +187,17 @@
                   <div><strong id="points">0</strong><span>成长积分：答对题、订正错题会增加</span></div>
                   <div><strong id="streak">0</strong><span>连续学习天数：按答题日期累计</span></div>
                 </div>
-                <div class="trajectory-card">
-                  <h3>进步迭代轨迹</h3>
-                  <div id="trajectory" class="trajectory empty"><div class="trajectory-empty-title">暂无学习轮次</div><small>完成 5 次答题后，这里会显示每轮正确率变化。</small></div>
-                </div>
               </div>
 
-              <div class="evolution-core" aria-label="学习进化核心">
-                <div class="core-title">
-                  <h3>学习进化核心</h3>
-                  <p>你的每一次练习都在塑造更好的你</p>
+              <div class="trajectory-panel" aria-labelledby="trajectoryPanelTitle">
+                <div class="trajectory-heading">
+                  <div>
+                    <h3 id="trajectoryPanelTitle">进步迭代轨迹</h3>
+                    <p>按轮次观察正确率变化，判断路线是否真正有效</p>
+                  </div>
+                  <span id="trajectoryTrend" class="trajectory-trend">待积累</span>
                 </div>
-                <div class="core-orbit">
-                  <span class="core-node node-top">首次练习</span>
-                  <span class="core-node node-right">针对训练</span>
-                  <span class="core-node node-bottom">掌握提升</span>
-                  <span class="core-node node-left">方向验证</span>
-                  <span class="core-center">0%</span>
-                </div>
+                <div id="trajectory" class="trajectory-chart empty"><div class="trajectory-empty-title">暂无学习轮次</div><small>完成 5 次答题后，这里会显示每轮正确率折线。</small></div>
                 <div id="effectiveness" class="effectiveness">完成更多练习后，系统会判断个性化训练是否有效。</div>
               </div>
 
@@ -203,7 +210,6 @@
             <div class="growth-suggestion">
               <strong>学习建议</strong>
               <p id="motivationMessage" class="motivation-message">完成第一组自测，开启学习路线。</p>
-              <div id="badges" class="badges"></div>
             </div>
           </section>
 
@@ -221,6 +227,7 @@
             </div>
           </section>
         </section>
+        </details>
       </section>
     </main>
   </div>
@@ -229,6 +236,38 @@
     <span class="launcher-mark">AI</span>
     <span>助教</span>
   </button>
+
+  <button id="aiVariantLauncher" class="ai-variant-launcher" type="button" aria-label="重新打开 AI 变式题" hidden>
+    <span class="ai-variant-launcher__mark">题</span>
+    <span>AI 变式题</span>
+  </button>
+
+  <aside id="aiVariantFloat" class="ai-variant-float" data-floating-window aria-labelledby="aiVariantFloatTitle" hidden>
+    <div class="ai-variant-float__accent" aria-hidden="true"></div>
+    <header class="ai-variant-float__header" data-floating-handle title="按住拖动窗口">
+      <div>
+        <span class="ai-variant-float__eyebrow">AI 错题强化推送</span>
+        <h2 id="aiVariantFloatTitle">已为你生成一道类似题</h2>
+      </div>
+      <button id="closeAiVariantFloat" class="ai-variant-float__close" type="button" aria-label="关闭类似题推送">×</button>
+    </header>
+    <p id="aiVariantFloatKnowledge" class="ai-variant-float__knowledge"></p>
+    <section id="aiVariantExplanationCard" class="ai-variant-explanation" aria-label="知识点讲解">
+      <strong>先理解，再练习</strong>
+      <p id="aiVariantExplanation"></p>
+    </section>
+    <p id="aiVariantFloatText" class="ai-variant-float__question" hidden></p>
+    <div id="aiVariantAnswerArea" class="ai-variant-answer" hidden>
+      <div id="aiVariantOptions" class="ai-variant-options"></div>
+      <textarea id="aiVariantAnswerInput" rows="3" placeholder="请在这里输入答案"></textarea>
+      <button id="submitAiVariantButton" class="ai-variant-float__primary" type="button">提交答案</button>
+      <div id="aiVariantFeedback" class="ai-variant-feedback" role="status" hidden></div>
+    </div>
+    <div class="ai-variant-float__actions">
+      <button id="answerAiVariantButton" class="ai-variant-float__primary" type="button">我已理解，开始练习</button>
+      <button id="laterAiVariantButton" class="ai-variant-float__secondary" type="button">稍后再看</button>
+    </div>
+  </aside>
 
   <section id="aiChatPanel" class="ai-chat-panel" aria-label="AI 助教聊天窗口" hidden>
     <header class="chat-header">
