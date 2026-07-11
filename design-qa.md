@@ -1,44 +1,53 @@
 # Design QA
 
-- Source visual truth: `C:\Users\STONEO~1\AppData\Local\Temp\codex-clipboard-9582d6f3-ea92-4ae9-93ec-5bf62d65047f.png`
-- Implementation screenshot: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\study-layout-final-desktop.png`
-- Full comparison: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\study-layout-comparison-final.png`
-- Focus comparison: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\study-layout-focus-comparison-final.png`
-- Viewport: 1440 × 1024
-- State: normal practice, first loaded question
+- Source visual truth: `C:\Users\STONEO~1\AppData\Local\Temp\codex-clipboard-13beb233-c8b2-4835-9b56-8e8d87cbee1b.png`
+- Implementation screenshot: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\left-nav-final-clean.png`
+- Scope drawer screenshot: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\left-nav-final-drawer-clean.png`
+- Combined comparison: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\left-nav-comparison-final.png`
+- Mobile smoke screenshot: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\left-nav-mobile-smoke.png`
+- Primary viewport: 1440 × 1024
+- State: normal practice, loaded question, transient notices dismissed
 
-## Findings — Pass 1
+## Findings — correction pass
 
-- [P1] The persistent loading notice consumes a full row and pushes the three-column console below the reference position.
-- [P2] The right panel shows three related questions while the reference uses two concise rows.
-- [P2] The next-step recommendation is a long analytics paragraph rather than a compact action.
-- [Accepted deviation] The left rail is wider than the reference because the user explicitly requires the full practice scope to live inside Learning Center.
+- [Resolved P1] The earlier 190px always-expanded scope panel did not match the reference's narrow navigation rail. The rail is now 112px and the question area starts at x=128.
+- [Resolved P1] “练习范围” is now a first-class item inside the Learning Center rail; its detailed choices open in a compact overlay drawer rather than permanently widening the page.
+- [Resolved P1] Legacy collapsed-panel state could open an empty drawer. Desktop drawer opening now forces the scope body to be available.
+- [Resolved P1] Loading text previously destroyed complex navigation-button markup. Action handling now restores the complete icon/label structure.
+- [Resolved P1] Persistent notices obscured the right panel. Success notices now auto-dismiss and all notices can be clicked to close.
+- [Resolved P1] Tall questions and explanations could overflow the fixed-height card. Both main and right panels now scroll internally.
+- [Resolved P2] The right panel was too narrow and the main panels touched the viewport bottom. It now uses a responsive 320–376px width and preserves a 40px bottom gap at the primary viewport.
+- [Resolved P2] Desktop insights created a stray section below the primary console. They are hidden until “学习复盘” is selected.
 
 ## Comparison history
 
-- Pass 1 found a P1 vertical offset caused by the loading notice and P2 density differences in the right panel.
-- Pass 2 moved the transient notice out of document flow, reduced related questions from three to two, hid the redundant recommendation badge, and shortened the next-step copy.
-- Final evidence confirms the three-region proportions, top alignment, two-item related list, and compact action copy. No actionable P0/P1/P2 mismatch remains.
+- The rejected pass treated the left side as a settings panel and incorrectly accepted a wide rail as a requirement-driven deviation.
+- The correction pass rebuilt the information hierarchy to match the supplied reference: logo slot, six vertically ordered icon navigation items, central question console, and a dedicated right learning panel.
+- The final same-viewport comparison shows matching left-rail width, central start position, right-panel proportion, panel top alignment, and bottom breathing room. No actionable P0/P1/P2 mismatch remains.
 
 ## Required fidelity surfaces
 
-- Typography: existing project typography intentionally retained; hierarchy is comparable.
-- Spacing/layout: three-region structure is present; top offset needs correction.
-- Colors/tokens: existing project theme intentionally retained, per user requirement.
-- Image assets: no new raster assets are required; existing circuit background remains unchanged.
-- Copy/content: core labels and concise next-step copy now match the target hierarchy.
+- Typography: existing project typography retained; hierarchy follows the reference.
+- Spacing/layout: 112px left rail, 16px content gap, responsive 320–376px right panel, 40px desktop bottom gap.
+- Colors/tokens: existing project theme and background retained exactly as requested.
+- Image assets: existing circuit background retained. Navigation uses vendored Lucide 0.468.0 icons rather than approximate hand-drawn symbols.
+- Copy/content: left navigation labels follow the reference; live question and recommendation content remains data-driven.
 
 ## Interaction checks
 
-- Learning scope is nested inside the Learning Center rail.
-- Main question, answers, and navigation controls render.
-- Learning review opens the existing insights section.
-- No horizontal overflow or console errors.
-- Mobile smoke check confirms the question, right panel, and existing insights remain visible without horizontal overflow.
+- Scope drawer opens, supports Escape, restores focus, and closes after a scope selection.
+- A legacy `learning-scope-panel-collapsed=1` state cannot leave the desktop drawer empty.
+- Learning Center, personalized route, wrong-review, self-test, and learning-review controls retain their existing behavior.
+- Complex navigation markup remains intact after asynchronous actions.
+- Success notices auto-dismiss; notices are manually dismissible.
+- Desktop widths 960, 1024, 1080, and 1440 show the narrow rail without horizontal overflow.
+- Mobile 390 × 844 keeps the existing mobile layout, hides desktop-only logo/icons, and has no horizontal overflow.
+- Browser console and page errors: none.
+- Automated project tests: 11/11 passed.
 
-## Follow-up polish
+## Accepted P3 differences
 
-- [P3] The implementation keeps the existing animated circuit background and transparent surface density, as explicitly requested, so it is visually busier than the reference mock.
-- [P3] The left rail remains wider than the reference to keep all four practice-scope choices visible inside Learning Center.
+- The target contains a custom hexagonal brand mark, but no source brand asset or Figma node was supplied. The closest Lucide circuit-board icon is used without changing the product theme.
+- The implementation keeps the existing animated circuit background and live data-driven diagrams, so content density can differ from the static reference.
 
 final result: passed

@@ -113,8 +113,11 @@ const els = {
 els.learningReviewButton = document.querySelector("#learningReviewButton");
 els.roundLearningSummary = document.querySelector("#roundLearningSummary");
 els.relatedQuestionsTitle = document.querySelector("#relatedQuestionsTitle");
+els.learningCenterButton = document.querySelector("#learningCenterButton");
+els.scopeNavButton = document.querySelector("#scopeNavButton");
+els.selfTestNavButton = document.querySelector("#selfTestNavButton");
 
-const desktopLayoutMedia = window.matchMedia("(min-width: 1081px)");
+const desktopLayoutMedia = window.matchMedia("(min-width: 960px)");
 
 function syncInsightsLayout(event) {
   const insights = document.querySelector("#desktopInsights");
@@ -141,11 +144,16 @@ async function loadAll() {
 
 function setActivePracticeModule(module, pending = false) {
   activePracticeModule = module;
+  document.querySelector("#desktopInsights")?.classList.remove("is-visible");
   document.querySelectorAll(".practice-mode-button").forEach((button) => {
     const active = button.dataset.practiceModule === module;
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
   });
+  els.learningCenterButton?.classList.toggle("active", module === "normal");
+  els.learningCenterButton?.setAttribute("aria-pressed", String(module === "normal"));
+  els.selfTestNavButton?.classList.toggle("active", module === "self_test");
+  els.selfTestNavButton?.setAttribute("aria-pressed", String(module === "self_test"));
 
   if (module === "self_test" && pending) {
     els.rightPanelTitle.textContent = "正在智能组卷";
@@ -153,6 +161,19 @@ function setActivePracticeModule(module, pending = false) {
     els.rightPanelBadge.textContent = "生成中";
     els.recommendations.className = "review-directory paper-directory";
     els.recommendations.innerHTML = '<div class="review-directory-empty pending">试卷生成后，这里会显示可点击的题目目录。</div>';
+  }
+}
+
+function setScopeDrawerOpen(open, restoreFocus = false) {
+  if (!els.scopeNavButton || !els.scopePanel) return;
+  if (open && window.matchMedia("(min-width: 960px)").matches) {
+    setScopePanelCollapsed(false);
+  }
+  document.body.classList.toggle("scope-drawer-open", open);
+  els.scopeNavButton.classList.toggle("active", open);
+  els.scopeNavButton.setAttribute("aria-expanded", String(open));
+  if (!open && restoreFocus) {
+    els.scopeNavButton.focus({ preventScroll: true });
   }
 }
 
@@ -174,12 +195,13 @@ function setupScopePanelToggle() {
   });
 }
 
-function showSystemNotice(message, type = "", autoHide = false) {
+function showSystemNotice(message, type = "", autoHide = type !== "error") {
+  window.clearTimeout(showSystemNotice.timer);
   els.systemNotice.hidden = false;
   els.systemNotice.className = `system-notice ${type}`.trim();
   els.systemNotice.textContent = message;
+  els.systemNotice.title = "点击关闭";
   if (autoHide) {
-    window.clearTimeout(showSystemNotice.timer);
     showSystemNotice.timer = window.setTimeout(() => {
       els.systemNotice.hidden = true;
     }, 2600);
@@ -196,7 +218,7 @@ function shuffled(list) {
 }
 
 async function runAction(button, action, pendingText) {
-  const originalText = button?.textContent;
+  const originalContent = button?.innerHTML;
   if (button) {
     button.disabled = true;
     if (pendingText) button.textContent = pendingText;
@@ -208,7 +230,7 @@ async function runAction(button, action, pendingText) {
   } finally {
     if (button) {
       button.disabled = false;
-      button.textContent = originalText;
+      button.innerHTML = originalContent;
     }
   }
 }
@@ -1987,6 +2009,7 @@ document.querySelectorAll(".segments button").forEach((button) => {
     button.classList.add("active");
     currentScope = button.dataset.scope;
     currentIndex = 0;
+    setScopeDrawerOpen(false, true);
     await returnToNormalPractice();
   }, "切换中…"));
 });
@@ -2052,9 +2075,34 @@ els.planButton.addEventListener("click", () => runAction(els.planButton, startPe
 els.selfTestButton.addEventListener("click", () => runAction(els.selfTestButton, composeSelfTest, "组卷中…"));
 els.wrongReviewButton.addEventListener("click", () => runAction(els.wrongReviewButton, startWrongReview, "加载中…"));
 els.normalPracticeButton.addEventListener("click", () => runAction(els.normalPracticeButton, returnToNormalPractice, "返回中…"));
+els.learningCenterButton?.addEventListener("click", () => {
+  setScopeDrawerOpen(false);
+  runAction(els.learningCenterButton, returnToNormalPractice, "返回中…");
+});
+els.scopeNavButton?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  const open = !document.body.classList.contains("scope-drawer-open");
+  setScopeDrawerOpen(open);
+  if (open) els.scopePanel.querySelector(".segments button")?.focus({ preventScroll: true });
+});
+els.scopePanel?.addEventListener("click", (event) => event.stopPropagation());
+document.addEventListener("click", () => setScopeDrawerOpen(false));
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !document.body.classList.contains("scope-drawer-open")) return;
+  event.preventDefault();
+  setScopeDrawerOpen(false, true);
+});
+els.systemNotice?.addEventListener("click", () => {
+  els.systemNotice.hidden = true;
+});
+els.selfTestNavButton?.addEventListener("click", () => {
+  setScopeDrawerOpen(false);
+  els.selfTestButton?.click();
+});
 els.learningReviewButton?.addEventListener("click", () => {
   const insights = document.querySelector("#desktopInsights");
   if (!insights) return;
+  insights.classList.add("is-visible");
   insights.open = true;
   insights.scrollIntoView({ behavior: "smooth", block: "start" });
 });

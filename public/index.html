@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>数字电路智能练习系统</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=20260621-2">
+  <link rel="stylesheet" href="./styles.css?v=20260711-1">
   <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
 </head>
 <body class="inner-page learning-page center-page main-page">
@@ -39,6 +39,9 @@
     </svg>
   </div>
   <div class="app">
+    <div class="desktop-rail-logo" aria-hidden="true">
+      <img src="./assets/icons/circuit-board.svg" alt="">
+    </div>
     <header class="topbar">
       <div>
         <p>数字电路课程设计 · Node.js 智能学习平台</p>
@@ -59,11 +62,17 @@
 
     <main class="layout">
       <aside class="sidebar">
-        <div class="sidebar-learning-title">
+        <button id="learningCenterButton" class="sidebar-learning-title active" type="button" aria-pressed="true">
+          <img class="sidebar-nav-icon" src="./assets/icons/book-open.svg" alt="" aria-hidden="true">
           <strong>学习中心</strong>
           <span>课程练习与个性化训练</span>
-        </div>
-        <section class="panel collapsible-panel" id="scopePanel">
+        </button>
+        <button id="scopeNavButton" class="sidebar-primary-nav" type="button" aria-expanded="false" aria-controls="scopePanel">
+          <img class="sidebar-nav-icon" src="./assets/icons/list-checks.svg" alt="" aria-hidden="true">
+          <strong>练习范围</strong>
+          <span>选择课程知识范围</span>
+        </button>
+        <section class="panel collapsible-panel sidebar-scope-drawer" id="scopePanel">
           <div class="collapsible-heading">
             <h2>练习范围</h2>
             <button id="scopeToggleButton" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="scopePanelBody">收起</button>
@@ -100,12 +109,19 @@
           </div>
           <div class="route-actions">
             <button id="planButton" class="practice-mode-button route-primary-action" data-practice-module="route" type="button" aria-pressed="false">
+              <img class="sidebar-nav-icon" src="./assets/icons/route.svg" alt="" aria-hidden="true">
               <strong>个性化学习路线</strong>
               <span>按薄弱点生成 5 题针对训练</span>
             </button>
             <button id="wrongReviewButton" class="practice-mode-button route-secondary-action" data-practice-module="wrong_review" type="button" aria-pressed="false">
+              <img class="sidebar-nav-icon" src="./assets/icons/clipboard-pen-line.svg" alt="" aria-hidden="true">
               <strong>错题复盘</strong>
               <span>集中订正当前错题</span>
+            </button>
+            <button id="selfTestNavButton" class="sidebar-primary-nav desktop-self-test-nav" type="button" aria-pressed="false">
+              <img class="sidebar-nav-icon" src="./assets/icons/square-function.svg" alt="" aria-hidden="true">
+              <strong>阶段自测</strong>
+              <span>智能组卷检验掌握情况</span>
             </button>
             <div class="route-secondary-action self-test-action">
               <label for="paperCount">阶段自测</label>
@@ -119,6 +135,7 @@
               </div>
             </div>
             <button id="learningReviewButton" class="route-secondary-action learning-review-button" type="button">
+              <img class="sidebar-nav-icon" src="./assets/icons/chart-pie.svg" alt="" aria-hidden="true">
               <strong>学习复盘</strong>
               <span>查看成长轨迹与学习统计</span>
             </button>
@@ -333,6 +350,6 @@
   </section>
 
   <script src="./circuit-background.js?v=20260620-1"></script>
-  <script src="./app.js?v=20260620-3"></script>
+  <script src="./app.js?v=20260711-1"></script>
 </body>
 </html>
