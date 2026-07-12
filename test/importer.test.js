@@ -65,3 +65,25 @@ test("uploaded Chinese filename is normalized before saving", async () => {
     cleanup();
   }
 });
+
+test("analysis imports require a reference answer for semantic grading", async () => {
+  const { store, importer, cleanup } = fixture();
+  const missingRubric = `
+1.【简答题】组合逻辑设计
+专题：组合逻辑
+题干：请说明组合逻辑电路的一般设计步骤。
+解析：请结合课程内容作答。
+知识点：组合逻辑设计
+`;
+  importer.extract = async () => missingRubric;
+
+  try {
+    await assert.rejects(
+      () => importer.import({ originalname: "缺少参考答案.docx", buffer: Buffer.from(missingRubric) }),
+      (error) => error.code === "IMPORT_ANALYSIS_MISSING_ANSWER" && error.status === 400
+    );
+    assert.equal(store.imported.length, 0);
+  } finally {
+    cleanup();
+  }
+});

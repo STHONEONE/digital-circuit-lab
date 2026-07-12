@@ -28,13 +28,22 @@ const upload = multer({
 });
 const selfTestGenerationState = new Map();
 const selfTestCooldownMs = 15000;
+const expectedErrorCodes = new Set([
+  "AI_NOT_CONFIGURED", "AI_GRADING_UNAVAILABLE", "AI_GRADING_BUSY",
+  "AI_GRADING_RATE_LIMITED", "AI_GRADING_CAPACITY", "AI_VARIANT_EXPIRED",
+  "AI_VARIANT_NOT_AVAILABLE", "AI_VARIANT_NOT_REGISTERED",
+  "IMPORT_ANALYSIS_MISSING_ANSWER"
+]);
+
+function clientFingerprint(request) {
+  const address = String(request.ip || request.socket.remoteAddress || "unknown");
+  return createHash("sha256").update(address).digest("hex").slice(0, 24);
+}
 
 function learnerId(request) {
   const supplied = String(request.get("X-Learner-Id") || "").trim();
   if (/^[a-zA-Z0-9_-]{1,100}$/.test(supplied)) return supplied;
-  const address = String(request.ip || request.socket.remoteAddress || "unknown");
-  const fingerprint = createHash("sha256").update(address).digest("hex").slice(0, 24);
-  return `client-${fingerprint}`;
+  return `client-${clientFingerprint(request)}`;
 }
 
 app.disable("x-powered-by");
@@ -53,10 +62,21 @@ app.get("/api/questions", (request, response) => {
   response.json(store.questions({ scope: request.query.scope, source: request.query.source }));
 });
 app.get("/api/sources", (_request, response) => response.json(store.sources()));
-app.post("/api/answers", (request, response) => response.json(practice.answer({
-  ...request.body,
-  learnerId: learnerId(request)
-})));
+app.post("/api/answers", async (request, response, next) => {
+  try {
+    const currentLearnerId = learnerId(request);
+    response.json(await practice.answer({
+      ...request.body,
+      learnerId: currentLearnerId,
+      analysisRateKeys: [
+        `learner:${currentLearnerId}`,
+        `ip:${clientFingerprint(request)}`
+      ]
+    }));
+  } catch (error) {
+    next(error);
+  }
+});
 app.get("/api/recommendations", (request, response) => response.json(
   practice.recommend(request.query.questionId, learnerId(request))
 ));
@@ -152,31 +172,12 @@ app.post("/api/tutor/stream", async (request, response) => {
   }
 });
 
-app.post("/api/wrong-remediation", async (request, response) => {
-  const storedQuestion = store.question(request.body.questionId);
-  const suppliedQuestion = request.body.sourceQuestion;
-  const question = storedQuestion || (suppliedQuestion?.text
-    ? {
-        id: String(suppliedQuestion.id || "ai-variant").slice(0, 160),
-        title: String(suppliedQuestion.title || "AI 变式题").slice(0, 200),
-        type: suppliedQuestion.type === "single_choice" ? "single_choice" : "analysis",
-        text: String(suppliedQuestion.text).slice(0, 4000),
-        options: Array.isArray(suppliedQuestion.options)
-          ? suppliedQuestion.options.slice(0, 8).map((option) => String(option).slice(0, 500))
-          : [],
-        answer: Number.isInteger(suppliedQuestion.answer) ? suppliedQuestion.answer : null,
-        answerText: String(suppliedQuestion.answerText || "").slice(0, 2000),
-        explanation: String(suppliedQuestion.explanation || "").slice(0, 3000),
-        knowledge: Array.isArray(suppliedQuestion.knowledge)
-          ? suppliedQuestion.knowledge.slice(0, 12).map((item) => String(item).slice(0, 100))
-          : []
-      }
-    : null);
-  if (!question) return response.status(404).json({ error: "题目不存在" });
+app.post("/api/wrong-remediation", async (request, response, next) => {
   try {
-    response.json(await ai.wrongRemediation(question, request.body));
+    const currentLearnerId = learnerId(request);
+    response.json(await practice.wrongRemediation(request.body, currentLearnerId));
   } catch (error) {
-    response.status(502).json({ error: error.message });
+    next(error);
   }
 });
 
@@ -216,7 +217,8 @@ app.post("/api/shutdown", (_request, response) => {
 });
 
 app.use((error, _request, response, _next) => {
-  if (error.code !== "AI_NOT_CONFIGURED") console.error(error);
+  if (!expectedErrorCodes.has(error.code)) console.error(error);
+  if (error.retryAfterSeconds > 0) response.set("Retry-After", String(error.retryAfterSeconds));
   response.status(error.status || 400).json({
     error: error.message || "服务器处理失败",
     ...(error.code ? { code: error.code } : {})

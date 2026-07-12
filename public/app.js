@@ -14,6 +14,8 @@ let activeAiVariant = null;
 let activeAiVariantAnalysis = "";
 let selectedAiVariantOption = null;
 let aiVariantRound = 0;
+let pendingAiVariantResponse = null;
+let pendingAiVariantRetry = null;
 let activePracticeModule = "normal";
 const completedSelfTestQuestions = new Set();
 const correctedReviewQuestions = new Set();
@@ -695,29 +697,43 @@ async function submitAnswer() {
   const isChoice = question.type === "single_choice";
   const answer = isChoice ? String(selectedOption ?? "") : els.answerInput.value.trim();
   if (!answer) {
-    showFeedback(false, "请先作答。");
+    els.feedback.className = "feedback";
+    const message = isChoice ? "请先选择一个选项。" : "请先填写答案。";
+    if (window.answerFeedback?.renderNotice) window.answerFeedback.renderNotice(els.feedback, message, "info");
+    else showFeedback(false, message);
     return;
   }
 
   if (question.generatedVariant) {
-    const result = gradeGeneratedVariant(question, answer);
-    showFeedback(result.correct, `${result.message}\n参考答案：${result.referenceAnswer}\n\n${result.explanation}`);
+    let result;
+    try {
+      result = await gradeGeneratedVariant(question, answer);
+    } catch (error) {
+      showSubmissionError(els.feedback, error);
+      return;
+    }
+    showAnswerResult(question, answer, result);
     els.practiceModeStatus.textContent = `当前：AI 变式训练 · 已完成第 ${currentIndex + 1} 题`;
     return;
   }
 
-  const result = await fetchJson("/api/answers", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      questionId: question.id,
-      answer,
-      practiceMode,
-      focusKnowledge: currentFocusKnowledge
-    })
-  });
-  const text = `${result.message}\n参考答案：${result.referenceAnswer || ""}\n\n${result.explanation || ""}`;
-  showFeedback(result.correct, text, question.explanationSvg);
+  let result;
+  try {
+    result = await fetchJson("/api/answers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        questionId: question.id,
+        answer,
+        practiceMode,
+        focusKnowledge: currentFocusKnowledge
+      })
+    });
+  } catch (error) {
+    showSubmissionError(els.feedback, error);
+    return;
+  }
+  showAnswerResult(question, answer, result, question.explanationSvg);
   if (!result.correct) {
     triggerWrongRemediation(question, result, answer);
   }
@@ -750,6 +766,50 @@ function showFeedback(ok, text, svg = "") {
   }
 }
 
+function renderSemanticEvaluation(container, question, result, { compact = false, svg = "" } = {}) {
+  const rendered = window.answerFeedback?.renderEvaluation(container, {
+    result,
+    referenceAnswer: result.referenceAnswer || question.answerText || "",
+    explanation: result.explanation || question.explanation || "",
+    compact
+  });
+  if (!rendered) return false;
+  const safeSvg = trustedSvg(svg);
+  if (safeSvg && rendered.referenceBody) {
+    const diagram = document.createElement("div");
+    diagram.className = "answer-diagram";
+    renderSvg(diagram, safeSvg, "答案解析图");
+    rendered.referenceBody.append(diagram);
+  }
+  return true;
+}
+
+function showAnswerResult(question, answer, result, svg = "") {
+  els.feedback.className = `feedback semantic-feedback ${result.correct ? "ok" : "bad"}`;
+  if (renderSemanticEvaluation(els.feedback, question, result, { svg })) return;
+  const text = `${result.message}\n参考答案：${result.referenceAnswer || ""}\n\n${result.explanation || ""}`;
+  showFeedback(result.correct, text, svg);
+}
+
+function showSubmissionError(container, error) {
+  container.className = container === els.feedback
+    ? "feedback system-error"
+    : "ai-variant-feedback system-error";
+  const message = `答案暂未提交成功，当前作答已保留。${error.message || "请稍后重试。"}`;
+  if (window.answerFeedback?.renderNotice) {
+    window.answerFeedback.renderNotice(container, message, "error");
+  } else {
+    container.textContent = message;
+  }
+}
+
+function appendFeedbackNote(container, message, tone = "error") {
+  const note = document.createElement("div");
+  note.className = `answer-evaluation-notice variant-generation-note is-${tone}`;
+  note.textContent = message;
+  container.append(note);
+}
+
 function referenceAnswerForQuestion(question) {
   if (question.type === "single_choice" && Number.isInteger(question.answer)) {
     return displaySubmittedAnswer(question, String(question.answer));
@@ -757,14 +817,7 @@ function referenceAnswerForQuestion(question) {
   return question.answerText || (question.keywords || []).join(" / ") || "见解析";
 }
 
-function normalizeTextForJudge(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/[，。,.；;：:、（）()【】[\]{}"']/g, "");
-}
-
-function gradeGeneratedVariant(question, answer) {
+async function gradeGeneratedVariant(question, answer) {
   const referenceAnswer = referenceAnswerForQuestion(question);
   const explanation = question.explanation || "这道变式题用于巩固上一题暴露出的薄弱点。";
   if (question.type === "single_choice") {
@@ -776,25 +829,15 @@ function gradeGeneratedVariant(question, answer) {
       explanation
     };
   }
-
-  const normalizedAnswer = normalizeTextForJudge(answer);
-  const keywords = (question.keywords || [])
-    .map((keyword) => normalizeTextForJudge(keyword))
-    .filter(Boolean);
-  const matchedCount = keywords.filter((keyword) => normalizedAnswer.includes(keyword)).length;
-  const fallbackReference = normalizeTextForJudge(referenceAnswer);
-  const correct = keywords.length
-    ? matchedCount >= Math.min(2, keywords.length)
-    : normalizedAnswer.length >= 4 && fallbackReference.includes(normalizedAnswer);
-  const keywordHint = keywords.length
-    ? `命中关键词 ${matchedCount}/${keywords.length}。`
-    : "系统按参考答案相似度做了快速判定。";
-  return {
-    correct,
-    message: correct ? `AI 变式题回答基本正确。${keywordHint}` : `AI 变式题还需要订正。${keywordHint}`,
-    referenceAnswer,
-    explanation
-  };
+  return fetchJson("/api/answers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      questionId: question.id,
+      answer: String(answer),
+      practiceMode: "ai_variant"
+    })
+  });
 }
 
 function displaySubmittedAnswer(question, answer) {
@@ -921,25 +964,57 @@ function focusGeneratedVariant() {
 
 async function submitAiVariantAnswer() {
   if (!activeAiVariant) return;
+  if (pendingAiVariantResponse) {
+    const pending = pendingAiVariantResponse;
+    pendingAiVariantResponse = null;
+    pushGeneratedVariant(pending.variantQuestion, pending.analysis, currentIndex, pending.sourceQuestionId);
+    return;
+  }
+  if (pendingAiVariantRetry) {
+    await requestNextAiVariant(pendingAiVariantRetry);
+    return;
+  }
   const answer = activeAiVariant.type === "single_choice"
     ? String(selectedAiVariantOption ?? "")
     : els.aiVariantAnswerInput.value.trim();
   els.aiVariantFeedback.hidden = false;
   if (!answer) {
-    els.aiVariantFeedback.className = "ai-variant-feedback bad";
-    els.aiVariantFeedback.textContent = "请先完成作答。";
+    els.aiVariantFeedback.className = "ai-variant-feedback";
+    const message = activeAiVariant.type === "single_choice" ? "请先选择一个选项。" : "请先填写答案。";
+    if (window.answerFeedback?.renderNotice) window.answerFeedback.renderNotice(els.aiVariantFeedback, message, "info");
+    else els.aiVariantFeedback.textContent = message;
     return;
   }
-  const result = gradeGeneratedVariant(activeAiVariant, answer);
+  els.submitAiVariantButton.disabled = true;
+  els.submitAiVariantButton.textContent = activeAiVariant.type === "analysis" ? "AI 正在语义评分…" : "正在判题…";
+  let result;
+  try {
+    result = await gradeGeneratedVariant(activeAiVariant, answer);
+  } catch (error) {
+    showSubmissionError(els.aiVariantFeedback, error);
+    els.submitAiVariantButton.disabled = false;
+    els.submitAiVariantButton.textContent = "重新提交答案";
+    return;
+  }
   els.aiVariantFeedback.className = `ai-variant-feedback ${result.correct ? "ok" : "bad"}`;
-  els.aiVariantFeedback.textContent = `${result.message}\n参考答案：${result.referenceAnswer}\n${result.explanation}`;
+  if (!renderSemanticEvaluation(els.aiVariantFeedback, activeAiVariant, result, { compact: true })) {
+    els.aiVariantFeedback.textContent = `${result.message}\n参考答案：${result.referenceAnswer}\n${result.explanation}`;
+  }
   if (result.correct) {
+    pendingAiVariantRetry = null;
     els.submitAiVariantButton.textContent = "已掌握，本轮结束";
     els.submitAiVariantButton.disabled = true;
     return;
   }
 
   const answeredVariant = activeAiVariant;
+  await requestNextAiVariant({ answeredVariant, answer });
+}
+
+async function requestNextAiVariant(context) {
+  const { answeredVariant, answer } = context;
+  pendingAiVariantRetry = null;
+  els.aiVariantFeedback.querySelectorAll(".variant-generation-note").forEach((note) => note.remove());
   els.submitAiVariantButton.disabled = true;
   els.submitAiVariantButton.textContent = "正在生成下一道强化题…";
   try {
@@ -948,19 +1023,27 @@ async function submitAiVariantAnswer() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         questionId: answeredVariant.id,
-        sourceQuestion: answeredVariant,
-        userAnswer: displaySubmittedAnswer(answeredVariant, answer),
-        referenceAnswer: result.referenceAnswer
+        userAnswer: displaySubmittedAnswer(answeredVariant, answer)
       })
     });
     if (!response.ai || !response.variantQuestion) {
-      els.aiVariantFeedback.textContent += `\n\n${response.analysis || "暂时无法继续生成强化题。"}`;
-      els.submitAiVariantButton.textContent = "暂时无法继续推送";
+      appendFeedbackNote(els.aiVariantFeedback, response.analysis || "暂时无法继续生成强化题。", "error");
+      pendingAiVariantRetry = context;
+      els.submitAiVariantButton.textContent = "重试生成下一题";
+      els.submitAiVariantButton.disabled = false;
       return;
     }
-    pushGeneratedVariant(response.variantQuestion, response.analysis, currentIndex, answeredVariant.id);
+    pendingAiVariantResponse = {
+      variantQuestion: response.variantQuestion,
+      analysis: response.analysis,
+      sourceQuestionId: answeredVariant.id
+    };
+    appendFeedbackNote(els.aiVariantFeedback, "下一道强化题已准备好。请先看完本题评分，再继续。", "info");
+    els.submitAiVariantButton.textContent = "查看讲解并继续下一题";
+    els.submitAiVariantButton.disabled = false;
   } catch (error) {
-    els.aiVariantFeedback.textContent += `\n\n下一题生成失败：${error.message}`;
+    appendFeedbackNote(els.aiVariantFeedback, `下一题生成失败：${error.message}`, "error");
+    pendingAiVariantRetry = context;
     els.submitAiVariantButton.textContent = "重试生成下一题";
     els.submitAiVariantButton.disabled = false;
   }
@@ -1020,6 +1103,8 @@ function pushGeneratedVariant(rawQuestion, analysis, sourceIndex, sourceQuestion
     sourceQuestionId
   };
   activeAiVariant = variantQuestion;
+  pendingAiVariantResponse = null;
+  pendingAiVariantRetry = null;
   activeAiVariantAnalysis = analysis || "AI 已根据上一题的错误生成针对性讲解。";
   aiVariantRound += 1;
   els.submitAiVariantButton.disabled = false;

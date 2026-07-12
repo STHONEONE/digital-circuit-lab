@@ -6,6 +6,8 @@ data/*.properties
 data/uploads/
 coverage/
 screenshots/
+.playwright-cli/
+.tmp-*/
 npm-debug.log*
 *.log
 Thumbs.db

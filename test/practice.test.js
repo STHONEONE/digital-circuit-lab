@@ -16,10 +16,26 @@ function fixture() {
   };
 }
 
-test("choice answer is judged and persisted", () => {
+function semanticEvaluation(overrides = {}) {
+  return {
+    score: 91,
+    correct: true,
+    status: "mastered",
+    overallComment: "结论与推理均正确。",
+    correctPoints: ["核心结论正确"],
+    incorrectPoints: [],
+    missingKnowledgePoints: [],
+    improvementSuggestions: [],
+    gradingMode: "ai_semantic",
+    gradingVersion: "semantic-v1",
+    ...overrides
+  };
+}
+
+test("choice answer is judged and persisted", async () => {
   const { store, practice, cleanup } = fixture();
   try {
-    const result = practice.answer({
+    const result = await practice.answer({
       questionId: "comb-001",
       answer: "B",
       practiceMode: "self_test"
@@ -32,10 +48,10 @@ test("choice answer is judged and persisted", () => {
   }
 });
 
-test("wrong answer enters review and affects learning plan", () => {
+test("wrong answer enters review and affects learning plan", async () => {
   const { practice, cleanup } = fixture();
   try {
-    practice.answer({
+    await practice.answer({
       questionId: "base-007",
       answer: "B",
       practiceMode: "normal"
@@ -87,7 +103,7 @@ test("AI self-test uses wrong knowledge and registers generated questions for no
   const practice = new PracticeService(store, ai);
 
   try {
-    practice.answer({ questionId: "base-007", answer: "B", practiceMode: "normal" });
+    await practice.answer({ questionId: "base-007", answer: "B", practiceMode: "normal" });
     const paper = await practice.selfTest("all", 1);
 
     assert.equal(paper.length, 1);
@@ -97,7 +113,7 @@ test("AI self-test uses wrong knowledge and registers generated questions for no
     assert.equal(store.questions().some((question) => question.id === generatedQuestion.id), false);
     assert.equal(store.question(generatedQuestion.id)?.generatedSelfTest, true);
 
-    const result = practice.answer({
+    const result = await practice.answer({
       questionId: generatedQuestion.id,
       answer: "A",
       practiceMode: "self_test"
@@ -109,17 +125,17 @@ test("AI self-test uses wrong knowledge and registers generated questions for no
   }
 });
 
-test("AI self-test profile isolates wrong knowledge by learner", () => {
+test("AI self-test profile isolates wrong knowledge by learner", async () => {
   const { store, cleanup } = fixture();
   const practice = new PracticeService(store);
   try {
-    practice.answer({
+    await practice.answer({
       questionId: "base-007",
       answer: "B",
       practiceMode: "normal",
       learnerId: "learner-a"
     });
-    practice.answer({
+    await practice.answer({
       questionId: "base-006",
       answer: "B",
       practiceMode: "normal",
@@ -140,16 +156,16 @@ test("AI self-test profile isolates wrong knowledge by learner", () => {
   }
 });
 
-test("all learning summaries stay isolated by learner", () => {
+test("all learning summaries stay isolated by learner", async () => {
   const { practice, cleanup } = fixture();
   try {
-    practice.answer({
+    await practice.answer({
       questionId: "base-007",
       answer: "B",
       practiceMode: "normal",
       learnerId: "learner-a"
     });
-    practice.answer({
+    await practice.answer({
       questionId: "base-006",
       answer: "B",
       practiceMode: "targeted",
@@ -164,6 +180,344 @@ test("all learning summaries stay isolated by learner", () => {
     assert.equal(practice.motivation("learner-a").points, 3);
     assert.equal(practice.motivation("learner-b").points, 3);
     assert.ok(practice.recommend("base-001", "learner-a").every((question) => question.id !== "base-001"));
+  } finally {
+    cleanup();
+  }
+});
+
+test("analysis answers use AI semantic grading and persist the evaluation", async () => {
+  const { store, cleanup } = fixture();
+  let received;
+  const ai = {
+    async gradeAnalysisAnswer(question, studentAnswer) {
+      received = { question, studentAnswer };
+      return {
+        score: 68,
+        correct: false,
+        status: "partial",
+        overallComment: "主要思路正确，但没有说明或门实现。",
+        correctPoints: ["说明了任一输入为 1 时输出为 1"],
+        incorrectPoints: [],
+        missingKnowledgePoints: ["或门实现"],
+        improvementSuggestions: ["补充 F=A+B 及其门电路实现"],
+        gradingMode: "ai_semantic",
+        gradingVersion: "semantic-v1"
+      };
+    }
+  };
+  const practice = new PracticeService(store, ai);
+
+  try {
+    const result = await practice.answer({
+      questionId: "base-012",
+      answer: "两个输入只要有一个是 1，输出就是 1。",
+      practiceMode: "normal",
+      learnerId: "semantic-learner"
+    });
+
+    assert.equal(received.question.id, "base-012");
+    assert.equal(received.studentAnswer, "两个输入只要有一个是 1，输出就是 1。");
+    assert.equal(result.score, 68);
+    assert.equal(result.correct, false);
+    assert.equal(result.evaluation.status, "partial");
+    assert.deepEqual(result.evaluation.missingKnowledgePoints, ["或门实现"]);
+    assert.equal(store.records.length, 1);
+    assert.equal(store.records[0].score, 68);
+    assert.equal(store.records[0].gradingMode, "ai_semantic");
+    assert.equal(store.records[0].learnerId, "semantic-learner");
+    assert.deepEqual(practice.wrongReviewDetails("semantic-learner").map((item) => item.question.id), ["base-012"]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("generated analysis variants use AI grading without entering normal records", async () => {
+  const { store, cleanup } = fixture();
+  let gradedQuestion;
+  const ai = {
+    async wrongRemediation() {
+      return {
+        ai: true,
+        analysis: "先复习触发沿采样。",
+        variantQuestion: sourceQuestion
+      };
+    },
+    async gradeAnalysisAnswer(question) {
+      gradedQuestion = question;
+      return {
+        score: 91,
+        correct: true,
+        status: "mastered",
+        overallComment: "结论与推理均正确。",
+        correctPoints: ["正确说明了触发沿采样"],
+        incorrectPoints: [],
+        missingKnowledgePoints: [],
+        improvementSuggestions: ["可以补充建立时间概念"],
+        gradingMode: "ai_semantic",
+        gradingVersion: "semantic-v1"
+      };
+    }
+  };
+  const practice = new PracticeService(store, ai);
+  const learnerId = "variant-owner";
+  const sourceQuestion = {
+    id: "ai-var-semantic-fixture",
+    type: "analysis",
+    title: "D 触发器变式题",
+    text: "D 触发器在上升沿如何更新输出？",
+    answerText: "在有效上升沿到来时，Q 更新为该时刻采样到的 D。",
+    explanation: "D 触发器在有效边沿采样输入。",
+    knowledge: ["D 触发器", "边沿触发"],
+    generatedVariant: true
+  };
+
+  try {
+    const remediation = await practice.wrongRemediation({
+      questionId: "base-007",
+      userAnswer: "错误答案"
+    }, learnerId);
+    assert.equal(remediation.variantQuestion.id, sourceQuestion.id);
+    const result = await practice.answer({
+      questionId: sourceQuestion.id,
+      sourceQuestion: { ...sourceQuestion, answerText: "客户端篡改的参考答案" },
+      answer: "时钟从低变高的一刻，输出取当时的 D。",
+      practiceMode: "ai_variant",
+      learnerId
+    });
+
+    assert.equal(result.score, 91);
+    assert.equal(result.correct, true);
+    assert.equal(gradedQuestion.answerText, sourceQuestion.answerText);
+    assert.equal(store.records.length, 0);
+    assert.equal(store.questions().some((question) => question.id === sourceQuestion.id), false);
+    assert.equal(store.question(sourceQuestion.id), undefined);
+  } finally {
+    cleanup();
+  }
+});
+
+test("forged generated variants are rejected before AI grading", async () => {
+  const { store, cleanup } = fixture();
+  let gradingCalls = 0;
+  const practice = new PracticeService(store, {
+    async gradeAnalysisAnswer() {
+      gradingCalls += 1;
+      throw new Error("不应调用");
+    }
+  });
+  const sourceQuestion = {
+    id: "forged-ai-variant",
+    type: "analysis",
+    text: "伪造题目",
+    answerText: "伪造答案",
+    generatedVariant: true
+  };
+  try {
+    await assert.rejects(
+      () => practice.answer({
+        questionId: sourceQuestion.id,
+        sourceQuestion,
+        answer: "任意答案",
+        learnerId: "forged-owner"
+      }),
+      (error) => error.status === 404 && error.code === "AI_VARIANT_NOT_REGISTERED"
+    );
+    assert.equal(gradingCalls, 0);
+    assert.equal(store.records.length, 0);
+  } finally {
+    cleanup();
+  }
+});
+
+test("registered variants expire and cannot be used by another learner", async () => {
+  const { store, cleanup } = fixture();
+  let now = 1000;
+  let gradingCalls = 0;
+  const practice = new PracticeService(store, {
+    async gradeAnalysisAnswer() {
+      gradingCalls += 1;
+      return semanticEvaluation();
+    }
+  }, { now: () => now, generatedVariantTtlMs: 100 });
+  const sourceQuestion = {
+    id: "owned-ai-variant",
+    type: "analysis",
+    text: "说明 D 触发器如何采样。",
+    answerText: "在有效时钟沿采样 D。",
+    generatedVariant: true
+  };
+  try {
+    practice.registerGeneratedVariant("learner-owner", sourceQuestion);
+    await assert.rejects(
+      () => practice.answer({
+        questionId: sourceQuestion.id,
+        answer: "在时钟沿采样。",
+        learnerId: "learner-other"
+      }),
+      (error) => error.status === 404 && error.code === "AI_VARIANT_NOT_AVAILABLE"
+    );
+    now = 1100;
+    await assert.rejects(
+      () => practice.answer({
+        questionId: sourceQuestion.id,
+        answer: "在时钟沿采样。",
+        learnerId: "learner-owner"
+      }),
+      (error) => error.status === 410 && error.code === "AI_VARIANT_EXPIRED"
+    );
+    assert.equal(gradingCalls, 0);
+    assert.equal(store.records.length, 0);
+  } finally {
+    cleanup();
+  }
+});
+
+test("generated variant registry stays bounded", () => {
+  const { store, cleanup } = fixture();
+  const practice = new PracticeService(store, null, { generatedVariantLimit: 2 });
+  const variant = (id) => ({
+    id,
+    type: "analysis",
+    text: `题目 ${id}`,
+    answerText: `答案 ${id}`,
+    generatedVariant: true
+  });
+  try {
+    practice.registerGeneratedVariant("bounded-owner", variant("bounded-1"));
+    practice.registerGeneratedVariant("bounded-owner", variant("bounded-2"));
+    practice.registerGeneratedVariant("bounded-owner", variant("bounded-3"));
+    assert.equal(practice.generatedVariants.size, 2);
+    assert.throws(
+      () => practice.registeredGeneratedVariant("bounded-owner", "bounded-1"),
+      (error) => error.code === "AI_VARIANT_NOT_REGISTERED"
+    );
+    assert.equal(practice.registeredGeneratedVariant("bounded-owner", "bounded-3").id, "bounded-3");
+  } finally {
+    cleanup();
+  }
+});
+
+test("analysis rate limiting does not affect choice or fill-blank grading", async () => {
+  const { store, cleanup } = fixture();
+  let gradingCalls = 0;
+  const practice = new PracticeService(store, {
+    async gradeAnalysisAnswer() {
+      gradingCalls += 1;
+      return semanticEvaluation();
+    }
+  }, { analysisRateLimit: 1, analysisRateWindowMs: 60_000 });
+  const rateKeys = ["learner:rate-owner", "ip:rate-ip"];
+  try {
+    await practice.answer({
+      questionId: "base-012",
+      answer: "F=A+B，可由或门实现。",
+      learnerId: "rate-owner",
+      analysisRateKeys: rateKeys
+    });
+    await assert.rejects(
+      () => practice.answer({
+        questionId: "comb-012",
+        answer: "先列真值表，再写表达式并化简。",
+        learnerId: "rotated-learner",
+        analysisRateKeys: ["learner:rotated-learner", "ip:rate-ip"]
+      }),
+      (error) => error.status === 429 && error.code === "AI_GRADING_RATE_LIMITED"
+        && error.retryAfterSeconds > 0
+    );
+    await assert.rejects(
+      () => practice.answer({
+        questionId: "comb-012",
+        answer: "先列真值表，再写表达式并化简。",
+        learnerId: "rate-owner",
+        analysisRateKeys: ["learner:rate-owner", "ip:rotated-ip"]
+      }),
+      (error) => error.status === 429 && error.code === "AI_GRADING_RATE_LIMITED"
+    );
+    const choice = await practice.answer({
+      questionId: "comb-001",
+      answer: "B",
+      learnerId: "rate-owner",
+      analysisRateKeys: rateKeys
+    });
+    const fillBlank = await practice.answer({
+      questionId: "base-004",
+      answer: "01011001，也可以写成 0101 1001",
+      learnerId: "rate-owner",
+      analysisRateKeys: rateKeys
+    });
+    assert.equal(choice.correct, true);
+    assert.equal(fillBlank.correct, true);
+    assert.equal(gradingCalls, 1);
+    assert.equal(store.records.length, 3);
+  } finally {
+    cleanup();
+  }
+});
+
+test("global analysis concurrency rejects excess AI work while choices remain available", async () => {
+  const { store, cleanup } = fixture();
+  let markStarted;
+  let releaseGrading;
+  const started = new Promise((resolve) => { markStarted = resolve; });
+  const release = new Promise((resolve) => { releaseGrading = resolve; });
+  const practice = new PracticeService(store, {
+    async gradeAnalysisAnswer() {
+      markStarted();
+      await release;
+      return semanticEvaluation();
+    }
+  }, { analysisGlobalConcurrency: 1, analysisRateLimit: 10 });
+  try {
+    const first = practice.answer({
+      questionId: "base-012",
+      answer: "F=A+B，可由或门实现。",
+      learnerId: "global-a",
+      analysisRateKeys: ["learner:global-a", "ip:global-a"]
+    });
+    await started;
+    await assert.rejects(
+      () => practice.answer({
+        questionId: "comb-012",
+        answer: "列真值表，写表达式并化简。",
+        learnerId: "global-b",
+        analysisRateKeys: ["learner:global-b", "ip:global-b"]
+      }),
+      (error) => error.status === 429 && error.code === "AI_GRADING_CAPACITY"
+    );
+    const choice = await practice.answer({
+      questionId: "comb-001",
+      answer: "B",
+      learnerId: "global-b",
+      analysisRateKeys: ["learner:global-b", "ip:global-b"]
+    });
+    assert.equal(choice.correct, true);
+    releaseGrading();
+    await first;
+    assert.equal(store.records.length, 2);
+  } finally {
+    releaseGrading?.();
+    cleanup();
+  }
+});
+
+test("failed AI grading does not create a wrong-answer record", async () => {
+  const { store, cleanup } = fixture();
+  const ai = {
+    async gradeAnalysisAnswer() {
+      const error = new Error("AI 语义判题请求失败，请稍后重试。");
+      error.status = 502;
+      error.code = "AI_GRADING_FAILED";
+      throw error;
+    }
+  };
+  const practice = new PracticeService(store, ai);
+  try {
+    await assert.rejects(
+      () => practice.answer({ questionId: "base-012", answer: "任一输入为 1 时输出为 1。" }),
+      (error) => error.code === "AI_GRADING_FAILED"
+    );
+    assert.equal(store.records.length, 0);
+    assert.equal(practice.wrongReviewDetails().length, 0);
   } finally {
     cleanup();
   }

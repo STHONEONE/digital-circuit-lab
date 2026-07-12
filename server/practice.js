@@ -13,6 +13,49 @@ function mode(modeName) {
   return allowedModes.has(modeName) ? modeName : "normal";
 }
 
+function serviceError(message, status, code, retryAfterSeconds = 0) {
+  const error = new Error(message);
+  error.status = status;
+  error.code = code;
+  if (retryAfterSeconds > 0) error.retryAfterSeconds = retryAfterSeconds;
+  return error;
+}
+
+function positiveOption(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? Math.floor(number) : fallback;
+}
+
+function normalizedGeneratedVariant(source) {
+  if (!source?.generatedVariant) return null;
+  const id = String(source.id || "").trim().slice(0, 160);
+  const text = String(source.text || "").trim().slice(0, 4000);
+  const type = source.type === "single_choice" ? "single_choice" : "analysis";
+  const answerText = String(source.answerText || "").trim().slice(0, 3000);
+  if (!id || !text || (type === "analysis" && !answerText)) return null;
+  return {
+    id,
+    scope: String(source.scope || "custom").trim().slice(0, 80) || "custom",
+    chapter: String(source.chapter || "AI 变式训练").trim().slice(0, 200),
+    type,
+    title: String(source.title || "AI 变式题").trim().slice(0, 200),
+    text,
+    options: type === "single_choice" && Array.isArray(source.options)
+      ? source.options.slice(0, 4).map((item) => String(item || "").trim().slice(0, 500))
+      : [],
+    answer: type === "single_choice" && Number.isInteger(source.answer) ? source.answer : null,
+    answerText,
+    explanation: String(source.explanation || "").trim().slice(0, 3000),
+    knowledge: (Array.isArray(source.knowledge) ? source.knowledge : []).slice(0, 12)
+      .map((item) => String(item || "").trim().slice(0, 100)).filter(Boolean),
+    keywords: (Array.isArray(source.keywords) ? source.keywords : []).slice(0, 12)
+      .map((item) => String(item || "").trim().slice(0, 100)).filter(Boolean),
+    difficulty: Math.max(1, Math.min(Number(source.difficulty) || 2, 5)),
+    generatedVariant: true,
+    source: "AI 变式题"
+  };
+}
+
 function buildTargetKnowledgePlan(weakKnowledge, availableKnowledge, count) {
   const targets = weakKnowledge.length
     ? weakKnowledge
@@ -30,22 +73,183 @@ function buildTargetKnowledgePlan(weakKnowledge, availableKnowledge, count) {
 }
 
 export class PracticeService {
-  constructor(store, ai = null) {
+  constructor(store, ai = null, options = {}) {
     this.store = store;
     this.ai = ai;
+    this.now = typeof options.now === "function" ? options.now : () => Date.now();
+    this.generatedVariantTtlMs = positiveOption(options.generatedVariantTtlMs, 60 * 60 * 1000);
+    this.generatedVariantLimit = positiveOption(options.generatedVariantLimit, 500);
+    this.generatedVariants = new Map();
+    this.analysisRateWindowMs = positiveOption(options.analysisRateWindowMs, 60 * 1000);
+    this.analysisRateLimit = positiveOption(options.analysisRateLimit, 6);
+    this.analysisGlobalConcurrency = positiveOption(options.analysisGlobalConcurrency, 8);
+    this.analysisActiveCount = 0;
+    this.analysisRateStates = new Map();
   }
 
-  answer(request) {
-    const question = this.store.question(request.questionId);
-    if (!question) throw new Error("题目不存在");
-    const userAnswer = String(request.answer || "").trim();
+  generatedVariantKey(learnerId, questionId) {
+    return `${String(learnerId || "")}\u0000${String(questionId || "")}`;
+  }
+
+  pruneGeneratedVariants(now = this.now()) {
+    this.generatedVariants.forEach((entry, key) => {
+      if (entry.expiresAt <= now) this.generatedVariants.delete(key);
+    });
+  }
+
+  registerGeneratedVariant(learnerId, sourceQuestion) {
+    const owner = String(learnerId || "").trim();
+    const question = normalizedGeneratedVariant(sourceQuestion);
+    if (!owner || !question) {
+      throw serviceError("AI 变式题注册失败，请重新生成。", 502, "AI_VARIANT_INVALID");
+    }
+    const now = this.now();
+    this.pruneGeneratedVariants(now);
+    const key = this.generatedVariantKey(owner, question.id);
+    this.generatedVariants.delete(key);
+    while (this.generatedVariants.size >= this.generatedVariantLimit) {
+      this.generatedVariants.delete(this.generatedVariants.keys().next().value);
+    }
+    this.generatedVariants.set(key, {
+      question,
+      owner,
+      registeredAt: now,
+      expiresAt: now + this.generatedVariantTtlMs
+    });
+    return question;
+  }
+
+  registeredGeneratedVariant(learnerId, questionId) {
+    const owner = String(learnerId || "").trim();
+    const id = String(questionId || "").trim();
+    const key = this.generatedVariantKey(owner, id);
+    const entry = this.generatedVariants.get(key);
+    const now = this.now();
+    if (entry) {
+      if (entry.expiresAt <= now) {
+        this.generatedVariants.delete(key);
+        throw serviceError("这道 AI 变式题已过期，请从原错题重新生成。", 410, "AI_VARIANT_EXPIRED");
+      }
+      return entry.question;
+    }
+    this.pruneGeneratedVariants(now);
+    const belongsToAnotherLearner = [...this.generatedVariants.values()]
+      .some((item) => item.question.id === id && item.owner !== owner);
+    if (belongsToAnotherLearner) {
+      throw serviceError("这道 AI 变式题不属于当前学习记录，请重新生成。", 404, "AI_VARIANT_NOT_AVAILABLE");
+    }
+    throw serviceError("未找到有效的 AI 变式题，请从原错题重新生成。", 404, "AI_VARIANT_NOT_REGISTERED");
+  }
+
+  questionForLearner(questionId, learnerId) {
+    return this.store.question(questionId) || this.registeredGeneratedVariant(learnerId, questionId);
+  }
+
+  async wrongRemediation(request, learnerId) {
+    if (!this.ai?.wrongRemediation) {
+      throw serviceError("AI 错题强化服务当前不可用，请稍后重试。", 503, "AI_REMEDIATION_UNAVAILABLE");
+    }
+    const question = this.questionForLearner(request.questionId, learnerId);
+    let result;
+    try {
+      result = await this.ai.wrongRemediation(question, request);
+    } catch (error) {
+      if (!error.status) error.status = 502;
+      throw error;
+    }
+    if (result?.variantQuestion) {
+      return {
+        ...result,
+        variantQuestion: this.registerGeneratedVariant(learnerId, result.variantQuestion)
+      };
+    }
+    return result;
+  }
+
+  analysisRateKeys(request) {
+    const supplied = Array.isArray(request.analysisRateKeys) ? request.analysisRateKeys : [];
+    const keys = supplied.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 4);
+    if (!keys.length) keys.push(`learner:${String(request.learnerId || "anonymous")}`);
+    return [...new Set(keys)];
+  }
+
+  pruneAnalysisRateStates(now = this.now()) {
+    this.analysisRateStates.forEach((state, key) => {
+      state.timestamps = state.timestamps.filter((timestamp) => now - timestamp < this.analysisRateWindowMs);
+      if (!state.active && !state.timestamps.length) this.analysisRateStates.delete(key);
+    });
+  }
+
+  async runLimitedAnalysisGrading(request, action) {
+    const now = this.now();
+    this.pruneAnalysisRateStates(now);
+    const keys = this.analysisRateKeys(request);
+    const states = keys.map((key) => {
+      const state = this.analysisRateStates.get(key) || { active: 0, timestamps: [] };
+      state.timestamps = state.timestamps.filter((timestamp) => now - timestamp < this.analysisRateWindowMs);
+      return { key, state };
+    });
+    if (states.some(({ state }) => state.active > 0)) {
+      throw serviceError("AI 正在评阅上一份答案，请等待完成后再提交。", 429, "AI_GRADING_BUSY", 1);
+    }
+    const limited = states.find(({ state }) => state.timestamps.length >= this.analysisRateLimit);
+    if (limited) {
+      const retryAfterMs = this.analysisRateWindowMs - (now - limited.state.timestamps[0]);
+      const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
+      throw serviceError(`AI 判题请求较频繁，请 ${retryAfterSeconds} 秒后重试。`, 429,
+        "AI_GRADING_RATE_LIMITED", retryAfterSeconds);
+    }
+    if (this.analysisActiveCount >= this.analysisGlobalConcurrency) {
+      throw serviceError("当前 AI 判题任务较多，请稍后重试。", 429, "AI_GRADING_CAPACITY", 2);
+    }
+    states.forEach(({ key, state }) => {
+      state.active += 1;
+      state.timestamps.push(now);
+      this.analysisRateStates.set(key, state);
+    });
+    this.analysisActiveCount += 1;
+    try {
+      return await action();
+    } finally {
+      states.forEach(({ state }) => { state.active = Math.max(0, state.active - 1); });
+      this.analysisActiveCount = Math.max(0, this.analysisActiveCount - 1);
+    }
+  }
+
+  async answer(request) {
+    const storedQuestion = this.store.question(request.questionId);
+    const question = storedQuestion || this.registeredGeneratedVariant(request.learnerId, request.questionId);
+    const userAnswer = String(request.answer ?? "").trim();
+    if (!userAnswer) {
+      const error = new Error(question.type === "single_choice" ? "请先选择一个选项。" : "请先填写答案。");
+      error.status = 400;
+      error.code = "ANSWER_REQUIRED";
+      throw error;
+    }
+    if (userAnswer.length > 3000) {
+      const error = new Error("答案内容过长，请精简到 3000 字以内后重试。");
+      error.status = 400;
+      error.code = "ANSWER_TOO_LONG";
+      throw error;
+    }
     let correct = false;
     let matchedKeywords = [];
+    let evaluation = null;
 
     if (question.type === "single_choice") {
       const upper = userAnswer.toUpperCase();
       const value = /^[A-Z]$/.test(upper) ? upper.charCodeAt(0) - 65 : Number(upper);
       correct = value === question.answer;
+    } else if (question.type === "analysis") {
+      if (!this.ai?.gradeAnalysisAnswer) {
+        const error = new Error("AI 语义判题服务当前不可用，请稍后重试。");
+        error.status = 503;
+        error.code = "AI_GRADING_UNAVAILABLE";
+        throw error;
+      }
+      evaluation = await this.runLimitedAnalysisGrading(request,
+        () => this.ai.gradeAnalysisAnswer(question, userAnswer));
+      correct = evaluation.correct;
     } else {
       matchedKeywords = (question.keywords || [])
         .filter((keyword) => normalized(userAnswer).includes(normalized(keyword)));
@@ -53,15 +257,42 @@ export class PracticeService {
       correct = question.keywords?.length > 0 && matchedKeywords.length >= required;
     }
 
-    this.store.addRecord({
-      questionId: question.id,
-      userAnswer,
-      correct,
-      knowledge: question.knowledge || [],
-      practiceMode: mode(request.practiceMode),
-      focusKnowledge: request.focusKnowledge || "",
-      ...(request.learnerId ? { learnerId: request.learnerId } : {})
-    });
+    if (storedQuestion) {
+      this.store.addRecord({
+        questionId: question.id,
+        userAnswer,
+        correct,
+        knowledge: question.knowledge || [],
+        practiceMode: mode(request.practiceMode),
+        focusKnowledge: request.focusKnowledge || "",
+        ...(evaluation ? {
+          score: evaluation.score,
+          gradingMode: evaluation.gradingMode,
+          gradingStatus: evaluation.status,
+          gradingVersion: evaluation.gradingVersion,
+          gradingEvaluation: evaluation
+        } : {}),
+        ...(request.learnerId ? { learnerId: request.learnerId } : {})
+      });
+    }
+
+    if (evaluation) {
+      const messages = {
+        mastered: "语义评分：掌握良好",
+        passed: "语义评分：达到要求",
+        partial: "语义评分：已答对部分要点，继续补充",
+        incorrect: "语义评分：当前判断需要调整"
+      };
+      return {
+        correct,
+        score: evaluation.score,
+        message: messages[evaluation.status] || "AI 语义评分已完成",
+        referenceAnswer: question.answerText,
+        explanation: question.explanation,
+        matchedKeywords: [],
+        evaluation
+      };
+    }
 
     return {
       correct,

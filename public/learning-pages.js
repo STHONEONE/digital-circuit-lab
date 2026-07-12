@@ -85,21 +85,47 @@ function questionAnswerText(question) {
   return question.answerText || "";
 }
 
-function gradeVariant(question, answer) {
+async function gradeVariant(question, answer) {
   if (question.type === "single_choice") {
     const correct = Number(answer) === Number(question.answer);
-    return { correct, referenceAnswer: questionAnswerText(question) };
+    return {
+      correct,
+      message: correct ? "回答正确" : "需要继续巩固",
+      referenceAnswer: questionAnswerText(question),
+      explanation: question.explanation || ""
+    };
   }
-  const normalized = String(answer || "").toLowerCase().replace(/\s+/g, "");
-  const keywords = (question.keywords || []).map((keyword) => String(keyword).toLowerCase().replace(/\s+/g, ""));
-  const matched = keywords.filter((keyword) => normalized.includes(
-    String(keyword).toLowerCase().replace(/\s+/g, "")
-  ));
-  const reference = String(question.answerText || "").toLowerCase().replace(/\s+/g, "");
-  const correct = keywords.length
-    ? matched.length >= Math.min(2, keywords.length)
-    : normalized.length >= 4 && reference.includes(normalized);
-  return { correct, referenceAnswer: question.answerText || "" };
+  return platformApi("/api/answers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      questionId: question.id,
+      answer: String(answer),
+      practiceMode: "ai_variant"
+    })
+  });
+}
+
+function renderPlatformEvaluation(container, question, result, compact = false) {
+  container.className = `platform-feedback visible ${result.correct ? "ok" : "bad"}`;
+  const rendered = window.answerFeedback?.renderEvaluation(container, {
+    result,
+    referenceAnswer: result.referenceAnswer || question.answerText || "",
+    explanation: result.explanation || question.explanation || "",
+    compact
+  });
+  if (rendered) return true;
+  container.textContent = `${result.message || (result.correct ? "回答正确" : "需要巩固")}\n参考答案：${result.referenceAnswer || ""}\n\n${result.explanation || ""}`;
+  return false;
+}
+
+function renderPlatformNotice(container, message) {
+  container.className = "platform-feedback visible system-error";
+  if (window.answerFeedback?.renderNotice) {
+    window.answerFeedback.renderNotice(container, message, "error");
+  } else {
+    container.textContent = message;
+  }
 }
 
 function enableDrag(panel, handle) {
@@ -193,35 +219,73 @@ function openRemediationFloat(response, sourceQuestion) {
     submit.textContent = "提交答案";
     const feedback = document.createElement("div");
     body.append(title, text, answers, submit, feedback);
-    submit.addEventListener("click", async () => {
-      const answer = variant.type === "single_choice" ? selected : input?.value.trim();
-      if (answer === null || answer === undefined || answer === "") {
-        feedback.textContent = "请先作答。";
-        return;
-      }
-      const result = gradeVariant(variant, answer);
-      feedback.className = `platform-notice${result.correct ? "" : " error"}`;
-      feedback.textContent = `${result.correct ? "回答正确" : "需要继续巩固"}。参考答案：${result.referenceAnswer}`;
-      if (result.correct) return;
+    let gradedAttempt = null;
+    let generationNote = null;
+
+    async function requestNextVariant() {
+      if (!gradedAttempt) return;
+      generationNote?.remove();
+      generationNote = null;
       submit.disabled = true;
-      submit.textContent = "正在生成下一题…";
+      submit.textContent = "正在生成下一道强化题…";
       try {
+        const { answer } = gradedAttempt;
         const next = await platformApi("/api/wrong-remediation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             questionId: variant.id,
-            sourceQuestion: variant,
-            userAnswer: String(answer),
-            referenceAnswer: result.referenceAnswer
+            userAnswer: String(answer)
           })
         });
-        renderKnowledge(next, variant);
+        if (!next?.ai || !next.variantQuestion) {
+          throw new Error(next?.analysis || "暂时无法继续生成强化题，请稍后重试。");
+        }
+        submit.textContent = "本题已评分";
+        const continueButton = document.createElement("button");
+        continueButton.className = "platform-button primary";
+        continueButton.type = "button";
+        continueButton.textContent = "查看讲解并继续下一题";
+        continueButton.addEventListener("click", () => renderKnowledge(next, variant));
+        body.append(continueButton);
       } catch (error) {
-        feedback.textContent += `\n下一题生成失败：${error.message}`;
+        generationNote = document.createElement("div");
+        generationNote.className = "answer-evaluation-notice is-error";
+        generationNote.textContent = `下一题暂未生成：${error.message}`;
+        feedback.append(generationNote);
         submit.disabled = false;
         submit.textContent = "重试生成下一题";
       }
+    }
+
+    submit.addEventListener("click", async () => {
+      if (gradedAttempt) {
+        await requestNextVariant();
+        return;
+      }
+      const answer = variant.type === "single_choice" ? selected : input?.value.trim();
+      if (answer === null || answer === undefined || answer === "") {
+        feedback.textContent = variant.type === "single_choice" ? "请先选择一个选项。" : "请先填写答案。";
+        return;
+      }
+      submit.disabled = true;
+      submit.textContent = variant.type === "analysis" ? "AI 正在语义评分…" : "正在判题…";
+      let result;
+      try {
+        result = await gradeVariant(variant, answer);
+      } catch (error) {
+        renderPlatformNotice(feedback, `答案暂未提交成功，当前作答已保留。${error.message}`);
+        submit.disabled = false;
+        submit.textContent = "重新提交答案";
+        return;
+      }
+      renderPlatformEvaluation(feedback, variant, result, true);
+      if (result.correct) {
+        submit.textContent = "本轮已完成";
+        return;
+      }
+      gradedAttempt = { answer };
+      await requestNextVariant();
     });
   }
 
@@ -371,22 +435,22 @@ class PlatformQuestionRunner {
     if (!question) return;
     const answer = question.type === "single_choice" ? this.selected : this.els.input.value.trim();
     if (answer === null || answer === undefined || answer === "") {
-      this.showFeedback(false, "请先作答。", false);
+      this.showFeedback(false, question.type === "single_choice" ? "请先选择一个选项。" : "请先填写答案。");
       return;
     }
     this.els.submit.disabled = true;
-    this.els.submit.textContent = "正在判题…";
+    this.els.submit.textContent = question.type === "analysis" ? "AI 正在语义评分…" : "正在判题…";
     try {
       const result = await platformApi("/api/answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questionId: question.id, answer: String(answer), practiceMode: this.mode })
       });
-      this.showFeedback(result.correct, `${result.message}\n参考答案：${result.referenceAnswer || ""}\n\n${result.explanation || ""}`, true);
+      this.showResult(result, question);
       this.onAnswered?.(result, question, answer, this.index);
       if (!result.correct) requestRemediation(question, answer, result);
     } catch (error) {
-      this.showFeedback(false, `提交失败：${error.message}`, true);
+      renderPlatformNotice(this.els.feedback, `答案暂未提交成功，当前作答已保留。${error.message}`);
     } finally {
       this.els.submit.disabled = false;
       this.els.submit.textContent = "提交答案";
@@ -396,6 +460,10 @@ class PlatformQuestionRunner {
   showFeedback(ok, text) {
     this.els.feedback.className = `platform-feedback visible ${ok ? "ok" : "bad"}`;
     this.els.feedback.textContent = text;
+  }
+
+  showResult(result, question) {
+    renderPlatformEvaluation(this.els.feedback, question, result);
   }
 }
 

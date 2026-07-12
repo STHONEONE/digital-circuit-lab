@@ -249,6 +249,41 @@ test("learning modules are independent pages with shared real-link navigation", 
   assert.match(styles, /\.review-summary/);
 });
 
+test("semantic grading feedback assets expose a shared structured renderer", async () => {
+  const scriptResponse = await fetch(`${baseUrl}/answer-feedback.js`);
+  const styleResponse = await fetch(`${baseUrl}/answer-feedback.css`);
+  const script = await scriptResponse.text();
+  const styles = await styleResponse.text();
+
+  assert.equal(scriptResponse.status, 200);
+  assert.equal(styleResponse.status, 200);
+  assert.match(script, /renderEvaluation/);
+  assert.match(script, /正确点/);
+  assert.match(script, /错误点/);
+  assert.match(script, /遗漏知识点/);
+  assert.match(script, /改进建议/);
+  assert.match(styles, /\.answer-evaluation-grid/);
+});
+
+test("variant remediation retries generation without regrading and keeps system errors neutral", async () => {
+  const [appScript, pageScript, feedbackStyles] = await Promise.all([
+    fetch(`${baseUrl}/app.js`).then((response) => response.text()),
+    fetch(`${baseUrl}/learning-pages.js`).then((response) => response.text()),
+    fetch(`${baseUrl}/answer-feedback.css`).then((response) => response.text())
+  ]);
+
+  assert.match(appScript, /let pendingAiVariantRetry = null/);
+  assert.match(appScript, /async function requestNextAiVariant/);
+  assert.match(appScript, /if \(pendingAiVariantRetry\)/);
+  assert.match(pageScript, /let gradedAttempt = null/);
+  assert.match(pageScript, /async function requestNextVariant/);
+  assert.match(pageScript, /if \(!next\?\.ai \|\| !next\.variantQuestion\)/);
+  assert.match(appScript, /ai-variant-feedback system-error/);
+  assert.match(pageScript, /platform-feedback visible system-error/);
+  assert.match(feedbackStyles, /\.feedback\.system-error/);
+  assert.match(feedbackStyles, /\.platform-feedback\.system-error/);
+});
+
 test("learner-aware HTTP endpoints isolate records and reject invalid IDs safely", async () => {
   const answer = (learner, questionId) => fetch(`${baseUrl}/api/answers`, {
     method: "POST",
@@ -280,6 +315,25 @@ test("learner-aware HTTP endpoints isolate records and reject invalid IDs safely
   assert.equal(invalidDelete.removed, 0);
   assert.equal((await fetch(`${baseUrl}/api/stats`, { headers: headersA }).then((response) => response.json())).answered, 1);
   assert.equal((await fetch(`${baseUrl}/api/stats`, { headers: headersB }).then((response) => response.json())).answered, 1);
+});
+
+test("analysis answer requires AI semantic grading and does not persist when unavailable", async () => {
+  const headers = { "Content-Type": "application/json", "X-Learner-Id": "semantic-http-learner" };
+  const response = await fetch(`${baseUrl}/api/answers`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      questionId: "base-012",
+      answer: "只要任一输入为 1，输出就为 1。",
+      practiceMode: "normal"
+    })
+  });
+  const body = await response.json();
+  const stats = await fetch(`${baseUrl}/api/stats`, { headers }).then((item) => item.json());
+
+  assert.equal(response.status, 503);
+  assert.equal(body.code, "AI_GRADING_UNAVAILABLE");
+  assert.equal(stats.answered, 0);
 });
 
 test("AI self-test requires configuration and targeted practice still uses the question bank", async () => {
@@ -353,10 +407,10 @@ test("wrong-answer remediation endpoint returns no generated variant without AI 
   assert.match(body.analysis, /未配置 AI Key/);
 });
 
-test("wrong-answer remediation accepts an AI variant as the next remediation source", async () => {
+test("wrong-answer remediation rejects an unregistered client-supplied variant", async () => {
   const response = await fetch(`${baseUrl}/api/wrong-remediation`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Learner-Id": "forged-remediation-owner" },
     body: JSON.stringify({
       questionId: "temporary-ai-variant",
       sourceQuestion: {
@@ -371,9 +425,8 @@ test("wrong-answer remediation accepts an AI variant as the next remediation sou
       referenceAnswer: "A. 0"
     })
   });
-  assert.equal(response.status, 200);
   const body = await response.json();
-  assert.equal(body.ai, false);
-  assert.equal(body.variantQuestion, null);
-  assert.match(body.analysis, /未配置 AI Key/);
+  assert.equal(response.status, 404);
+  assert.equal(body.code, "AI_VARIANT_NOT_REGISTERED");
+  assert.match(body.error, /未找到有效的 AI 变式题/);
 });

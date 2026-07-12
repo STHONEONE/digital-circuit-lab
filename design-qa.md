@@ -52,6 +52,19 @@
 
 final result: passed
 
+## AI semantic grading — 2026-07-12
+
+- Viewport: 1440 × 1024 desktop.
+- Evidence: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\semantic-grading-final.png`
+- The analysis-answer flow displays a 0–100 score, verdict, overall comment, correct points, incorrect points, missing knowledge points, improvement suggestions, and expandable reference answer/explanation.
+- AI request failures preserve the student's answer and use a neutral system-error state instead of presenting the submission as a wrong answer.
+- Generated analysis variants use the same semantic grading renderer and remain outside the normal question bank and answer records.
+- The server rejects unregistered or cross-learner variants, enforces bounded TTL storage, and limits semantic grading by learner, IP, and global concurrency.
+- Browser console: no application errors or warnings; only Chromium's verbose password-autofill advisory was emitted.
+- Automated project tests: 36/36 passed.
+
+final result: passed
+
 ## Independent learning pages — 2026-07-12
 
 - Viewport: 1440 × 1024 (desktop-first pass requested by the user).

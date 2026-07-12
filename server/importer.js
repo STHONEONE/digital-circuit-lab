@@ -175,6 +175,16 @@ export class ImportService {
       }
     }
     if (!questions.length) questions = fallbackQuestion(text, source);
+    const missingRubrics = questions.filter((question) => question.type === "analysis"
+      && !String(question.answerText || "").trim());
+    if (missingRubrics.length) {
+      const titles = missingRubrics.slice(0, 3)
+        .map((question) => question.title || "未命名简答题").join("、");
+      const error = new Error(`以下简答题缺少 AI 语义判题所需的参考答案：${titles}。请补充“答案：”后重新导入。`);
+      error.status = 400;
+      error.code = "IMPORT_ANALYSIS_MISSING_ANSWER";
+      throw error;
+    }
     const saved = this.store.addImported(questions, source);
     return { count: saved.length, questions: saved };
   }
