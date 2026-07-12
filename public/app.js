@@ -1,6 +1,8 @@
 let questions = [];
 let sources = [];
-let currentScope = "all";
+const requestedScope = new URLSearchParams(window.location.search).get("scope");
+const availableScopes = new Set(["all", "basic-logic", "combinational", "sequential"]);
+let currentScope = availableScopes.has(requestedScope) ? requestedScope : "all";
 let currentSource = "";
 let currentIndex = 0;
 let selectedOption = null;
@@ -22,7 +24,7 @@ const learnerIdStorageKey = "digital-circuit-learner-id";
 function getLearnerId() {
   try {
     const existing = localStorage.getItem(learnerIdStorageKey);
-    if (existing) return existing;
+    if (/^[a-zA-Z0-9_-]{1,100}$/.test(existing || "")) return existing;
     const created = globalThis.crypto?.randomUUID?.()
       || `learner-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     localStorage.setItem(learnerIdStorageKey, created);
@@ -2040,6 +2042,10 @@ window.addEventListener("error", (event) => {
 window.addEventListener("unhandledrejection", (event) => {
   const message = event.reason?.message || String(event.reason || "未知错误");
   showSystemNotice(`操作失败：${message}`, "error");
+});
+
+document.querySelectorAll(".segments button").forEach((button) => {
+  button.classList.toggle("active", button.dataset.scope === currentScope);
 });
 
 document.querySelectorAll(".segments button").forEach((button) => {

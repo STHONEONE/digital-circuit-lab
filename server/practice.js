@@ -93,17 +93,18 @@ export class PracticeService {
     return counts;
   }
 
-  stats() {
+  stats(learnerId = "") {
+    const records = this.recordsForLearner(learnerId);
     return {
-      answered: this.store.records.length,
-      correctRate: accuracy(this.store.records),
-      wrongKnowledge: this.wrongKnowledgeCounts()
+      answered: records.length,
+      correctRate: accuracy(records),
+      wrongKnowledge: this.wrongKnowledgeCounts("all", learnerId)
     };
   }
 
-  recommend(currentId) {
+  recommend(currentId, learnerId = "") {
     const current = this.store.question(currentId);
-    const weak = Object.entries(this.wrongKnowledgeCounts())
+    const weak = Object.entries(this.wrongKnowledgeCounts("all", learnerId))
       .sort((left, right) => right[1] - left[1]).slice(0, 3).map(([name]) => name);
     const targets = weak.length ? weak : (current?.knowledge || []);
     return this.store.questions().filter((question) => question.id !== currentId)
@@ -117,10 +118,10 @@ export class PracticeService {
       .slice(0, 4).map((entry) => entry.question);
   }
 
-  wrongReviewDetails() {
+  wrongReviewDetails(learnerId = "") {
     const latest = new Map();
     const attempts = new Map();
-    this.store.records.forEach((record) => {
+    this.recordsForLearner(learnerId).forEach((record) => {
       latest.set(record.questionId, record);
       if (!record.correct) attempts.set(record.questionId, (attempts.get(record.questionId) || 0) + 1);
     });
@@ -130,9 +131,9 @@ export class PracticeService {
       .sort((left, right) => right.wrongAttempts - left.wrongAttempts);
   }
 
-  knowledgeStats() {
+  knowledgeStats(learnerId = "") {
     const groups = new Map();
-    this.store.records.forEach((record) => {
+    this.recordsForLearner(learnerId).forEach((record) => {
       (record.knowledge || []).forEach((item) => {
         if (!groups.has(item)) groups.set(item, []);
         groups.get(item).push(record);
@@ -150,18 +151,19 @@ export class PracticeService {
     }).sort((left, right) => left.rate - right.rate || left.knowledge.localeCompare(right.knowledge));
   }
 
-  learningPlan() {
-    const knowledge = this.knowledgeStats();
+  learningPlan(learnerId = "") {
+    const records = this.recordsForLearner(learnerId);
+    const knowledge = this.knowledgeStats(learnerId);
     let focusKnowledge = knowledge.filter((item) => item.rate < 80)
       .slice(0, 3).map((item) => item.knowledge);
     if (!focusKnowledge.length) {
       focusKnowledge = [...new Set(this.store.questions().flatMap((question) => question.knowledge || []))].slice(0, 3);
     }
     const primaryFocus = focusKnowledge[0] || "综合基础";
-    const targeted = this.store.records.filter((record) => record.practiceMode === "targeted").length;
-    const selfTests = this.store.records.filter((record) => record.practiceMode === "self_test").length;
-    const unresolved = this.wrongReviewDetails().length;
-    const hasRecords = this.store.records.length > 0;
+    const targeted = records.filter((record) => record.practiceMode === "targeted").length;
+    const selfTests = records.filter((record) => record.practiceMode === "self_test").length;
+    const unresolved = this.wrongReviewDetails(learnerId).length;
+    const hasRecords = records.length > 0;
     return {
       focusKnowledge,
       primaryFocus,
@@ -188,14 +190,14 @@ export class PracticeService {
         }
       ],
       review: hasRecords && knowledge.length
-        ? `已完成 ${this.store.records.length} 次作答；当前“${knowledge[0].knowledge}”正确率为 ${knowledge[0].rate}%，下一轮优先安排该方向。`
+        ? `已完成 ${records.length} 次作答；当前“${knowledge[0].knowledge}”正确率为 ${knowledge[0].rate}%，下一轮优先安排该方向。`
         : "尚未形成学习轨迹。建议先进行 AI 阶段自测，完成初始诊断。"
     };
   }
 
-  selectBankQuestions(scope, count) {
-    const weak = this.wrongKnowledgeCounts();
-    const answered = new Set(this.store.records.map((record) => record.questionId));
+  selectBankQuestions(scope, count, learnerId = "") {
+    const weak = this.wrongKnowledgeCounts("all", learnerId);
+    const answered = new Set(this.recordsForLearner(learnerId).map((record) => record.questionId));
     return this.store.questions({ scope }).map((question) => ({
       question,
       score: Number(!answered.has(question.id)) * 5
@@ -261,18 +263,18 @@ export class PracticeService {
     return this.store.addGeneratedSelfTestQuestions(questions);
   }
 
-  targeted(knowledge, count) {
-    const focus = String(knowledge || Object.entries(this.wrongKnowledgeCounts())
+  targeted(knowledge, count, learnerId = "") {
+    const focus = String(knowledge || Object.entries(this.wrongKnowledgeCounts("all", learnerId))
       .sort((left, right) => right[1] - left[1])[0]?.[0] || "").trim();
     const matched = this.store.questions()
       .filter((question) => !focus || question.knowledge?.includes(focus))
       .sort((left, right) => left.difficulty - right.difficulty)
       .slice(0, Math.max(1, Math.min(Number(count) || 5, 20)));
-    return matched.length ? matched : this.selectBankQuestions(null, count);
+    return matched.length ? matched : this.selectBankQuestions(null, count, learnerId);
   }
 
-  progress() {
-    const records = this.store.records;
+  progress(learnerId = "") {
+    const records = this.recordsForLearner(learnerId);
     const rounds = [];
     for (let start = 0, index = 1; start < records.length; start += 5, index += 1) {
       const batch = records.slice(start, start + 5);
@@ -307,7 +309,7 @@ export class PracticeService {
     }
     return {
       rounds,
-      knowledge: this.knowledgeStats(),
+      knowledge: this.knowledgeStats(learnerId),
       effectiveness: {
         baselineRate, recentRate, improvement,
         personalizedAttempts: personalized.length,
@@ -315,12 +317,12 @@ export class PracticeService {
         directionEffective: personalized.length >= 3 && personalizedRate >= baselineRate + 10,
         conclusion
       },
-      unresolvedWrong: this.wrongReviewDetails().length
+      unresolvedWrong: this.wrongReviewDetails(learnerId).length
     };
   }
 
-  motivation() {
-    const records = this.store.records;
+  motivation(learnerId = "") {
+    const records = this.recordsForLearner(learnerId);
     const correct = records.filter((record) => record.correct).length;
     const wrong = new Set();
     const corrected = new Set();
@@ -353,8 +355,8 @@ export class PracticeService {
       badges,
       message: !records.length
         ? "完成第一组自测，系统就能为你生成专属学习路线。"
-        : this.wrongReviewDetails().length
-          ? `本轮优先攻克 ${this.learningPlan().primaryFocus}，每订正一道错题都会推动路线前进。`
+        : this.wrongReviewDetails(learnerId).length
+          ? `本轮优先攻克 ${this.learningPlan(learnerId).primaryFocus}，每订正一道错题都会推动路线前进。`
           : "当前错题已清零，可以通过阶段自测验证掌握是否稳定。"
     };
   }

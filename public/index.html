@@ -7,8 +7,9 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./styles.css?v=20260711-1">
   <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
+  <link rel="stylesheet" href="./learning-pages.css?v=20260712-1">
 </head>
-<body class="inner-page learning-page center-page main-page">
+<body class="inner-page learning-page center-page main-page" data-learning-page="center">
   <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>
   <div class="circuit-bg-overlay" aria-hidden="true"></div>
   <div class="tech-background" aria-hidden="true">
@@ -61,7 +62,8 @@
     <div id="systemNotice" class="system-notice" hidden></div>
 
     <main class="layout">
-      <aside class="sidebar">
+      <aside class="sidebar platform-sidebar index-platform-sidebar" data-learning-nav aria-label="学习中心模块导航"></aside>
+      <div class="legacy-app-controls" aria-hidden="true">
         <button id="learningCenterButton" class="sidebar-learning-title active" type="button" aria-pressed="true">
           <img class="sidebar-nav-icon" src="./assets/icons/book-open.svg" alt="" aria-hidden="true">
           <strong>学习中心</strong>
@@ -146,7 +148,7 @@
           </div>
           <div id="learningPlan" class="learning-plan"></div>
         </section>
-      </aside>
+      </div>
 
       <section class="workspace">
         <section class="practice">
@@ -350,6 +352,7 @@
   </section>
 
   <script src="./circuit-background.js?v=20260620-1"></script>
-  <script src="./app.js?v=20260711-2"></script>
+  <script src="./learning-shell.js?v=20260712-1"></script>
+  <script src="./app.js?v=20260712-1"></script>
 </body>
 </html>

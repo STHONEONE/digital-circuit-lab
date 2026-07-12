@@ -206,6 +206,82 @@ test("health, pages and question APIs are available", async () => {
   assert.doesNotMatch(labsScript, /name: "D 触发器"/);
 });
 
+test("learning modules are independent pages with shared real-link navigation", async () => {
+  const pages = await Promise.all([
+    "scope.html", "learning-route.html", "wrong-review.html", "self-test.html", "learning-review.html"
+  ].map(async (name) => [name, await fetch(`${baseUrl}/${name}`).then((response) => response.text())]));
+  const index = await fetch(`${baseUrl}/index.html`).then((response) => response.text());
+  const appController = await fetch(`${baseUrl}/app.js`).then((response) => response.text());
+  const shell = await fetch(`${baseUrl}/learning-shell.js`).then((response) => response.text());
+  const controller = await fetch(`${baseUrl}/learning-pages.js`).then((response) => response.text());
+  const styles = await fetch(`${baseUrl}/learning-pages.css`).then((response) => response.text());
+
+  assert.match(index, /data-learning-page="center"/);
+  assert.match(index, /class="sidebar platform-sidebar index-platform-sidebar" data-learning-nav/);
+  assert.match(index, /class="legacy-app-controls"/);
+  assert.match(index, /learning-shell\.js/);
+  assert.match(index, /learning-pages\.css/);
+  assert.match(appController, /new URLSearchParams\(window\.location\.search\)/);
+  for (const [name, html] of pages) {
+    assert.match(html, /class="platform-sidebar" data-learning-nav/);
+    assert.match(html, /learning-shell\.js/);
+    assert.match(html, /learning-pages\.js/);
+    assert.match(html, /class="platform-page-frame"/);
+    assert.ok(html.includes(`data-learning-page="${{
+      "scope.html": "scope",
+      "learning-route.html": "route",
+      "wrong-review.html": "wrong",
+      "self-test.html": "self-test",
+      "learning-review.html": "review"
+    }[name]}"`));
+  }
+  for (const href of ["index.html", "scope.html", "learning-route.html", "wrong-review.html", "self-test.html", "learning-review.html"]) {
+    assert.match(shell, new RegExp(`href: "\\./${href.replace(".", "\\.")}"`));
+  }
+  assert.match(shell, /location\.assign\(destination\.href\)/);
+  assert.match(controller, /class PlatformQuestionRunner/);
+  assert.match(controller, /renderKnowledge\(response, sourceQuestion\)/);
+  assert.match(controller, /platform-remediation-launcher/);
+  assert.match(styles, /\.scope-workspace/);
+  assert.match(styles, /\.route-workspace/);
+  assert.match(styles, /\.wrong-workspace/);
+  assert.match(styles, /\.self-test-paper/);
+  assert.match(styles, /\.review-summary/);
+});
+
+test("learner-aware HTTP endpoints isolate records and reject invalid IDs safely", async () => {
+  const answer = (learner, questionId) => fetch(`${baseUrl}/api/answers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Learner-Id": learner },
+    body: JSON.stringify({ questionId, answer: "B", practiceMode: "normal" })
+  });
+  await answer("learner-http-a", "base-007");
+  await answer("learner-http-b", "base-006");
+
+  const headersA = { "X-Learner-Id": "learner-http-a" };
+  const headersB = { "X-Learner-Id": "learner-http-b" };
+  const [statsA, statsB, wrongA, wrongB, progressA] = await Promise.all([
+    fetch(`${baseUrl}/api/stats`, { headers: headersA }).then((response) => response.json()),
+    fetch(`${baseUrl}/api/stats`, { headers: headersB }).then((response) => response.json()),
+    fetch(`${baseUrl}/api/wrong-review-details`, { headers: headersA }).then((response) => response.json()),
+    fetch(`${baseUrl}/api/wrong-review-details`, { headers: headersB }).then((response) => response.json()),
+    fetch(`${baseUrl}/api/progress`, { headers: headersA }).then((response) => response.json())
+  ]);
+  assert.equal(statsA.answered, 1);
+  assert.equal(statsB.answered, 1);
+  assert.deepEqual(wrongA.map((item) => item.question.id), ["base-007"]);
+  assert.deepEqual(wrongB.map((item) => item.question.id), ["base-006"]);
+  assert.ok(progressA.knowledge.every((item) => !String(item.knowledge).includes("或非门")));
+
+  const invalidHeaders = { "X-Learner-Id": "!!!" };
+  const invalidStats = await fetch(`${baseUrl}/api/stats`, { headers: invalidHeaders }).then((response) => response.json());
+  const invalidDelete = await fetch(`${baseUrl}/api/records`, { method: "DELETE", headers: invalidHeaders }).then((response) => response.json());
+  assert.equal(invalidStats.answered, 0);
+  assert.equal(invalidDelete.removed, 0);
+  assert.equal((await fetch(`${baseUrl}/api/stats`, { headers: headersA }).then((response) => response.json())).answered, 1);
+  assert.equal((await fetch(`${baseUrl}/api/stats`, { headers: headersB }).then((response) => response.json())).answered, 1);
+});
+
 test("AI self-test requires configuration and targeted practice still uses the question bank", async () => {
   const selfTestResponse = await fetch(`${baseUrl}/api/self-test`, {
     method: "POST",

@@ -139,3 +139,32 @@ test("AI self-test profile isolates wrong knowledge by learner", () => {
     cleanup();
   }
 });
+
+test("all learning summaries stay isolated by learner", () => {
+  const { practice, cleanup } = fixture();
+  try {
+    practice.answer({
+      questionId: "base-007",
+      answer: "B",
+      practiceMode: "normal",
+      learnerId: "learner-a"
+    });
+    practice.answer({
+      questionId: "base-006",
+      answer: "B",
+      practiceMode: "targeted",
+      learnerId: "learner-b"
+    });
+
+    assert.equal(practice.stats("learner-a").answered, 1);
+    assert.deepEqual(practice.wrongReviewDetails("learner-a").map((item) => item.question.id), ["base-007"]);
+    assert.deepEqual(practice.wrongReviewDetails("learner-b").map((item) => item.question.id), ["base-006"]);
+    assert.ok(practice.learningPlan("learner-a").focusKnowledge.includes("德摩根定律"));
+    assert.ok(practice.progress("learner-a").knowledge.every((item) => item.knowledge !== "或非门"));
+    assert.equal(practice.motivation("learner-a").points, 3);
+    assert.equal(practice.motivation("learner-b").points, 3);
+    assert.ok(practice.recommend("base-001", "learner-a").every((question) => question.id !== "base-001"));
+  } finally {
+    cleanup();
+  }
+});

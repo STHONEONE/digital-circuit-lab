@@ -51,3 +51,28 @@
 - The implementation keeps the existing animated circuit background and live data-driven diagrams, so content density can differ from the static reference.
 
 final result: passed
+
+## Independent learning pages — 2026-07-12
+
+- Viewport: 1440 × 1024 (desktop-first pass requested by the user).
+- Visual source: the accepted 112px learning rail and existing project theme documented above; colors and background were intentionally preserved.
+- Evidence:
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\multipage-learning-center.png`
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\multipage-scope.png`
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\multipage-route.png`
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\multipage-wrong-review.png`
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\multipage-self-test.png`
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\multipage-learning-review.png`
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\multipage-remediation-card.png`
+
+### Verified behavior
+
+- All six rail items are real links with distinct URLs, correct active states, browser back/forward compatibility, and a wipe transition between documents.
+- Scope selection navigates from `/scope.html` to `/index.html?scope=basic-logic`; the destination loaded 12 basic-logic questions instead of the full bank.
+- Route training opens inside its own page, while self-test papers remain isolated from normal practice.
+- Scope, route, wrong review, self-test, and review use materially different page structures rather than a shared content panel with renamed headings.
+- The remediation card shows the explanation first, removes it before the question phase, moves by drag (measured from x=886/y=544 to x=666/y=429), generates another round after a wrong variant answer, and exposes a persistent “继续错题强化” launcher after closing.
+- Browser console: no application errors on the six-page navigation pass. The expected HTTP 503 in the no-AI local fixture produced a visible, actionable configuration message.
+- Automated project tests: 18/18 passed.
+
+final result: passed

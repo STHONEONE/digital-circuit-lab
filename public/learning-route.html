@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>个性化学习路线 · 数字电路学习平台</title><link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css?v=20260711-2"><link rel="stylesheet" href="./site-nav.css?v=20260622-1"><link rel="stylesheet" href="./learning-pages.css?v=20260712-1">
+</head>
+<body class="inner-page platform-page-body" data-learning-page="route">
+  <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas><div class="circuit-bg-overlay" aria-hidden="true"></div>
+  <div class="app">
+    <div class="desktop-rail-logo" aria-hidden="true"><img src="./assets/icons/circuit-board.svg" alt=""></div>
+    <header class="topbar"><div><p>数字电路课程设计 · Node.js 智能学习平台</p><h1>数字电路个性化学习中心</h1></div><div class="top-actions"><a class="home-return-link" href="./home.html">回到首页</a><nav class="site-nav" aria-label="页面导航"><a class="site-nav__link active" href="./index.html" aria-current="page">学习中心</a><a class="site-nav__link" href="./gate-builder-demo.html">实践中心</a><a class="site-nav__link" href="./labs.html">实验中心</a><a class="site-nav__link" href="./extensions.html">扩展仿真</a></nav></div></header>
+    <main class="platform-layout"><aside class="platform-sidebar" data-learning-nav aria-label="学习中心模块导航"></aside><section class="platform-page"><div class="platform-page-frame">
+      <header class="platform-page-header"><div><h2>个性化学习路线</h2><p>依据你的作答记录形成独立学习路径。先看阶段位置和薄弱点，再在本页直接开始针对训练。</p></div><div class="platform-header-action"><button id="routeStartButton" class="platform-button primary" type="button">开始本轮针对训练</button></div></header>
+      <div class="route-workspace">
+        <section class="platform-surface route-timeline"><div class="platform-section-heading"><div><h3>学习路径</h3><p>每一步都由真实答题记录驱动。</p></div></div><div id="routeSteps" class="route-steps"></div></section>
+        <aside class="platform-surface route-focus-console"><div class="platform-section-heading"><div><h3>当前重点</h3><p>本轮训练优先处理正确率较低的知识点。</p></div></div><div id="routeFocusName" class="route-focus-name">正在分析</div><p id="routeFocusCopy" class="route-focus-copy">读取你的学习记录...</p><div id="routeKnowledgeList" class="route-knowledge-list"></div></aside>
+      </div>
+      <section id="routePracticeSection" class="platform-surface" hidden><div data-question-runner="route"></div></section>
+    </div></section></main>
+  </div>
+  <script src="./circuit-background.js?v=20260620-1"></script><script src="./learning-shell.js?v=20260712-1"></script><script src="./learning-pages.js?v=20260712-1"></script>
+</body></html>

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import path from "node:path";
 import process from "node:process";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import express from "express";
@@ -29,10 +30,11 @@ const selfTestGenerationState = new Map();
 const selfTestCooldownMs = 15000;
 
 function learnerId(request) {
-  const supplied = request.get("X-Learner-Id");
-  const fallback = `client-${request.ip || request.socket.remoteAddress || "unknown"}`;
-  return String(supplied || fallback)
-    .trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
+  const supplied = String(request.get("X-Learner-Id") || "").trim();
+  if (/^[a-zA-Z0-9_-]{1,100}$/.test(supplied)) return supplied;
+  const address = String(request.ip || request.socket.remoteAddress || "unknown");
+  const fingerprint = createHash("sha256").update(address).digest("hex").slice(0, 24);
+  return `client-${fingerprint}`;
 }
 
 app.disable("x-powered-by");
@@ -55,11 +57,14 @@ app.post("/api/answers", (request, response) => response.json(practice.answer({
   ...request.body,
   learnerId: learnerId(request)
 })));
-app.get("/api/recommendations", (request, response) => response.json(practice.recommend(request.query.questionId)));
-app.get("/api/stats", (_request, response) => response.json(practice.stats()));
-app.get("/api/learning-plan", (_request, response) => response.json(practice.learningPlan()));
+app.get("/api/recommendations", (request, response) => response.json(
+  practice.recommend(request.query.questionId, learnerId(request))
+));
+app.get("/api/stats", (request, response) => response.json(practice.stats(learnerId(request))));
+app.get("/api/learning-plan", (request, response) => response.json(practice.learningPlan(learnerId(request))));
 app.post("/api/self-test", async (request, response, next) => {
-  const clientKey = request.ip || request.socket.remoteAddress || "unknown";
+  const currentLearnerId = learnerId(request);
+  const clientKey = currentLearnerId;
   const now = Date.now();
   const previous = selfTestGenerationState.get(clientKey);
   if (ai.configured() && previous?.active) {
@@ -84,7 +89,7 @@ app.post("/api/self-test", async (request, response, next) => {
   }
   try {
     const body = request.body || {};
-    response.json(await practice.selfTest(body.scope, body.count, learnerId(request)));
+    response.json(await practice.selfTest(body.scope, body.count, currentLearnerId));
   } catch (error) {
     next(error);
   } finally {
@@ -99,15 +104,17 @@ app.post("/api/self-test", async (request, response, next) => {
     }
   }
 });
-app.get("/api/wrong-review", (_request, response) => {
-  response.json(practice.wrongReviewDetails().map((item) => item.question));
+app.get("/api/wrong-review", (request, response) => {
+  response.json(practice.wrongReviewDetails(learnerId(request)).map((item) => item.question));
 });
-app.get("/api/wrong-review-details", (_request, response) => response.json(practice.wrongReviewDetails()));
+app.get("/api/wrong-review-details", (request, response) => response.json(
+  practice.wrongReviewDetails(learnerId(request))
+));
 app.get("/api/targeted-questions", (request, response) => {
-  response.json(practice.targeted(request.query.knowledge, request.query.count));
+  response.json(practice.targeted(request.query.knowledge, request.query.count, learnerId(request)));
 });
-app.get("/api/progress", (_request, response) => response.json(practice.progress()));
-app.get("/api/motivation", (_request, response) => response.json(practice.motivation()));
+app.get("/api/progress", (request, response) => response.json(practice.progress(learnerId(request))));
+app.get("/api/motivation", (request, response) => response.json(practice.motivation(learnerId(request))));
 app.delete("/api/records", (request, response) => response.json({
   removed: store.clearRecords(learnerId(request))
 }));
