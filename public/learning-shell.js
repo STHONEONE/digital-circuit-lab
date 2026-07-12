@@ -1,11 +1,10 @@
 (() => {
 const learningNavItems = [
-  { key: "center", href: "./index.html", label: "学习中心", icon: "book-open.svg" },
-  { key: "scope", href: "./scope.html", label: "练习范围", icon: "list-checks.svg" },
-  { key: "route", href: "./learning-route.html", label: "个性化学习路线", icon: "route.svg" },
+  { key: "center", href: "./index.html", label: "普通练习", icon: "book-open.svg" },
+  { key: "route", href: "./learning-route.html", label: "学习路线", icon: "route.svg" },
   { key: "wrong", href: "./wrong-review.html", label: "错题复盘", icon: "clipboard-pen-line.svg" },
   { key: "self-test", href: "./self-test.html", label: "阶段自测", icon: "square-function.svg" },
-  { key: "review", href: "./learning-review.html", label: "学习复盘", icon: "chart-pie.svg", separated: true }
+  { key: "review", href: "./learning-review.html", label: "学习报告", icon: "chart-pie.svg" }
 ];
 
 const learnerIdStorageKey = "digital-circuit-learner-id";

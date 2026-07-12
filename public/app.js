@@ -4,6 +4,8 @@ const requestedScope = new URLSearchParams(window.location.search).get("scope");
 const availableScopes = new Set(["all", "basic-logic", "combinational", "sequential"]);
 let currentScope = availableScopes.has(requestedScope) ? requestedScope : "all";
 let currentSource = "";
+let currentQuestionType = "all";
+let currentQuestionCount = "all";
 let currentIndex = 0;
 let selectedOption = null;
 let practiceMode = "normal";
@@ -53,6 +55,10 @@ const els = {
   scopePanel: document.querySelector("#scopePanel"),
   scopePanelBody: document.querySelector("#scopePanelBody"),
   scopeToggleButton: document.querySelector("#scopeToggleButton"),
+  practiceTypeSelect: document.querySelector("#practiceTypeSelect"),
+  practiceCountSelect: document.querySelector("#practiceCountSelect"),
+  startPracticeButton: document.querySelector("#startPracticeButton"),
+  practiceSettingsSummary: document.querySelector("#practiceSettingsSummary"),
   fileInput: document.querySelector("#fileInput"),
   fileName: document.querySelector("#fileName"),
   importButton: document.querySelector("#importButton"),
@@ -274,10 +280,46 @@ async function loadQuestions() {
   if (currentScope !== "all") params.set("scope", currentScope);
   if (currentSource) params.set("source", currentSource);
   const loadedQuestions = await fetchJson(`/api/questions?${params.toString()}`);
-  questions = practiceMode === "normal"
-    ? orderLearningCenterQuestions(loadedQuestions, currentScope === "all" && !currentSource)
-    : loadedQuestions;
+  if (practiceMode === "normal") {
+    const typeFiltered = currentQuestionType === "all"
+      ? loadedQuestions
+      : loadedQuestions.filter((question) => question.type === currentQuestionType);
+    const ordered = orderLearningCenterQuestions(typeFiltered, currentScope === "all" && !currentSource);
+    questions = currentQuestionCount === "all"
+      ? ordered
+      : ordered.slice(0, Math.max(1, Number(currentQuestionCount) || ordered.length));
+    updatePracticeSettingsSummary(questions.length);
+  } else {
+    questions = loadedQuestions;
+  }
   currentIndex = Math.min(currentIndex, Math.max(0, questions.length - 1));
+}
+
+function updatePracticeSettingsSummary(loadedCount = null) {
+  if (!els.practiceSettingsSummary) return;
+  const scopeLabels = {
+    all: "全部范围",
+    "basic-logic": "基础逻辑",
+    combinational: "组合逻辑",
+    sequential: "时序逻辑"
+  };
+  const typeLabels = {
+    all: "全部题型",
+    single_choice: "选择题",
+    fill_blank: "填空题",
+    analysis: "简答题"
+  };
+  const countLabel = currentQuestionCount === "all" ? "全部题目" : `${currentQuestionCount} 题`;
+  const loadedLabel = Number.isInteger(loadedCount) ? ` · 已载入 ${loadedCount} 题` : "";
+  els.practiceSettingsSummary.textContent = `${scopeLabels[currentScope] || "全部范围"} · ${typeLabels[currentQuestionType] || "全部题型"} · ${countLabel}${loadedLabel}`;
+}
+
+async function startConfiguredPractice() {
+  const url = new URL(window.location.href);
+  if (currentScope === "all") url.searchParams.delete("scope");
+  else url.searchParams.set("scope", currentScope);
+  window.history.replaceState({}, "", url);
+  await returnToNormalPractice();
 }
 
 async function loadSources() {
@@ -616,7 +658,7 @@ function renderQuestion() {
     renderQuestionPicker();
     els.questionText.textContent = practiceMode === "wrong_review"
       ? "当前没有待复盘错题，继续保持。"
-      : "请导入题库，或切换练习范围。";
+      : "当前设置下没有可用题目，请调整练习设置或导入题库。";
     els.knowledge.innerHTML = "";
     els.options.innerHTML = "";
     els.answerInput.style.display = "none";
@@ -1394,7 +1436,7 @@ async function returnToNormalPractice() {
   practiceMode = "normal";
   currentIndex = 0;
   await loadQuestions();
-  els.practiceModeStatus.textContent = "当前：普通练习";
+  els.practiceModeStatus.textContent = `当前：普通练习 · 共 ${questions.length} 题`;
   renderSources();
   renderQuestion();
   showSystemNotice(`已返回普通练习，共 ${questions.length} 题。`, "ok", true);
@@ -2134,15 +2176,30 @@ document.querySelectorAll(".segments button").forEach((button) => {
 });
 
 document.querySelectorAll(".segments button").forEach((button) => {
-  button.addEventListener("click", () => runAction(button, async () => {
+  button.addEventListener("click", () => {
     document.querySelectorAll(".segments button").forEach((item) => item.classList.remove("active"));
     button.classList.add("active");
     currentScope = button.dataset.scope;
     currentIndex = 0;
-    setScopeDrawerOpen(false, true);
-    await returnToNormalPractice();
-  }, "切换中…"));
+    updatePracticeSettingsSummary();
+  });
 });
+
+els.practiceTypeSelect?.addEventListener("change", () => {
+  currentQuestionType = els.practiceTypeSelect.value;
+  updatePracticeSettingsSummary();
+});
+
+els.practiceCountSelect?.addEventListener("change", () => {
+  currentQuestionCount = els.practiceCountSelect.value;
+  updatePracticeSettingsSummary();
+});
+
+els.startPracticeButton?.addEventListener("click", () => runAction(
+  els.startPracticeButton,
+  startConfiguredPractice,
+  "正在准备练习…"
+));
 
 els.refreshButton?.addEventListener("click", () => runAction(els.refreshButton, loadAll, "刷新中…"));
 els.shutdownButton.addEventListener("click", shutdownSystem);

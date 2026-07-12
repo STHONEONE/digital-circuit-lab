@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./styles.css?v=20260711-1">
   <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
-  <link rel="stylesheet" href="./learning-pages.css?v=20260712-1">
+  <link rel="stylesheet" href="./learning-pages.css?v=20260712-2">
   <link rel="stylesheet" href="./answer-feedback.css?v=20260712-1">
 </head>
 <body class="inner-page learning-page center-page main-page" data-learning-page="center">
@@ -67,45 +67,9 @@
       <div class="legacy-app-controls" aria-hidden="true">
         <button id="learningCenterButton" class="sidebar-learning-title active" type="button" aria-pressed="true">
           <img class="sidebar-nav-icon" src="./assets/icons/book-open.svg" alt="" aria-hidden="true">
-          <strong>学习中心</strong>
-          <span>课程练习与个性化训练</span>
+          <strong>普通练习</strong>
+          <span>设置范围后开始课程练习</span>
         </button>
-        <button id="scopeNavButton" class="sidebar-primary-nav" type="button" aria-expanded="false" aria-controls="scopePanel">
-          <img class="sidebar-nav-icon" src="./assets/icons/list-checks.svg" alt="" aria-hidden="true">
-          <strong>练习范围</strong>
-          <span>选择课程知识范围</span>
-        </button>
-        <section class="panel collapsible-panel sidebar-scope-drawer" id="scopePanel">
-          <div class="collapsible-heading">
-            <h2>练习范围</h2>
-            <button id="scopeToggleButton" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="scopePanelBody">收起</button>
-          </div>
-          <div id="scopePanelBody" class="collapsible-body">
-            <div class="segments">
-            <button class="active" data-scope="all" type="button">全部</button>
-            <button data-scope="basic-logic" type="button">基础逻辑</button>
-            <button data-scope="combinational" type="button">组合逻辑</button>
-            <button data-scope="sequential" type="button">时序逻辑</button>
-          </div>
-
-          <details class="sidebar-details">
-            <summary>导入与题库来源</summary>
-            <div class="details-body">
-              <label class="file-picker">
-                <input id="fileInput" type="file" accept=".docx,.pdf">
-                <span id="fileName">选择 Word / PDF</span>
-              </label>
-              <div class="compact-actions">
-                <button id="importButton" type="button">导入</button>
-                <button id="clearImportButton" class="secondary" type="button">清空导入题</button>
-              </div>
-              <p id="importStatus" class="note">支持 .docx 和文字层 PDF。</p>
-              <div id="sourceList" class="tags source-list"></div>
-            </div>
-          </details>
-          </div>
-        </section>
-
         <section class="panel learning-panel">
           <div class="panel-title-row">
             <h2>学习工具</h2>
@@ -113,7 +77,7 @@
           <div class="route-actions">
             <button id="planButton" class="practice-mode-button route-primary-action" data-practice-module="route" type="button" aria-pressed="false">
               <img class="sidebar-nav-icon" src="./assets/icons/route.svg" alt="" aria-hidden="true">
-              <strong>个性化学习路线</strong>
+              <strong>学习路线</strong>
               <span>按薄弱点生成 5 题针对训练</span>
             </button>
             <button id="wrongReviewButton" class="practice-mode-button route-secondary-action" data-practice-module="wrong_review" type="button" aria-pressed="false">
@@ -139,7 +103,7 @@
             </div>
             <button id="learningReviewButton" class="route-secondary-action learning-review-button" type="button">
               <img class="sidebar-nav-icon" src="./assets/icons/chart-pie.svg" alt="" aria-hidden="true">
-              <strong>学习复盘</strong>
+              <strong>学习报告</strong>
               <span>查看成长轨迹与学习统计</span>
             </button>
           </div>
@@ -152,6 +116,65 @@
       </div>
 
       <section class="workspace">
+        <section id="practiceSettings" class="panel practice-settings" aria-labelledby="practiceSettingsTitle">
+          <div class="practice-settings-heading">
+            <div>
+              <span class="practice-settings-eyebrow">普通练习</span>
+              <h2 id="practiceSettingsTitle">开始前设置</h2>
+              <p>选择本轮知识范围、题型和题目数量，再开始答题。</p>
+            </div>
+            <button id="startPracticeButton" class="practice-settings-start" type="button">开始本轮练习</button>
+          </div>
+          <div id="scopePanel" class="practice-settings-body">
+            <fieldset class="practice-settings-fieldset">
+              <legend>知识范围</legend>
+              <div class="segments practice-scope-options" aria-label="知识范围">
+                <button class="active" data-scope="all" type="button">全部</button>
+                <button data-scope="basic-logic" type="button">基础逻辑</button>
+                <button data-scope="combinational" type="button">组合逻辑</button>
+                <button data-scope="sequential" type="button">时序逻辑</button>
+              </div>
+            </fieldset>
+            <label class="practice-settings-field" for="practiceTypeSelect">
+              <span>题型</span>
+              <select id="practiceTypeSelect">
+                <option value="all">全部题型</option>
+                <option value="single_choice">选择题</option>
+                <option value="fill_blank">填空题</option>
+                <option value="analysis">简答题</option>
+              </select>
+            </label>
+            <label class="practice-settings-field" for="practiceCountSelect">
+              <span>题目数量</span>
+              <select id="practiceCountSelect">
+                <option value="all">全部题目</option>
+                <option value="10">10 题</option>
+                <option value="20">20 题</option>
+                <option value="30">30 题</option>
+              </select>
+            </label>
+            <div class="practice-settings-result" aria-live="polite">
+              <span>当前设置</span>
+              <strong id="practiceSettingsSummary">全部范围 · 全部题型 · 全部题目</strong>
+            </div>
+          </div>
+          <details class="practice-source-settings">
+            <summary>题库来源与导入</summary>
+            <div class="practice-source-body">
+              <label class="file-picker">
+                <input id="fileInput" type="file" accept=".docx,.pdf">
+                <span id="fileName">选择 Word / PDF</span>
+              </label>
+              <div class="compact-actions">
+                <button id="importButton" type="button">导入题库</button>
+                <button id="clearImportButton" class="secondary" type="button">清空导入题</button>
+              </div>
+              <p id="importStatus" class="note">支持 .docx 和文字层 PDF。</p>
+              <div id="sourceList" class="tags source-list"></div>
+            </div>
+          </details>
+        </section>
+
         <section class="practice">
           <div class="question-layout">
             <article class="question-card">
@@ -202,9 +225,9 @@
           </div>
         </section>
 
-        <details id="desktopInsights" class="desktop-insights" open>
+        <details id="desktopInsights" class="desktop-insights" hidden>
           <summary>
-            <span><strong>学习复盘与统计</strong><small>查看成长轨迹、知识点掌握和学习数据</small></span>
+            <span><strong>学习报告与统计</strong><small>查看成长轨迹、知识点掌握和学习数据</small></span>
             <span class="desktop-insights__action">展开查看</span>
           </summary>
         <section class="dashboard-grid">
@@ -353,8 +376,8 @@
   </section>
 
   <script src="./circuit-background.js?v=20260620-1"></script>
-  <script src="./learning-shell.js?v=20260712-1"></script>
+  <script src="./learning-shell.js?v=20260712-2"></script>
   <script src="./answer-feedback.js?v=20260712-1"></script>
-  <script src="./app.js?v=20260712-1"></script>
+  <script src="./app.js?v=20260712-2"></script>
 </body>
 </html>

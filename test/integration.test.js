@@ -67,8 +67,8 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /data-scope="basic-logic"/);
   assert.match(appHome, /data-scope="combinational"/);
   assert.match(appHome, /data-scope="sequential"/);
-  assert.match(appHome, /id="scopeToggleButton"/);
-  assert.match(appHome, /id="scopePanelBody"/);
+  assert.match(appHome, /id="practiceSettings"/);
+  assert.match(appHome, /id="startPracticeButton"/);
   assert.match(appHome, /id="questionDiagram"/);
   assert.match(appHome, /id="prevButton"/);
   assert.match(appHome, /site-nav__link active" href="\.\/index\.html" aria-current="page"/);
@@ -78,7 +78,9 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /gate-builder-demo\.html/);
   assert.match(appScript, /function renderSvg/);
   assert.match(appScript, /moveQuestion\(-1\)/);
-  assert.match(appScript, /setupScopePanelToggle/);
+  assert.match(appScript, /startConfiguredPractice/);
+  assert.match(appScript, /currentQuestionType/);
+  assert.match(appScript, /currentQuestionCount/);
   assert.match(appScript, /\/api\/wrong-remediation/);
   assert.match(appScript, /generatedVariant/);
   assert.match(appScript, /orderLearningCenterQuestions/);
@@ -206,9 +208,9 @@ test("health, pages and question APIs are available", async () => {
   assert.doesNotMatch(labsScript, /name: "D 触发器"/);
 });
 
-test("learning modules are independent pages with shared real-link navigation", async () => {
+test("learning center uses five independent pages and embeds practice settings in normal practice", async () => {
   const pages = await Promise.all([
-    "scope.html", "learning-route.html", "wrong-review.html", "self-test.html", "learning-review.html"
+    "learning-route.html", "wrong-review.html", "self-test.html", "learning-review.html"
   ].map(async (name) => [name, await fetch(`${baseUrl}/${name}`).then((response) => response.text())]));
   const index = await fetch(`${baseUrl}/index.html`).then((response) => response.text());
   const appController = await fetch(`${baseUrl}/app.js`).then((response) => response.text());
@@ -221,6 +223,12 @@ test("learning modules are independent pages with shared real-link navigation", 
   assert.match(index, /class="legacy-app-controls"/);
   assert.match(index, /learning-shell\.js/);
   assert.match(index, /learning-pages\.css/);
+  assert.match(index, /id="practiceSettings"/);
+  assert.match(index, /id="practiceTypeSelect"/);
+  assert.match(index, /id="practiceCountSelect"/);
+  assert.match(index, /id="startPracticeButton"/);
+  assert.match(index, /id="desktopInsights" class="desktop-insights" hidden/);
+  assert.doesNotMatch(index, /id="scopeNavButton"/);
   assert.match(appController, /new URLSearchParams\(window\.location\.search\)/);
   for (const [name, html] of pages) {
     assert.match(html, /class="platform-sidebar" data-learning-nav/);
@@ -228,21 +236,24 @@ test("learning modules are independent pages with shared real-link navigation", 
     assert.match(html, /learning-pages\.js/);
     assert.match(html, /class="platform-page-frame"/);
     assert.ok(html.includes(`data-learning-page="${{
-      "scope.html": "scope",
       "learning-route.html": "route",
       "wrong-review.html": "wrong",
       "self-test.html": "self-test",
       "learning-review.html": "review"
     }[name]}"`));
   }
-  for (const href of ["index.html", "scope.html", "learning-route.html", "wrong-review.html", "self-test.html", "learning-review.html"]) {
+  for (const href of ["index.html", "learning-route.html", "wrong-review.html", "self-test.html", "learning-review.html"]) {
     assert.match(shell, new RegExp(`href: "\\./${href.replace(".", "\\.")}"`));
   }
+  assert.doesNotMatch(shell, /scope\.html/);
+  assert.match(shell, /label: "普通练习"/);
+  assert.match(shell, /label: "学习路线"/);
+  assert.match(shell, /label: "学习报告"/);
   assert.match(shell, /location\.assign\(destination\.href\)/);
   assert.match(controller, /class PlatformQuestionRunner/);
   assert.match(controller, /renderKnowledge\(response, sourceQuestion\)/);
   assert.match(controller, /platform-remediation-launcher/);
-  assert.match(styles, /\.scope-workspace/);
+  assert.match(styles, /\.practice-settings/);
   assert.match(styles, /\.route-workspace/);
   assert.match(styles, /\.wrong-workspace/);
   assert.match(styles, /\.self-test-paper/);

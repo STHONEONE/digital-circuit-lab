@@ -89,3 +89,18 @@ final result: passed
 - Automated project tests: 18/18 passed.
 
 final result: passed
+
+## Five-item learning navigation — 2026-07-12
+
+- Viewport: 1440 × 1024 desktop.
+- Evidence:
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\navigation-practice-settings.png`
+  - `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\navigation-route-active.png`
+- The rail contains exactly five entries: 普通练习、学习路线、错题复盘、阶段自测、学习报告.
+- 普通练习 is the default active page. The former scope entry is removed and its knowledge range, question type, question count, source selection, and import controls are embedded above the question console.
+- Selecting 组合逻辑、选择题、10 题 loaded the nine matching questions and updated both the settings summary and question counter.
+- 学习路线 opened as an independent page and became the only active rail item. The learning report content remained hidden on the normal practice page.
+- Icons are consistently 26 × 26 px; spacing and active treatment are uniform, with reduced highlight opacity and no active glow.
+- Browser console: no application errors or warnings; Chromium only emitted its verbose password-autofill advisory.
+
+final result: passed

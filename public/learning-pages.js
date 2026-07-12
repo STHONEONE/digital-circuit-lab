@@ -674,7 +674,7 @@ async function initSelfTestPage() {
       paper.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
       const message = /AI Key|未配置|AI_SELF_TEST_UNAVAILABLE/i.test(error.message)
-        ? "AI 组卷服务尚未配置。请先返回“学习中心”，在右下角“AI 助教 → 设置”中完成配置，再回来生成试卷。"
+        ? "AI 组卷服务尚未配置。请先返回“普通练习”，在右下角“AI 助教 → 设置”中完成配置，再回来生成试卷。"
         : error.message;
       setPlatformNotice(status, message, true);
     } finally {
