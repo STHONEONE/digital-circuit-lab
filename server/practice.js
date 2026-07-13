@@ -357,7 +357,15 @@ export class PracticeService {
       if (!record.correct) attempts.set(record.questionId, (attempts.get(record.questionId) || 0) + 1);
     });
     return [...latest.entries()].filter(([, record]) => !record.correct)
-      .map(([id]) => ({ question: this.store.question(id), wrongAttempts: attempts.get(id) || 1 }))
+      .map(([id, record]) => ({
+        question: this.store.question(id),
+        wrongAttempts: attempts.get(id) || 1,
+        latestAttempt: {
+          userAnswer: record.userAnswer || "",
+          answeredAt: record.answeredAt || "",
+          evaluation: record.gradingEvaluation || null
+        }
+      }))
       .filter((item) => item.question)
       .sort((left, right) => right.wrongAttempts - left.wrongAttempts);
   }

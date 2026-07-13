@@ -684,40 +684,139 @@ async function initRoutePage() {
 async function initWrongPage() {
   const list = document.querySelector("#wrongList");
   const summary = document.querySelector("#wrongDirectorySummary");
+  const filters = document.querySelector("#wrongKnowledgeFilters");
+  const filteredCount = document.querySelector("#wrongFilteredCount");
+  const reviewCount = document.querySelector("#wrongReviewCount");
+  const knowledgeCount = document.querySelector("#wrongKnowledgeCount");
+  const diagnosis = document.querySelector("#wrongDiagnosis");
+  const pathKnowledge = document.querySelector("#wrongPathKnowledge");
+  const pathExplanation = document.querySelector("#wrongPathExplanation");
+  const variantStatus = document.querySelector("#wrongVariantStatus");
+  const focusAnswerButton = document.querySelector("#wrongFocusAnswerButton");
   const status = pageNotice("wrongStatus");
   let details = [];
+  let visibleDetails = [];
+  let selectedKnowledge = "all";
+
+  function displayAttemptAnswer(item) {
+    const question = item?.question;
+    const answer = item?.latestAttempt?.userAnswer;
+    if (!question || answer === undefined || answer === null || answer === "") return "暂无历史作答记录";
+    if (question.type !== "single_choice") return String(answer);
+    const index = /^[A-Z]$/i.test(String(answer))
+      ? String(answer).toUpperCase().charCodeAt(0) - 65
+      : Number(answer);
+    return Number.isInteger(index) && index >= 0 && index < (question.options?.length || 0)
+      ? `${optionLetter(index)}. ${question.options?.[index] || ""}`
+      : String(answer);
+  }
+
+  function diagnosisText(item) {
+    const evaluation = item?.latestAttempt?.evaluation;
+    if (evaluation?.overallComment) return evaluation.overallComment;
+    const knowledge = item?.question?.knowledge || [];
+    return knowledge.length
+      ? `上次作答未能正确运用“${knowledge.join("、")}”。建议先核对输入条件与输出规则，再重新判断。`
+      : "上次作答与参考答案不一致。建议重新梳理解题条件和推理步骤。";
+  }
+
+  function renderQuestionContext(item) {
+    const question = item?.question;
+    if (!question) {
+      diagnosis.innerHTML = '<div class="wrong-empty-state"><strong>错题已清零</strong><p>完成普通练习或阶段自测后，新的待复盘错题会显示在这里。</p></div>';
+      pathKnowledge.textContent = "当前没有待复盘错题";
+      pathExplanation.textContent = "保持当前节奏，可以通过阶段自测继续验证掌握情况。";
+      variantStatus.textContent = "无需强化";
+      focusAnswerButton.disabled = true;
+      return;
+    }
+    const answerText = questionAnswerText(question) || "暂无参考答案";
+    diagnosis.innerHTML = `
+      <div class="wrong-diagnosis-heading"><div><span>上次作答对照</span><h3>看清错误，再完成订正</h3></div><span class="wrong-diagnosis-tag">待订正</span></div>
+      <div class="wrong-answer-compare">
+        <div class="wrong-answer-block is-wrong"><span>你的答案</span><strong>${escapeHtml(displayAttemptAnswer(item))}</strong></div>
+        <div class="wrong-answer-block is-correct"><span>正确答案</span><strong>${escapeHtml(answerText)}</strong></div>
+      </div>
+      <div class="wrong-ai-diagnosis"><span>AI 错因诊断</span><p>${escapeHtml(diagnosisText(item))}</p></div>`;
+    pathKnowledge.textContent = (question.knowledge || []).join(" · ") || question.title || "数字电路综合知识";
+    pathExplanation.textContent = question.explanation || `先回顾“${(question.knowledge || ["本题知识点"]).join("、")}”的核心规则，再回到题目逐项验证。`;
+    variantStatus.textContent = "等待本题订正";
+    focusAnswerButton.disabled = false;
+  }
+
   const runner = createRunner("wrong", {
     mode: "wrong_review",
-    onIndexChange(index) {
+    onIndexChange(index, question) {
       list.querySelectorAll("button").forEach((button, buttonIndex) => button.classList.toggle("active", buttonIndex === index));
+      renderQuestionContext(visibleDetails.find((item) => item.question?.id === question?.id));
     },
-    onAnswered(result, _question, _answer, index) {
+    onAnswered(result, question, _answer, index) {
       if (result.correct) {
         setPlatformNotice(status, "订正成功，这道题已从待复盘目录移除。即将加载下一题。");
         window.setTimeout(() => load().catch((error) => setPlatformNotice(status, error.message, true)), 1200);
         return;
       }
-      if (details[index]) details[index].wrongAttempts = (Number(details[index].wrongAttempts) || 0) + 1;
+      const item = visibleDetails[index];
+      if (item) item.wrongAttempts = (Number(item.wrongAttempts) || 0) + 1;
+      variantStatus.textContent = "AI 强化已推送";
       renderList();
     }
   });
+
+  function renderFilters() {
+    const counts = new Map();
+    details.forEach((item) => (item.question?.knowledge || []).forEach((name) => counts.set(name, (counts.get(name) || 0) + 1)));
+    const entries = [...counts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]));
+    knowledgeCount.textContent = `${entries.length} 个薄弱知识点`;
+    filters.innerHTML = "";
+    const frequentEntries = entries.slice(0, 4).map(([name, count]) => [name, name, count]);
+    [["all", "全部错题", details.length], ...frequentEntries].forEach(([value, label, count]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = selectedKnowledge === value ? "active" : "";
+      button.innerHTML = `<span>${escapeHtml(label)}</span><strong>${count}</strong>`;
+      button.addEventListener("click", () => {
+        selectedKnowledge = value;
+        renderFilters();
+        renderList(true);
+      });
+      filters.append(button);
+    });
+  }
+
   function renderList() {
-    summary.textContent = details.length ? `还有 ${details.length} 道题需要订正` : "当前错题已经清零";
+    const resetRunner = arguments[0] === true;
+    visibleDetails = selectedKnowledge === "all"
+      ? details
+      : details.filter((item) => item.question?.knowledge?.includes(selectedKnowledge));
+    summary.textContent = details.length ? `待复盘 ${details.length} 题` : "当前错题已经清零";
+    reviewCount.textContent = `待复盘 ${details.length} 题`;
+    filteredCount.textContent = `${visibleDetails.length} 题`;
     list.innerHTML = "";
-    details.forEach((item, index) => {
+    visibleDetails.forEach((item, index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.classList.toggle("active", index === runner.index);
-      button.innerHTML = `<span class="wrong-attempts">${Math.max(1, Number(item.wrongAttempts) || 1)}</span><span><strong>${escapeHtml(item.question.title)}</strong><small>${escapeHtml((item.question.knowledge || []).join(" · "))}</small></span>`;
+      button.innerHTML = `<span class="wrong-attempts">${Math.max(1, Number(item.wrongAttempts) || 1)}</span><span><strong>${escapeHtml(item.question.title)}</strong><small>${escapeHtml((item.question.knowledge || []).join(" · "))}</small><em>${Math.max(1, Number(item.wrongAttempts) || 1)} 次错误</em></span>`;
       button.addEventListener("click", () => runner.select(index));
       list.append(button);
     });
+    if (!visibleDetails.length) list.innerHTML = '<div class="wrong-list-empty">这个知识点下没有待复盘题目。</div>';
+    if (resetRunner) runner.setQuestions(visibleDetails.map((item) => item.question));
   }
   async function load() {
     details = await platformApi("/api/wrong-review-details");
+    const availableKnowledge = new Set(details.flatMap((item) => item.question?.knowledge || []));
+    if (selectedKnowledge !== "all" && !availableKnowledge.has(selectedKnowledge)) selectedKnowledge = "all";
+    renderFilters();
     renderList();
-    runner.setQuestions(details.map((item) => item.question));
+    runner.setQuestions(visibleDetails.map((item) => item.question));
   }
+  focusAnswerButton.addEventListener("click", () => {
+    const target = document.querySelector("[data-runner-options] button") || document.querySelector("[data-runner-input]");
+    target?.focus({ preventScroll: false });
+    document.querySelector(".wrong-desk")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
   document.querySelector("#wrongRefreshButton").addEventListener("click", async () => {
     try {
       await load();
