@@ -832,7 +832,23 @@ async function initSelfTestPage() {
   const status = document.querySelector("#selfTestStatus");
   const paper = document.querySelector("#selfTestPaper");
   const directory = document.querySelector("#paperDirectoryList");
+  const scopeSelect = document.querySelector("#selfTestScope");
+  const countSelect = document.querySelector("#selfTestCount");
+  const scopeButtons = [...document.querySelectorAll("[data-self-test-scopes] button")];
   const completed = new Set();
+  const scopeLabels = {
+    all: "全部知识范围",
+    "basic-logic": "基础逻辑",
+    combinational: "组合逻辑",
+    sequential: "时序逻辑"
+  };
+  const scopeFallbacks = {
+    all: ["基础逻辑", "组合逻辑", "时序逻辑"],
+    "basic-logic": ["逻辑门", "逻辑函数", "布尔代数"],
+    combinational: ["编码与译码", "数据选择", "算术逻辑"],
+    sequential: ["触发器", "寄存器", "计数器"]
+  };
+  let weakKnowledge = [];
   let questions = [];
   const runner = createRunner("self-test", {
     mode: "self_test",
@@ -857,10 +873,79 @@ async function initSelfTestPage() {
       directory.append(button);
     });
   }
+  function visibleWeakKnowledge() {
+    const selectedScope = scopeSelect.value;
+    const filtered = selectedScope === "all"
+      ? weakKnowledge
+      : weakKnowledge.filter((item) => item.scope === selectedScope);
+    return filtered.slice(0, 3);
+  }
+  function renderConfigPreview() {
+    const count = Number(countSelect.value) || 5;
+    const analysisCount = count >= 2 ? Math.max(1, Math.round(count * .25)) : 0;
+    const choiceCount = count - analysisCount;
+    const selectedScope = scopeSelect.value;
+    const weak = visibleWeakKnowledge();
+    const coverage = weak.length
+      ? weak.map((item) => ({ name: item.name, detail: `${item.wrongCount} 次待巩固`, weight: item.wrongCount }))
+      : scopeFallbacks[selectedScope].map((name, index) => ({ name, detail: "初始诊断覆盖", weight: 3 - index }));
+    const totalWeight = coverage.reduce((sum, item) => sum + item.weight, 0) || 1;
+    document.querySelector("#selfTestPreviewScope").textContent = `覆盖${scopeLabels[selectedScope]}`;
+    document.querySelector("#selfTestPaperTotal").textContent = `共 ${count} 题`;
+    document.querySelector("#selfTestChoiceCount").textContent = `${choiceCount} 题`;
+    document.querySelector("#selfTestAnalysisCount").textContent = `${analysisCount} 题`;
+    document.querySelector("#selfTestDuration").textContent = `约 ${Math.max(12, Math.round(count * 2.5))} 分钟`;
+    document.querySelector("#selfTestCoverageList").innerHTML = coverage.map((item, index) => {
+      const quota = Math.max(1, Math.round(count * item.weight / totalWeight));
+      return `<div class="self-test-coverage-item"><span>${String(index + 1).padStart(2, "0")}</span><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.detail)}</small></div><em>约 ${quota} 题</em></div>`;
+    }).join("");
+    scopeButtons.forEach((button) => button.classList.toggle("active", button.dataset.value === selectedScope));
+  }
+  function renderWeakKnowledge() {
+    const weak = visibleWeakKnowledge();
+    const list = document.querySelector("#selfTestWeakList");
+    const summary = document.querySelector("#selfTestWeakSummary");
+    const note = document.querySelector("#selfTestSourceNote");
+    if (!weak.length) {
+      summary.textContent = "暂无待复盘错题";
+      note.textContent = "将按所选范围生成初始诊断卷";
+      list.innerHTML = '<div class="self-test-source-loading">使用课程知识范围进行初始诊断</div>';
+      return;
+    }
+    const maximum = Math.max(...weak.map((item) => item.wrongCount), 1);
+    summary.textContent = `${weak.length} 个重点方向`;
+    note.textContent = "来自当前学习账号的未订正错题记录";
+    list.innerHTML = weak.map((item) => `<div class="self-test-weak-item"><span>${escapeHtml(item.name)}</span><strong>${item.wrongCount} 次</strong><div class="self-test-weak-track"><i style="width:${Math.max(24, Math.round(item.wrongCount / maximum * 100))}%"></i></div></div>`).join("");
+  }
+  scopeButtons.forEach((button) => button.addEventListener("click", () => {
+    scopeSelect.value = button.dataset.value;
+    renderWeakKnowledge();
+    renderConfigPreview();
+  }));
+  scopeSelect.addEventListener("change", () => {
+    renderWeakKnowledge();
+    renderConfigPreview();
+  });
+  countSelect.addEventListener("change", renderConfigPreview);
+  try {
+    const details = await platformApi("/api/wrong-review-details");
+    const counts = new Map();
+    details.forEach((item) => (item.question?.knowledge || []).forEach((name) => {
+      const key = `${item.question?.scope || "all"}\u0000${name}`;
+      const current = counts.get(key) || { name, scope: item.question?.scope || "all", wrongCount: 0 };
+      current.wrongCount += Math.max(1, Number(item.wrongAttempts) || 1);
+      counts.set(key, current);
+    }));
+    weakKnowledge = [...counts.values()].sort((left, right) => right.wrongCount - left.wrongCount || left.name.localeCompare(right.name));
+  } catch {
+    weakKnowledge = [];
+  }
+  renderWeakKnowledge();
+  renderConfigPreview();
   document.querySelector("#generateSelfTestButton").addEventListener("click", async () => {
     const button = document.querySelector("#generateSelfTestButton");
     button.disabled = true;
-    button.textContent = "AI 正在组卷…";
+    button.innerHTML = "<span>AI 正在分析并组卷…</span><small>正在匹配薄弱知识点</small>";
     setPlatformNotice(status, "大模型正在分析错题知识点并生成新试卷。请稍候...");
     try {
       questions = await platformApi("/api/self-test", {
@@ -884,7 +969,7 @@ async function initSelfTestPage() {
       setPlatformNotice(status, message, true);
     } finally {
       button.disabled = false;
-      button.textContent = "重新生成 AI 阶段自测";
+      button.innerHTML = "<span>重新生成阶段自测</span><small>按当前参数生成一份新试卷</small>";
     }
   });
 }
