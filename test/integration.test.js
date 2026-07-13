@@ -250,6 +250,11 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(shell, /label: "普通练习"/);
   assert.match(shell, /label: "学习路线"/);
   assert.match(shell, /label: "学习报告"/);
+  assert.match(shell, /className = "learning-view-frame"/);
+  assert.match(shell, /const views = new Map/);
+  assert.match(shell, /window\.history\.pushState/);
+  assert.match(shell, /window\.parent\.learningPlatform\.switchPage/);
+  assert.match(shell, /visiblePage/);
   assert.match(shell, /location\.assign\(destination\.href\)/);
   assert.match(controller, /class PlatformQuestionRunner/);
   assert.match(controller, /renderKnowledge\(response, sourceQuestion\)/);
@@ -260,6 +265,9 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(controller, /selectedFocus/);
   assert.match(controller, /routeKnowledgeSearch/);
   assert.match(styles, /\.practice-settings/);
+  assert.match(styles, /\.learning-view-frame/);
+  assert.match(styles, /\.learning-view-frame\[hidden\]/);
+  assert.match(styles, /html\.learning-embedded/);
   assert.match(styles, /\.route-workspace/);
   assert.match(styles, /\.route-knowledge-console/);
   assert.match(styles, /\.wrong-workspace/);

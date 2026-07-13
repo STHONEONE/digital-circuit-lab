@@ -2,6 +2,55 @@
   display: none !important;
 }
 
+/* Same-page learning views keep the outer header and navigation mounted. */
+.learning-view-frame {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: calc(100vh - 94px);
+  min-height: 620px;
+  border: 0;
+  background: transparent;
+}
+
+.learning-view-frame[hidden] {
+  display: none !important;
+}
+
+html.learning-embedded,
+html.learning-embedded body {
+  min-width: 0;
+  background: transparent !important;
+}
+
+.learning-embedded body > .circuit-bg-canvas,
+.learning-embedded body > .circuit-bg-overlay,
+.learning-embedded .tech-background,
+.learning-embedded .app > .desktop-rail-logo,
+.learning-embedded .app > .topbar,
+.learning-embedded [data-learning-nav],
+.learning-embedded .platform-transition {
+  display: none !important;
+}
+
+.learning-embedded .app {
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+
+.learning-embedded .platform-layout,
+.learning-embedded .layout {
+  display: block !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.learning-embedded .workspace {
+  width: 100%;
+}
+
 .platform-nav-link {
   position: relative;
   display: flex;
