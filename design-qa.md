@@ -52,6 +52,51 @@
 
 final result: passed
 
+## Learning route workbench — 2026-07-13
+
+- Source visual truth: `C:\Users\Stone One\.codex\generated_images\019f4ec8-3801-7f32-85ac-4f284f0cf20f\exec-b54a6a63-f251-4a98-9453-7ec4f6709665.png`
+- Implementation screenshot: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\learning-route-workbench-final.png`
+- Side-by-side comparison: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\learning-route-workbench-comparison.png`
+- Viewport: 1440 × 1024.
+- State: new learner with no answer records; `数制与编码` selected by the live learning-plan API.
+
+### Full-view comparison evidence
+
+- Information architecture matches the selected direction: persistent five-item rail, compact page header, knowledge system on the left, learning path in the center, and current task on the right.
+- The source's oversized horizontal four-node path was intentionally replaced with four vertically stacked stage cards after user feedback that the center contained too much empty space. The cards now distribute across the available center height and expose the active stage's two immediate actions.
+- The primary action remains visible in the first viewport. The knowledge list scrolls inside its own panel instead of increasing the height of all three columns.
+
+### Required fidelity surfaces
+
+- Fonts and typography: existing Chinese system-font stack, title hierarchy, weights, and line lengths are retained. No clipping or unexpected wrapping is visible at 1440 × 1024.
+- Spacing and layout rhythm: 112px rail, 14px three-column gaps, matched panel tops and bottoms, and a 620–720px adaptive workspace height. The center path no longer has a large unused lower region.
+- Colors and visual tokens: existing navy/cyan/violet theme and restrained border opacity are preserved; the unrelated gold reference palette was not introduced.
+- Image quality and asset fidelity: the existing circuit canvas and project icon assets remain sharp. No source illustration or brand asset was replaced by placeholder art.
+- Copy and content: labels are specific to digital-circuit learning. Question counts use `最多 5 题` until the API returns the actual available count, avoiding a misleading fixed promise.
+- Focused comparison: a separate crop was not needed because the source and implementation contain no new raster content, and the knowledge, stage, and task regions were legible in their original-resolution screenshots.
+
+### Interaction and console checks
+
+- Selecting `德摩根定律` updated the selected knowledge state, current task, and targeted-training description.
+- `开始学习` loaded the available targeted question without entering normal practice and replaced the estimated count with the actual count.
+- Browser console: 0 errors and 0 warnings.
+- Automated project tests: 36/36 passed.
+
+### Comparison history
+
+- Pass 1: the knowledge list expanded the whole workspace, left excess center whitespace, and pushed the primary action close to/below the first viewport.
+- Fix: constrained the desktop workspace height, moved overflow into the knowledge panel, distributed the four route stages across the center height, and anchored the primary action at the bottom of the task panel.
+- Pass 2 evidence: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\learning-route-workbench-pass2.png`; layout and primary-action visibility passed.
+- Final wording fix: changed the unverified fixed `5 题` promise to `最多 5 题`, then updates it from the API response.
+- Final evidence: `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\learning-route-workbench-final.png` and `C:\Users\Stone One\.codex\visualizations\2026\07\11\019f4ec8-3801-7f32-85ac-4f284f0cf20f\learning-route-workbench-comparison.png`.
+
+### Accepted P3 differences
+
+- The selected concept shows populated mastery percentages; the verified implementation screenshot uses real empty-state learner data, so it correctly shows `未练习` instead of fabricated progress.
+- The center path is intentionally denser than the selected concept in direct response to the user's layout feedback.
+
+final result: passed
+
 ## AI semantic grading — 2026-07-12
 
 - Viewport: 1440 × 1024 desktop.

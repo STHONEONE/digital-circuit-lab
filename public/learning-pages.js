@@ -546,13 +546,118 @@ async function initScopePage() {
 }
 
 async function initRoutePage() {
-  const [plan, progress] = await Promise.all([platformApi("/api/learning-plan"), platformApi("/api/progress")]);
+  const [plan, progress, questions] = await Promise.all([
+    platformApi("/api/learning-plan"),
+    platformApi("/api/progress"),
+    platformApi("/api/questions?scope=all")
+  ]);
+  let selectedFocus = plan.primaryFocus || "综合基础";
+  const progressByKnowledge = new Map((progress.knowledge || []).map((item) => [item.knowledge, item]));
+  const scopeOrder = ["basic-logic", "combinational", "sequential", "custom"];
+  const scopeLabels = {
+    "basic-logic": "基础逻辑",
+    combinational: "组合逻辑",
+    sequential: "时序逻辑",
+    custom: "自定义题库"
+  };
+  const normalizeScope = (scope) => ({ comb: "combinational", ff: "sequential" })[scope] || scope || "custom";
+  const knowledgeByName = new Map();
+  (questions || []).forEach((question) => {
+    (question.knowledge || []).forEach((name) => {
+      if (!knowledgeByName.has(name)) knowledgeByName.set(name, { name, scope: normalizeScope(question.scope) });
+    });
+  });
+  (progress.knowledge || []).forEach((item) => {
+    if (!knowledgeByName.has(item.knowledge)) knowledgeByName.set(item.knowledge, { name: item.knowledge, scope: "custom" });
+  });
+
   const steps = document.querySelector("#routeSteps");
-  steps.innerHTML = (plan.steps || []).map((step) => `<div class="route-step ${step.status === "已完成" ? "done" : step.status === "进行中" ? "active" : ""}"><span class="route-step-index">${escapeHtml(step.order)}</span><div class="route-step-copy"><strong>${escapeHtml(step.title)}</strong><p>${escapeHtml(step.detail)}</p></div><span class="route-step-state">${escapeHtml(step.status)}</span></div>`).join("");
-  document.querySelector("#routeFocusName").textContent = plan.primaryFocus || "综合基础";
-  document.querySelector("#routeFocusCopy").textContent = plan.review || "完成一轮练习后形成更精确的学习路线。";
+  const stepNotes = {
+    1: ["查看近期错题分布", "确认本轮优先知识点"],
+    2: ["完成本轮针对练习", "错题自动进入复盘队列"],
+    3: ["先查看知识点讲解", "完成独立变式题"],
+    4: ["AI 根据错题自动组卷", "检验掌握是否稳定"]
+  };
+  const renderSteps = () => {
+    const routeSteps = plan.steps || [];
+    const progressingIndex = routeSteps.findIndex((step) => step.status === "进行中");
+    const pendingIndex = routeSteps.findIndex((step) => step.status !== "已完成");
+    const activeIndex = progressingIndex >= 0 ? progressingIndex : Math.max(0, pendingIndex);
+    steps.innerHTML = routeSteps.map((step, index) => {
+      const isDone = step.status === "已完成";
+      const isActive = index === activeIndex && !isDone;
+      const notes = isActive ? (stepNotes[step.order] || []).map((note) => `<span class="route-step-note">${escapeHtml(note)}</span>`).join("") : "";
+      const detail = Number(step.order) === 2 && selectedFocus !== plan.primaryFocus
+        ? `围绕“${selectedFocus}”完成本轮针对练习。`
+        : step.detail;
+      const displayStatus = isActive ? "当前阶段" : step.status === "进行中" ? "待下一步" : step.status;
+      return `<article class="route-step ${isDone ? "done" : isActive ? "active" : ""}">
+        <span class="route-step-index">${escapeHtml(step.order)}</span>
+        <div class="route-step-main"><div class="route-step-copy"><strong>${escapeHtml(step.title)}</strong><p>${escapeHtml(detail)}</p></div><span class="route-step-state">${escapeHtml(displayStatus)}</span></div>
+        ${notes ? `<div class="route-step-notes">${notes}</div>` : ""}
+      </article>`;
+    }).join("");
+    const doneCount = routeSteps.filter((step) => step.status === "已完成").length;
+    document.querySelector("#routeProgressSummary").textContent = `${doneCount} / ${routeSteps.length || 4}`;
+    document.querySelector("#routeHeaderProgress").textContent = `${doneCount} / ${routeSteps.length || 4} 阶段完成`;
+  };
+  renderSteps();
+
+  document.querySelector("#routeEvidenceCopy").textContent = plan.review || "完成一轮练习后，系统会更新路线依据。";
+  const focusName = document.querySelector("#routeFocusName");
+  const focusCopy = document.querySelector("#routeFocusCopy");
   const knowledgeList = document.querySelector("#routeKnowledgeList");
-  knowledgeList.innerHTML = (progress.knowledge || []).slice(0, 6).map((item) => `<div class="route-knowledge-item"><span>${escapeHtml(item.knowledge)}</span><span>${clampPercent(item.rate)}%</span></div>`).join("") || '<div class="platform-empty">暂无知识点记录</div>';
+  const renderFocus = () => {
+    const selectedProgress = progressByKnowledge.get(selectedFocus);
+    focusName.textContent = selectedFocus;
+    focusCopy.textContent = selectedProgress
+      ? `当前正确率为 ${clampPercent(selectedProgress.rate)}%。本轮先补齐概念与解题步骤，再进行针对训练。`
+      : "该知识点尚未形成稳定记录。本轮将先完成基础诊断，再安排针对训练。";
+    const related = [...(progress.knowledge || [])]
+      .sort((left, right) => Number(left.knowledge !== selectedFocus) - Number(right.knowledge !== selectedFocus) || left.rate - right.rate)
+      .slice(0, 4);
+    knowledgeList.innerHTML = related.map((item) => `<div class="route-knowledge-item"><span>${escapeHtml(item.knowledge)}</span><span>${clampPercent(item.rate)}%</span></div>`).join("") || '<div class="platform-empty">暂无知识点记录</div>';
+  };
+
+  const knowledgeGroups = document.querySelector("#routeKnowledgeGroups");
+  const search = document.querySelector("#routeKnowledgeSearch");
+  const renderKnowledgeGroups = () => {
+    const query = search.value.trim().toLocaleLowerCase("zh-CN");
+    const groups = new Map(scopeOrder.map((scope) => [scope, []]));
+    [...knowledgeByName.values()].forEach((item) => {
+      if (query && !item.name.toLocaleLowerCase("zh-CN").includes(query)) return;
+      const progressItem = progressByKnowledge.get(item.name);
+      groups.get(scopeOrder.includes(item.scope) ? item.scope : "custom").push({
+        ...item,
+        rate: progressItem ? clampPercent(progressItem.rate) : null
+      });
+    });
+    const content = scopeOrder.map((scope) => {
+      const items = groups.get(scope).sort((left, right) => Number(left.name !== selectedFocus) - Number(right.name !== selectedFocus)
+        || (left.rate ?? 101) - (right.rate ?? 101) || left.name.localeCompare(right.name));
+      if (!items.length) return "";
+      const ratedItems = items.filter((item) => item.rate !== null);
+      const average = ratedItems.length ? Math.round(ratedItems.reduce((sum, item) => sum + item.rate, 0) / ratedItems.length) : null;
+      return `<details class="route-knowledge-group" ${items.some((item) => item.name === selectedFocus) || query ? "open" : ""}>
+        <summary><span>${escapeHtml(scopeLabels[scope])}</span><span>${average === null ? `${items.length} 个知识点` : `${average}%`}</span></summary>
+        <div class="route-knowledge-group-items">${items.map((item) => `<button class="route-knowledge-option${item.name === selectedFocus ? " active" : ""}" type="button" data-knowledge="${escapeHtml(item.name)}"><span>${escapeHtml(item.name)}</span><span>${item.rate === null ? "未练习" : `${item.rate}%`}</span></button>`).join("")}</div>
+      </details>`;
+    }).join("");
+    knowledgeGroups.innerHTML = content || '<div class="route-knowledge-empty">没有找到匹配的知识点</div>';
+  };
+  renderKnowledgeGroups();
+  renderFocus();
+  search.addEventListener("input", renderKnowledgeGroups);
+  knowledgeGroups.addEventListener("click", (event) => {
+    const option = event.target.closest("[data-knowledge]");
+    if (!option) return;
+    selectedFocus = option.dataset.knowledge || selectedFocus;
+    document.querySelector("#routeQuestionCountLabel").textContent = "最多 5 题";
+    renderKnowledgeGroups();
+    renderFocus();
+    renderSteps();
+  });
+
   const runner = createRunner("route", { mode: "targeted" });
   const status = pageNotice("routeStatus");
   document.querySelector("#routeStartButton").addEventListener("click", async () => {
@@ -560,11 +665,12 @@ async function initRoutePage() {
     button.disabled = true;
     button.textContent = "正在准备训练…";
     try {
-      const questions = await platformApi(`/api/targeted-questions?knowledge=${encodeURIComponent(plan.primaryFocus || "")}&count=5`);
+      const questions = await platformApi(`/api/targeted-questions?knowledge=${encodeURIComponent(selectedFocus)}&count=5`);
       const section = document.querySelector("#routePracticeSection");
       section.hidden = false;
       runner.setQuestions(questions);
-      setPlatformNotice(status, `已准备 ${questions.length} 道针对训练题，作答记录只计入本轮路线。`);
+      document.querySelector("#routeQuestionCountLabel").textContent = `${questions.length} 题`;
+      setPlatformNotice(status, `已围绕“${selectedFocus}”准备 ${questions.length} 道针对训练题，作答记录只计入本轮路线。`);
       section.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
       setPlatformNotice(status, `训练准备失败：${error.message}`, true);

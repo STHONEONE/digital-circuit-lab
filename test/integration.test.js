@@ -217,6 +217,7 @@ test("learning center uses five independent pages and embeds practice settings i
   const shell = await fetch(`${baseUrl}/learning-shell.js`).then((response) => response.text());
   const controller = await fetch(`${baseUrl}/learning-pages.js`).then((response) => response.text());
   const styles = await fetch(`${baseUrl}/learning-pages.css`).then((response) => response.text());
+  const routePage = pages.find(([name]) => name === "learning-route.html")?.[1] || "";
 
   assert.match(index, /data-learning-page="center"/);
   assert.match(index, /class="sidebar platform-sidebar index-platform-sidebar" data-learning-nav/);
@@ -253,8 +254,14 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(controller, /class PlatformQuestionRunner/);
   assert.match(controller, /renderKnowledge\(response, sourceQuestion\)/);
   assert.match(controller, /platform-remediation-launcher/);
+  assert.match(routePage, /id="routeKnowledgeGroups"/);
+  assert.match(routePage, /id="routeProgressSummary"/);
+  assert.match(routePage, /id="routeQuestionCountLabel"/);
+  assert.match(controller, /selectedFocus/);
+  assert.match(controller, /routeKnowledgeSearch/);
   assert.match(styles, /\.practice-settings/);
   assert.match(styles, /\.route-workspace/);
+  assert.match(styles, /\.route-knowledge-console/);
   assert.match(styles, /\.wrong-workspace/);
   assert.match(styles, /\.self-test-paper/);
   assert.match(styles, /\.review-summary/);
