@@ -593,7 +593,7 @@ export class PracticeService {
       correctedMistakes: corrected.size,
       badges,
       message: !records.length
-        ? "完成第一组自测，系统就能为你生成专属学习路线。"
+        ? "完成一轮练习，系统就能为你生成专属学习路线。"
         : this.wrongReviewDetails(learnerId).length
           ? `本轮优先攻克 ${this.learningPlan(learnerId).primaryFocus}，每订正一道错题都会推动路线前进。`
           : "当前错题已清零，可以通过阶段自测验证掌握是否稳定。"

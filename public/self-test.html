@@ -4,7 +4,7 @@
   <div class="desktop-rail-logo" aria-hidden="true"><img src="./assets/icons/circuit-board.svg" alt=""></div>
   <header class="topbar"><div><p>数字电路课程设计 · Node.js 智能学习平台</p><h1>数字电路个性化学习中心</h1></div><div class="top-actions"><a class="home-return-link" href="./home.html">回到首页</a><nav class="site-nav" aria-label="页面导航"><a class="site-nav__link active" href="./index.html" aria-current="page">学习中心</a><a class="site-nav__link" href="./gate-builder-demo.html">实践中心</a><a class="site-nav__link" href="./labs.html">实验中心</a><a class="site-nav__link" href="./extensions.html">扩展仿真</a></nav></div></header>
   <main class="platform-layout"><aside class="platform-sidebar" data-learning-nav aria-label="学习中心模块导航"></aside><section class="platform-page"><div class="platform-page-frame">
-    <header class="platform-page-header self-test-header"><div><h2>阶段自测</h2><p>AI 根据近期错题与薄弱知识点自动组卷</p></div><div class="self-test-header-flow" aria-label="组卷流程"><span>错题记录</span><i aria-hidden="true"></i><span>薄弱点诊断</span><i aria-hidden="true"></i><strong>生成自测卷</strong></div></header>
+    <header class="platform-page-header self-test-header"><div><h2>阶段自测</h2><p>AI 根据近期错题与薄弱知识点自动组卷</p></div></header>
     <section id="selfTestConfig" class="self-test-config" aria-label="AI 阶段自测组卷工作台">
       <aside class="platform-surface self-test-controls">
         <div class="self-test-panel-heading"><span>01</span><div><h3>组卷参数</h3><p>确定本次检测边界</p></div></div>
@@ -26,7 +26,7 @@
         <div class="self-test-panel-heading"><span>03</span><div><h3>AI 组卷依据</h3><p>让每一道题都有来源</p></div></div>
         <ol class="self-test-rationale-list"><li><span>1</span><div><strong>错题频次加权</strong><p>错误次数越多，知识点配额越高</p></div></li><li><span>2</span><div><strong>掌握度动态匹配</strong><p>在当前水平上安排适配难度</p></div></li><li><span>3</span><div><strong>间隔重复排序</strong><p>优先验证需要再次巩固的内容</p></div></li></ol>
         <div class="self-test-estimate"><span>预计完成时间</span><strong id="selfTestDuration">约 20 分钟</strong><small>根据题量与题型结构估算</small></div>
-        <button id="generateSelfTestButton" class="platform-button primary self-test-start-button" type="button"><span>生成并开始自测</span><small>由大模型实时生成新试卷</small></button>
+        <button id="generateSelfTestButton" class="platform-button primary self-test-start-button" type="button"><span>生成并开始自测</span></button>
         <div id="selfTestStatus" class="platform-notice" hidden></div>
         <p class="self-test-privacy"><span aria-hidden="true">✦</span> 仅使用你的学习记录进行本次组卷</p>
       </aside>

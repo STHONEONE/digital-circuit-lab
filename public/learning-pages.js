@@ -598,7 +598,8 @@ async function initRoutePage() {
       </article>`;
     }).join("");
     const doneCount = routeSteps.filter((step) => step.status === "已完成").length;
-    document.querySelector("#routeProgressSummary").textContent = `${doneCount} / ${routeSteps.length || 4}`;
+    const progressSummary = document.querySelector("#routeProgressSummary");
+    if (progressSummary) progressSummary.textContent = `${doneCount} / ${routeSteps.length || 4}`;
     document.querySelector("#routeHeaderProgress").textContent = `${doneCount} / ${routeSteps.length || 4} 阶段完成`;
   };
   renderSteps();
@@ -692,6 +693,9 @@ async function initWrongPage() {
   const pathKnowledge = document.querySelector("#wrongPathKnowledge");
   const pathExplanation = document.querySelector("#wrongPathExplanation");
   const variantStatus = document.querySelector("#wrongVariantStatus");
+  const knowledgeLesson = document.querySelector("#wrongKnowledgeLesson");
+  const variantPreview = document.querySelector("#wrongVariantPreview");
+  const variantHint = document.querySelector("#wrongVariantHint");
   const focusAnswerButton = document.querySelector("#wrongFocusAnswerButton");
   const status = pageNotice("wrongStatus");
   let details = [];
@@ -723,13 +727,17 @@ async function initWrongPage() {
   function renderQuestionContext(item) {
     const question = item?.question;
     if (!question) {
-      diagnosis.innerHTML = '<div class="wrong-empty-state"><strong>错题已清零</strong><p>完成普通练习或阶段自测后，新的待复盘错题会显示在这里。</p></div>';
-      pathKnowledge.textContent = "当前没有待复盘错题";
-      pathExplanation.textContent = "保持当前节奏，可以通过阶段自测继续验证掌握情况。";
-      variantStatus.textContent = "无需强化";
+      diagnosis.hidden = true;
+      knowledgeLesson.hidden = true;
+      variantPreview.hidden = true;
+      variantHint.hidden = true;
       focusAnswerButton.disabled = true;
       return;
     }
+    diagnosis.hidden = false;
+    knowledgeLesson.hidden = false;
+    variantPreview.hidden = false;
+    variantHint.hidden = false;
     const answerText = questionAnswerText(question) || "暂无参考答案";
     diagnosis.innerHTML = `
       <div class="wrong-diagnosis-heading"><div><span>上次作答对照</span><h3>看清错误，再完成订正</h3></div><span class="wrong-diagnosis-tag">待订正</span></div>
@@ -907,11 +915,12 @@ async function initSelfTestPage() {
     const summary = document.querySelector("#selfTestWeakSummary");
     const note = document.querySelector("#selfTestSourceNote");
     if (!weak.length) {
-      summary.textContent = "暂无待复盘错题";
-      note.textContent = "将按所选范围生成初始诊断卷";
-      list.innerHTML = '<div class="self-test-source-loading">使用课程知识范围进行初始诊断</div>';
+      summary.textContent = "暂无薄弱点记录";
+      note.hidden = true;
+      list.innerHTML = '<div class="self-test-source-loading">将按所选范围生成初始诊断卷</div>';
       return;
     }
+    note.hidden = false;
     const maximum = Math.max(...weak.map((item) => item.wrongCount), 1);
     summary.textContent = `${weak.length} 个重点方向`;
     note.textContent = "来自当前学习账号的未订正错题记录";
@@ -969,7 +978,7 @@ async function initSelfTestPage() {
       setPlatformNotice(status, message, true);
     } finally {
       button.disabled = false;
-      button.innerHTML = "<span>重新生成阶段自测</span><small>按当前参数生成一份新试卷</small>";
+      button.innerHTML = "<span>重新生成阶段自测</span>";
     }
   });
 }
@@ -1035,7 +1044,7 @@ async function initReviewPage() {
     document.querySelector("#reviewPeriod").textContent = `数据更新于 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} · 每 5 题形成一个学习轮次`;
     document.querySelector("#reviewHeadline").innerHTML = stats.answered
       ? `已完成 <em>${stats.answered}</em> 题，近期正确率较初始水平${direction}`
-      : "完成第一组练习后，系统会为你生成个性化成长摘要。";
+      : "完成一轮练习后，系统会为你生成个性化成长摘要。";
     document.querySelector("#reviewSummary").innerHTML = [
       renderMetric("answered", "累计练习", `${stats.answered || 0} 题`, `${(progress.rounds || []).length} 个学习轮次`),
       renderMetric("accuracy", "总体正确率", `${stats.correctRate || 0}%`, `近期 ${progress.effectiveness?.recentRate || 0}%`),
@@ -1047,7 +1056,7 @@ async function initReviewPage() {
       ? weak.slice(0, 4).map((item, index) => `<article class="review-knowledge-row"><div class="review-knowledge-row-head"><span class="review-knowledge-index">${index + 1}</span><span>${escapeHtml(item.knowledge)}</span><strong>${clampPercent(item.rate)}%</strong></div><div class="review-progress-track"><i style="width:${clampPercent(item.rate)}%"></i></div><small>${escapeHtml(item.status)} · 已练习 ${Math.max(0, Number(item.attempts) || 0)} 次</small></article>`).join("")
       : '<div class="review-knowledge-empty"><strong>暂未发现明显薄弱点</strong><span>继续练习以积累更完整的知识点数据</span></div>';
     const primaryFocus = weak[0]?.knowledge || knowledge[0]?.knowledge || "综合基础";
-    document.querySelector("#reviewAdvice").innerHTML = `<strong>${stats.answered ? `下一步优先：${escapeHtml(primaryFocus)}` : "先完成一轮基础诊断"}</strong><p>${escapeHtml(motivation.message || progress.effectiveness?.conclusion || "继续完成练习，形成更完整的学习轨迹。")}</p><div class="review-advice-meta"><span>趋势：${improvement > 0 ? `+${improvement}%` : `${improvement}%`}</span><span>等级：Lv.${motivation.level || 1}</span></div>`;
+    document.querySelector("#reviewAdvice").innerHTML = `<strong>${stats.answered ? `下一步优先：${escapeHtml(primaryFocus)}` : "先完成一轮练习"}</strong><p>${escapeHtml(motivation.message || progress.effectiveness?.conclusion || "继续完成练习，形成更完整的学习轨迹。")}</p>`;
     const chevron = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>';
     document.querySelector("#reviewActions").innerHTML = `
       <a class="review-action-link primary" href="./learning-route.html"><span>1</span><span><strong>巩固薄弱知识点</strong><small>围绕“${escapeHtml(primaryFocus)}”继续训练</small></span>${chevron}</a>

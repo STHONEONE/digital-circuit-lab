@@ -297,21 +297,9 @@ async function loadQuestions() {
 
 function updatePracticeSettingsSummary(loadedCount = null) {
   if (!els.practiceSettingsSummary) return;
-  const scopeLabels = {
-    all: "全部范围",
-    "basic-logic": "基础逻辑",
-    combinational: "组合逻辑",
-    sequential: "时序逻辑"
-  };
-  const typeLabels = {
-    all: "全部题型",
-    single_choice: "选择题",
-    fill_blank: "填空题",
-    analysis: "简答题"
-  };
-  const countLabel = currentQuestionCount === "all" ? "全部题目" : `${currentQuestionCount} 题`;
-  const loadedLabel = Number.isInteger(loadedCount) ? ` · 已载入 ${loadedCount} 题` : "";
-  els.practiceSettingsSummary.textContent = `${scopeLabels[currentScope] || "全部范围"} · ${typeLabels[currentQuestionType] || "全部题型"} · ${countLabel}${loadedLabel}`;
+  els.practiceSettingsSummary.textContent = Number.isInteger(loadedCount)
+    ? `题库已载入 ${loadedCount} 题`
+    : "开始后载入所选题目";
 }
 
 async function startConfiguredPractice() {

@@ -7,7 +7,7 @@
     <header class="platform-page-header wrong-review-header"><div><h2>错题复盘</h2><p id="wrongReviewLead">聚焦仍待解决的错题，先看清错因，再完成订正与同知识点强化。</p></div><div class="wrong-review-overview"><span id="wrongReviewCount">待复盘 0 题</span><span id="wrongKnowledgeCount">0 个薄弱知识点</span><button id="wrongRefreshButton" class="platform-button" type="button">刷新错题</button></div></header>
     <div class="wrong-workspace">
       <aside class="platform-surface wrong-directory" aria-label="错题筛选与列表">
-        <div class="platform-section-heading"><div><h3>错误原因</h3><p id="wrongDirectorySummary">正在读取错题...</p></div></div>
+        <div class="platform-section-heading"><div><h3>错题目录</h3><p id="wrongDirectorySummary">正在读取错题...</p></div></div>
         <div id="wrongKnowledgeFilters" class="wrong-knowledge-filters" aria-label="按知识点筛选"></div>
         <div class="wrong-list-heading"><strong>待复盘题目</strong><span id="wrongFilteredCount">0 题</span></div>
         <div id="wrongList" class="wrong-list"></div>
@@ -23,11 +23,11 @@
           <li><span>2</span><div><strong>提交订正</strong><small>判断是否真正掌握</small></div></li>
           <li><span>3</span><div><strong>AI 变式强化</strong><small>答错后自动推送</small></div></li>
         </ol>
-        <section class="wrong-knowledge-lesson"><span>本题关键</span><h4 id="wrongPathKnowledge">等待选择错题</h4><p id="wrongPathExplanation">选择左侧题目后，这里会先梳理需要回顾的知识点。</p></section>
-        <section class="wrong-variant-preview"><div><span>强化推送</span><strong id="wrongVariantStatus">订正后按需开启</strong></div><p>若本题仍然答错，AI 会先讲解薄弱点，再在可移动悬浮卡片中推送同知识点变式题。</p></section>
+        <section id="wrongKnowledgeLesson" class="wrong-knowledge-lesson"><span>本题关键</span><h4 id="wrongPathKnowledge">等待选择错题</h4><p id="wrongPathExplanation">选择左侧题目后，这里会先梳理需要回顾的知识点。</p></section>
+        <section id="wrongVariantPreview" class="wrong-variant-preview"><div><span>强化推送</span><strong id="wrongVariantStatus">订正后按需开启</strong></div><p>若本题仍然答错，AI 会先讲解薄弱点，再在可移动悬浮卡片中推送同知识点变式题。</p></section>
         <button id="wrongFocusAnswerButton" class="platform-button primary wrong-focus-button" type="button">开始订正</button>
       </aside>
     </div>
-    <footer class="wrong-review-footer"><span>提示：变式训练只服务于本次错题纠正，不会加入普通练习题库。</span><a href="./learning-review.html">查看学习报告</a></footer>
+    <footer class="wrong-review-footer"><span id="wrongVariantHint">提示：变式训练只服务于本次错题纠正，不会加入普通练习题库。</span><a href="./learning-review.html">查看学习报告</a></footer>
   </div></section></main>
 </div><script src="./circuit-background.js?v=20260620-1"></script><script src="./learning-shell.js?v=20260713-2"></script><script src="./answer-feedback.js?v=20260712-1"></script><script src="./learning-pages.js?v=20260713-1"></script></body></html>
