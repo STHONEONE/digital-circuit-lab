@@ -975,36 +975,107 @@ async function initSelfTestPage() {
 }
 
 async function initReviewPage() {
-  const status = pageNotice("reviewStatus");
+  const status = document.querySelector("#reviewMessage");
+  let reportData = null;
+  let trendRange = "all";
+  const metricIcons = {
+    answered: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg>',
+    accuracy: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m14 10 5-5M16 5h3v3"/></svg>',
+    review: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8M9 2h6v4H9zM6 4H4v17h16V4h-2M8 11h8M8 15h5"/></svg>',
+    streak: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2c1 4-2 5-2 8 0 2 1 3 3 3 3 0 4-3 3-6 3 3 4 6 3 9-1 4-4 6-8 6s-8-3-8-8c0-4 2-7 6-10-1 4 0 6 2 7-1-4 0-7 1-9z"/></svg>'
+  };
+  function setReviewNotice(message, error = false) {
+    status.textContent = message;
+    status.className = `report-inline-notice${error ? " error" : ""}`;
+  }
+  function renderMetric(icon, label, value, note) {
+    return `<article class="review-metric"><span class="review-metric-icon">${metricIcons[icon]}</span><div class="review-metric-copy"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div></article>`;
+  }
+  function renderTrend() {
+    if (!reportData) return;
+    const source = reportData.progress.rounds || [];
+    const rounds = trendRange === "recent" ? source.slice(-5) : source;
+    const chart = document.querySelector("#reviewTrendChart");
+    if (!rounds.length) {
+      chart.innerHTML = '<div class="review-chart-empty"><span>完成 5 次作答后<br>这里会出现第一段正确率趋势</span></div>';
+      return;
+    }
+    const width = 520;
+    const height = 276;
+    const left = 42;
+    const right = 12;
+    const top = 24;
+    const bottom = 46;
+    const usableWidth = width - left - right;
+    const usableHeight = height - top - bottom;
+    const points = rounds.map((round, index) => {
+      const x = rounds.length === 1 ? left + usableWidth / 2 : left + (usableWidth * index / (rounds.length - 1));
+      const rate = clampPercent(round.correctRate);
+      const y = top + usableHeight * (1 - rate / 100);
+      return { x, y, rate, round };
+    });
+    const line = points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+    const area = `M ${points[0].x.toFixed(1)} ${top + usableHeight} ${points.map((point) => `L ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ")} L ${points.at(-1).x.toFixed(1)} ${top + usableHeight} Z`;
+    const grid = [0, 25, 50, 75, 100].map((value) => {
+      const y = top + usableHeight * (1 - value / 100);
+      return `<line class="review-chart-grid" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}"/><text class="review-chart-axis" x="2" y="${y + 3}">${value}</text>`;
+    }).join("");
+    const labels = points.map((point, index) => {
+      const showLabel = rounds.length <= 8 || index === 0 || index === rounds.length - 1 || index % 2 === 0;
+      return `<circle class="review-chart-dot" cx="${point.x}" cy="${point.y}" r="4"/><text class="review-chart-value" x="${point.x}" y="${Math.max(12, point.y - 10)}">${point.rate}%</text>${showLabel ? `<text class="review-chart-axis" x="${point.x}" y="${height - 17}" text-anchor="middle">${escapeHtml(point.round.round)}</text>` : ""}`;
+    }).join("");
+    chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="学习轮次正确率趋势图"><defs><linearGradient id="reviewLineGradient" x1="0" x2="1"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#6366f1"/></linearGradient><linearGradient id="reviewAreaGradient" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#22d3ee" stop-opacity=".2"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>${grid}<path class="review-chart-area" d="${area}"/><polyline class="review-chart-line" points="${line}"/>${labels}</svg>`;
+  }
+  function renderReport(stats, progress, motivation) {
+    reportData = { stats, progress, motivation };
+    const knowledge = [...(progress.knowledge || [])].sort((left, right) => left.rate - right.rate);
+    const weak = knowledge.filter((item) => clampPercent(item.rate) < 80);
+    const improvement = Number(progress.effectiveness?.improvement) || 0;
+    const direction = improvement > 0 ? `提升 <em>${improvement}%</em>` : improvement < 0 ? `回落 <em>${Math.abs(improvement)}%</em>` : "保持稳定";
+    document.querySelector("#reviewPeriod").textContent = `数据更新于 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} · 每 5 题形成一个学习轮次`;
+    document.querySelector("#reviewHeadline").innerHTML = stats.answered
+      ? `已完成 <em>${stats.answered}</em> 题，近期正确率较初始水平${direction}`
+      : "完成第一组练习后，系统会为你生成个性化成长摘要。";
+    document.querySelector("#reviewSummary").innerHTML = [
+      renderMetric("answered", "累计练习", `${stats.answered || 0} 题`, `${(progress.rounds || []).length} 个学习轮次`),
+      renderMetric("accuracy", "总体正确率", `${stats.correctRate || 0}%`, `近期 ${progress.effectiveness?.recentRate || 0}%`),
+      renderMetric("review", "待复盘", `${progress.unresolvedWrong || 0} 题`, motivation.correctedMistakes ? `已攻克 ${motivation.correctedMistakes} 题` : "订正后自动移出"),
+      renderMetric("streak", "连续学习", `${motivation.streakDays || 0} 天`, `当前 Lv.${motivation.level || 1}`)
+    ].join("");
+    document.querySelector("#reviewWeakCount").textContent = `${weak.length} 项`;
+    document.querySelector("#reviewKnowledgeList").innerHTML = weak.length
+      ? weak.slice(0, 4).map((item, index) => `<article class="review-knowledge-row"><div class="review-knowledge-row-head"><span class="review-knowledge-index">${index + 1}</span><span>${escapeHtml(item.knowledge)}</span><strong>${clampPercent(item.rate)}%</strong></div><div class="review-progress-track"><i style="width:${clampPercent(item.rate)}%"></i></div><small>${escapeHtml(item.status)} · 已练习 ${Math.max(0, Number(item.attempts) || 0)} 次</small></article>`).join("")
+      : '<div class="review-knowledge-empty"><strong>暂未发现明显薄弱点</strong><span>继续练习以积累更完整的知识点数据</span></div>';
+    const primaryFocus = weak[0]?.knowledge || knowledge[0]?.knowledge || "综合基础";
+    document.querySelector("#reviewAdvice").innerHTML = `<strong>${stats.answered ? `下一步优先：${escapeHtml(primaryFocus)}` : "先完成一轮基础诊断"}</strong><p>${escapeHtml(motivation.message || progress.effectiveness?.conclusion || "继续完成练习，形成更完整的学习轨迹。")}</p><div class="review-advice-meta"><span>趋势：${improvement > 0 ? `+${improvement}%` : `${improvement}%`}</span><span>等级：Lv.${motivation.level || 1}</span></div>`;
+    const chevron = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>';
+    document.querySelector("#reviewActions").innerHTML = `
+      <a class="review-action-link primary" href="./learning-route.html"><span>1</span><span><strong>巩固薄弱知识点</strong><small>围绕“${escapeHtml(primaryFocus)}”继续训练</small></span>${chevron}</a>
+      <a class="review-action-link" href="./wrong-review.html"><span>2</span><span><strong>完成错题复盘</strong><small>${progress.unresolvedWrong || 0} 道题等待订正</small></span>${chevron}</a>
+      <a class="review-action-link" href="./self-test.html"><span>3</span><span><strong>进行阶段自测</strong><small>验证本轮学习成果</small></span>${chevron}</a>`;
+    renderTrend();
+  }
   async function load() {
     const [stats, progress, motivation] = await Promise.all([
       platformApi("/api/stats"), platformApi("/api/progress"), platformApi("/api/motivation")
     ]);
-    document.querySelector("#reviewSummary").innerHTML = [
-      [stats.answered || 0, "累计作答"],
-      [`${stats.correctRate || 0}%`, "总体正确率"],
-      [`Lv.${motivation.level || 1}`, "当前等级"],
-      [motivation.streakDays || 0, "连续学习天数"]
-    ].map(([value, label]) => `<div class="review-metric"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>`).join("");
-    const rounds = document.querySelector("#reviewRoundList");
-    rounds.innerHTML = (progress.rounds || []).length
-      ? progress.rounds.map((round) => {
-        const rate = clampPercent(round.correctRate);
-        return `<div class="review-round"><span>${escapeHtml(round.round)}<br>${escapeHtml(round.mode)}</span><div class="review-progress-track"><i style="width:${rate}%"></i></div><strong>${rate}%</strong></div>`;
-      }).join("")
-      : '<div class="platform-empty">完成 5 次作答后生成第一轮趋势</div>';
-    const knowledge = document.querySelector("#reviewKnowledgeList");
-    knowledge.innerHTML = (progress.knowledge || []).length
-      ? progress.knowledge.slice(0, 10).map((item) => `<div class="review-knowledge-row"><span>${escapeHtml(item.knowledge)}<br><small>${escapeHtml(item.status)} · ${Math.max(0, Number(item.attempts) || 0)} 次</small></span><strong>${clampPercent(item.rate)}%</strong></div>`).join("")
-      : '<div class="platform-empty">暂无知识点记录</div>';
-    document.querySelector("#reviewMessage").textContent = motivation.message || "继续完成练习，形成更完整的学习轨迹。";
+    renderReport(stats, progress, motivation);
   }
+  document.querySelectorAll("[data-review-range]").forEach((button) => button.addEventListener("click", () => {
+    trendRange = button.dataset.reviewRange;
+    document.querySelectorAll("[data-review-range]").forEach((item) => item.classList.toggle("active", item === button));
+    renderTrend();
+  }));
   document.querySelector("#reviewRefreshButton").addEventListener("click", async () => {
+    const button = document.querySelector("#reviewRefreshButton");
+    button.disabled = true;
     try {
       await load();
-      setPlatformNotice(status, "学习数据已刷新。");
+      setReviewNotice("学习数据已刷新。");
     } catch (error) {
-      setPlatformNotice(status, `刷新失败：${error.message}`, true);
+      setReviewNotice(`刷新失败：${error.message}`, true);
+    } finally {
+      button.disabled = false;
     }
   });
   document.querySelector("#reviewClearButton").addEventListener("click", async () => {
@@ -1012,9 +1083,9 @@ async function initReviewPage() {
     try {
       const result = await platformApi("/api/records", { method: "DELETE" });
       await load();
-      setPlatformNotice(status, `已清空当前学习者的 ${result.removed || 0} 条记录。`);
+      setReviewNotice(`已清空当前学习者的 ${result.removed || 0} 条记录。`);
     } catch (error) {
-      setPlatformNotice(status, `清空失败：${error.message}`, true);
+      setReviewNotice(`清空失败：${error.message}`, true);
     }
   });
   await load();
