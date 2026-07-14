@@ -27,11 +27,15 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 }
 });
 const selfTestGenerationState = new Map();
-const selfTestCooldownMs = 15000;
+const selfTestCooldownMs = 5000;
+const ghostPlanState = new Map();
+const ghostPlanCacheTtlMs = 2 * 60 * 1000;
 const expectedErrorCodes = new Set([
   "AI_NOT_CONFIGURED", "AI_GRADING_UNAVAILABLE", "AI_GRADING_BUSY",
   "AI_GRADING_RATE_LIMITED", "AI_GRADING_CAPACITY", "AI_VARIANT_EXPIRED",
   "AI_VARIANT_NOT_AVAILABLE", "AI_VARIANT_NOT_REGISTERED",
+  "AI_GHOST_FAILED", "GHOST_REQUIREMENT_REQUIRED",
+  "AI_SELF_TEST_FAILED", "AI_SELF_TEST_UNAVAILABLE",
   "IMPORT_ANALYSIS_MISSING_ANSWER"
 ]);
 
@@ -83,17 +87,20 @@ app.get("/api/recommendations", (request, response) => response.json(
 app.get("/api/stats", (request, response) => response.json(practice.stats(learnerId(request))));
 app.get("/api/learning-plan", (request, response) => response.json(practice.learningPlan(learnerId(request))));
 app.post("/api/self-test", async (request, response, next) => {
+  const body = request.body || {};
   const currentLearnerId = learnerId(request);
   const clientKey = currentLearnerId;
+  const prepared = practice.prepareSelfTest(body.scope, body.count, currentLearnerId);
+  const needsAi = prepared.shortage > 0 && ai.configured();
   const now = Date.now();
   const previous = selfTestGenerationState.get(clientKey);
-  if (ai.configured() && previous?.active) {
+  if (needsAi && previous?.active) {
     return response.status(429).json({
       code: "AI_SELF_TEST_BUSY",
-      error: "阶段自测正在生成，请等待本次组卷完成。"
+      error: "个性化学习任务正在补充，请等待本次生成完成。"
     });
   }
-  const retryAfterMs = ai.configured() && previous
+  const retryAfterMs = needsAi && previous
     ? Math.max(0, selfTestCooldownMs - (now - previous.finishedAt))
     : 0;
   if (retryAfterMs > 0) {
@@ -101,19 +108,18 @@ app.post("/api/self-test", async (request, response, next) => {
     response.set("Retry-After", String(retryAfterSeconds));
     return response.status(429).json({
       code: "AI_SELF_TEST_RATE_LIMITED",
-      error: `AI 组卷请求过于频繁，请 ${retryAfterSeconds} 秒后重试。`
+      error: `AI 补充学习任务请求过于频繁，请 ${retryAfterSeconds} 秒后重试。`
     });
   }
-  if (ai.configured()) {
+  if (needsAi) {
     selfTestGenerationState.set(clientKey, { active: true, finishedAt: 0 });
   }
   try {
-    const body = request.body || {};
-    response.json(await practice.selfTest(body.scope, body.count, currentLearnerId));
+    response.json(await practice.selfTest(body.scope, body.count, currentLearnerId, prepared));
   } catch (error) {
     next(error);
   } finally {
-    if (ai.configured()) {
+    if (needsAi) {
       selfTestGenerationState.set(clientKey, { active: false, finishedAt: Date.now() });
       if (selfTestGenerationState.size > 1000) {
         const staleBefore = Date.now() - 60 * 60 * 1000;
@@ -199,6 +205,50 @@ app.post("/api/lab/stream", async (request, response) => {
     send({ type: "error", error: error.message });
   } finally {
     response.end();
+  }
+});
+
+app.post("/api/ghost-plan", async (request, response, next) => {
+  const startedAt = Date.now();
+  const body = request.body || {};
+  const cacheKey = createHash("sha256").update(JSON.stringify({
+    learnerId: learnerId(request),
+    requirement: String(body.requirement || "").trim().slice(0, 600),
+    canvas: body.canvas || {}
+  })).digest("hex");
+  const now = Date.now();
+  const cached = ghostPlanState.get(cacheKey);
+  if (cached?.result && cached.expiresAt > now) {
+    return response.json({ plan: cached.result, cached: true, elapsedMs: Date.now() - startedAt });
+  }
+  if (cached?.promise) {
+    try {
+      const plan = await cached.promise;
+      return response.json({ plan, cached: true, elapsedMs: Date.now() - startedAt });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  const promise = ai.generateGhostPlan(body);
+  ghostPlanState.set(cacheKey, { promise, result: null, expiresAt: now + ghostPlanCacheTtlMs });
+  try {
+    const plan = await promise;
+    ghostPlanState.set(cacheKey, {
+      promise: null,
+      result: plan,
+      expiresAt: Date.now() + ghostPlanCacheTtlMs
+    });
+    if (ghostPlanState.size > 200) {
+      const staleBefore = Date.now();
+      ghostPlanState.forEach((entry, key) => {
+        if (!entry.promise && entry.expiresAt <= staleBefore) ghostPlanState.delete(key);
+      });
+    }
+    response.json({ plan, cached: false, elapsedMs: Date.now() - startedAt });
+  } catch (error) {
+    ghostPlanState.delete(cacheKey);
+    next(error);
   }
 });
 

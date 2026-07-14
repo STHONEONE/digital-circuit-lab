@@ -217,6 +217,7 @@ test("learning center uses five independent pages and embeds practice settings i
   const controller = await fetch(`${baseUrl}/learning-pages.js`).then((response) => response.text());
   const styles = await fetch(`${baseUrl}/learning-pages.css`).then((response) => response.text());
   const routePage = pages.find(([name]) => name === "learning-route.html")?.[1] || "";
+  const selfTestPage = pages.find(([name]) => name === "self-test.html")?.[1] || "";
 
   assert.match(index, /data-learning-page="center"/);
   assert.match(index, /class="sidebar platform-sidebar index-platform-sidebar" data-learning-nav/);
@@ -247,7 +248,8 @@ test("learning center uses five independent pages and embeds practice settings i
   }
   assert.doesNotMatch(shell, /scope\.html/);
   assert.match(shell, /label: "普通练习"/);
-  assert.match(shell, /label: "学习路线"/);
+  assert.match(shell, /label: "知识复习"/);
+  assert.match(shell, /label: "个性化学习"/);
   assert.match(shell, /label: "学习报告"/);
   assert.match(shell, /className = "learning-view-frame"/);
   assert.match(shell, /const views = new Map/);
@@ -259,16 +261,38 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(controller, /renderKnowledge\(response, sourceQuestion\)/);
   assert.match(controller, /platform-remediation-launcher/);
   assert.match(routePage, /id="routeKnowledgeGroups"/);
-  assert.match(routePage, /id="routeProgressSummary"/);
-  assert.match(routePage, /id="routeQuestionCountLabel"/);
+  assert.match(routePage, /id="routeLessonTitle"/);
+  assert.match(routePage, /id="routeLessonRules"/);
+  assert.match(routePage, /id="routeLessonExample"/);
+  assert.match(routePage, /data-route-tab="core"/);
+  assert.match(routePage, /data-route-tab="example"/);
+  assert.match(routePage, /data-route-tab="practice"/);
+  assert.match(routePage, /id="routeLessonDuration"/);
+  assert.match(routePage, /开始巩固练习/);
+  assert.match(routePage, /<h2>知识复习<\/h2>/);
+  assert.doesNotMatch(routePage, /<h2>学习路线<\/h2>|路线依据|阶段自测/);
+  assert.doesNotMatch(routePage, /route-focus-console|复习指引|当前复习|预计阅读时长|相关知识点|复习顺序|复习依据/);
+  assert.doesNotMatch(routePage, /data-question-runner="route"/);
+  assert.doesNotMatch(routePage, /id="routeStartButton"/);
   assert.match(controller, /selectedFocus/);
   assert.match(controller, /routeKnowledgeSearch/);
+  assert.match(controller, /lessonProfiles/);
+  assert.match(controller, /questionsFor/);
+  assert.match(controller, /activateRouteTab/);
+  assert.match(selfTestPage, /<h2>个性化学习<\/h2>/);
+  assert.match(selfTestPage, /学习任务设置/);
+  assert.match(selfTestPage, /任务生成依据/);
+  assert.match(selfTestPage, /生成并开始学习/);
+  assert.doesNotMatch(selfTestPage, /阶段自测|组卷参数|自测卷预览|AI 组卷依据|试卷目录/);
   assert.match(styles, /\.practice-settings/);
   assert.match(styles, /\.learning-view-frame/);
   assert.match(styles, /\.learning-view-frame\[hidden\]/);
   assert.match(styles, /html\.learning-embedded/);
   assert.match(styles, /\.route-workspace/);
   assert.match(styles, /\.route-knowledge-console/);
+  assert.match(styles, /\.route-lesson-console/);
+  assert.match(styles, /\.route-directory-heading/);
+  assert.match(styles, /\.route-lesson-tabs/);
   assert.match(styles, /\.wrong-workspace/);
   assert.match(styles, /\.self-test-paper/);
   assert.match(styles, /\.review-summary/);
@@ -361,7 +385,7 @@ test("analysis answer requires AI semantic grading and does not persist when una
   assert.equal(stats.answered, 0);
 });
 
-test("AI self-test requires configuration and targeted practice still uses the question bank", async () => {
+test("personalized learning uses the local bank without AI configuration", async () => {
   const selfTestResponse = await fetch(`${baseUrl}/api/self-test`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -371,11 +395,30 @@ test("AI self-test requires configuration and targeted practice still uses the q
   const targeted = await fetch(`${baseUrl}/api/targeted-questions?knowledge=${encodeURIComponent("比较器")}&count=5`)
     .then((response) => response.json());
 
-  assert.equal(selfTestResponse.status, 503);
-  assert.equal(selfTestBody.code, "AI_NOT_CONFIGURED");
-  assert.match(selfTestBody.error, /未配置 AI Key/);
+  assert.equal(selfTestResponse.status, 200);
+  assert.equal(selfTestBody.length, 5);
+  assert.ok(selfTestBody.every((question) => ["single_choice", "fill_blank", "analysis"].includes(question.type)));
+  assert.deepEqual(Object.fromEntries(["basic-logic", "combinational", "sequential"].map((scope) => [
+    scope,
+    selfTestBody.filter((question) => question.scope === scope).length
+  ])), { "basic-logic": 2, combinational: 2, sequential: 1 });
   assert.ok(targeted.length > 0);
   assert.ok(targeted.every((question) => question.knowledge.includes("比较器")));
+});
+
+test("AI ghost planning reports unavailable AI so the browser can use its template fallback", async () => {
+  const response = await fetch(`${baseUrl}/api/ghost-plan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      requirement: "搭建半加器",
+      canvas: { components: [], wires: [] }
+    })
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 503);
+  assert.equal(body.code, "AI_NOT_CONFIGURED");
 });
 
 test("lab assistant streams a local fallback without an API key", async () => {

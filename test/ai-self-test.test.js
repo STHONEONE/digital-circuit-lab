@@ -17,8 +17,12 @@ test("AI self-test normalizes, validates and orders generated questions", async 
   try {
     store.saveAiConfig({ apiKey: "test-key", model: "test-model" });
     const ai = new AiService(store);
-    ai.model = () => ({
-      async invoke() {
+    let modelOptions;
+    let promptText = "";
+    ai.model = (options) => ({
+      async invoke(messages) {
+        modelOptions = options;
+        promptText = messages.map((message) => message.content).join("\n");
         return {
           content: JSON.stringify({
             questions: [
@@ -60,9 +64,20 @@ test("AI self-test normalizes, validates and orders generated questions", async 
       focusKnowledge: ["德摩根定律"],
       targetKnowledgePlan: ["德摩根定律", "德摩根定律"],
       availableKnowledge: ["德摩根定律"],
-      wrongQuestions: []
+      knowledgeMastery: [{ name: "德摩根定律", rate: 42 }],
+      wrongQuestions: [{
+        text: "原错题摘要",
+        knowledge: ["德摩根定律"],
+        difficulty: 2,
+        userAnswer: "不应进入组题提示词的学生原答案"
+      }]
     });
 
+    assert.equal(modelOptions.maxRetries, 1);
+    assert.equal(modelOptions.timeout, 25000);
+    assert.ok(modelOptions.maxTokens <= 1800);
+    assert.ok(promptText.length < 5000);
+    assert.doesNotMatch(promptText, /不应进入组题提示词的学生原答案/);
     assert.equal(questions.length, 2);
     assert.equal(questions[0].type, "single_choice");
     assert.equal(questions[0].answer, 1);
@@ -71,6 +86,8 @@ test("AI self-test normalizes, validates and orders generated questions", async 
     assert.ok(questions[1].keywords.length >= 2);
     assert.ok(questions.every((question) => question.generatedSelfTest));
     assert.ok(questions.every((question) => question.id.startsWith("ai-selftest-")));
+    assert.ok(questions.every((question) => question.chapter === "个性化学习"));
+    assert.ok(questions.every((question) => question.source === "AI 个性化学习"));
   } finally {
     cleanup();
   }

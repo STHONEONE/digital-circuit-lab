@@ -1370,14 +1370,14 @@ async function composeSelfTest() {
   completedSelfTestQuestions.clear();
   const count = els.paperCount.value;
   try {
-    await setPracticeSet("/api/self-test", "self_test", "AI 阶段自测", "", {
+    await setPracticeSet("/api/self-test", "self_test", "个性化学习任务", "", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ count, scope: currentScope })
     });
   } catch (error) {
-    els.rightPanelTitle.textContent = "组卷失败";
-    els.rightPanelSubtitle.textContent = "请检查 AI 配置或稍后重试";
+    els.rightPanelTitle.textContent = "任务生成失败";
+    els.rightPanelSubtitle.textContent = "本地题库不足时，请检查 AI 配置或稍后重试";
     els.rightPanelBadge.textContent = "失败";
     els.recommendations.className = "review-directory paper-directory";
     els.recommendations.innerHTML = `<div class="review-directory-empty error">${escapeHtml(error.message)}</div>`;
@@ -2092,7 +2092,7 @@ async function clearImported() {
 }
 
 async function clearRecords() {
-  const ok = confirm("确定清空全部学习记录吗？学习路线、积分和进步轨迹会重新开始。");
+  const ok = confirm("确定清空全部学习记录吗？知识复习进度、积分和进步轨迹会重新开始。");
   if (!ok) return;
   const result = await fetchJson("/api/records", { method: "DELETE" });
   practiceMode = "normal";
@@ -2220,7 +2220,7 @@ els.importButton.addEventListener("click", () => runAction(els.importButton, imp
 els.clearImportButton.addEventListener("click", () => runAction(els.clearImportButton, clearImported, "清空中…"));
 els.clearRecordsButton.addEventListener("click", () => runAction(els.clearRecordsButton, clearRecords, "清空中…"));
 els.planButton.addEventListener("click", () => runAction(els.planButton, startPersonalizedRoute, "生成中…"));
-els.selfTestButton.addEventListener("click", () => runAction(els.selfTestButton, composeSelfTest, "组卷中…"));
+els.selfTestButton.addEventListener("click", () => runAction(els.selfTestButton, composeSelfTest, "生成中…"));
 els.wrongReviewButton.addEventListener("click", () => runAction(els.wrongReviewButton, startWrongReview, "加载中…"));
 els.normalPracticeButton.addEventListener("click", () => runAction(els.normalPracticeButton, returnToNormalPractice, "返回中…"));
 els.learningCenterButton?.addEventListener("click", () => {

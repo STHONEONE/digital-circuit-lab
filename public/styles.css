@@ -3267,10 +3267,10 @@ body.inner-page .details-body {
 
   .question-card,
   .question-recommendations {
-    min-height: calc(100vh - 151px);
-    max-height: calc(100vh - 151px);
-    overflow-y: auto;
-    scrollbar-gutter: stable;
+    min-height: 540px;
+    max-height: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
   }
 
   .desktop-insights {

@@ -1,4 +1,6 @@
 const allowedModes = new Set(["normal", "targeted", "wrong_review", "self_test"]);
+const personalizedQuestionTypes = new Set(["single_choice", "fill_blank", "analysis"]);
+const personalizedTypeRank = Object.freeze({ single_choice: 0, fill_blank: 1, analysis: 2 });
 
 function accuracy(records) {
   if (!records.length) return 0;
@@ -70,6 +72,23 @@ function buildTargetKnowledgePlan(weakKnowledge, availableKnowledge, count) {
     plan.push(weighted[index % weighted.length]);
   }
   return plan.slice(0, count);
+}
+
+function allocateWeightedCounts(total, weightedItems) {
+  const safeTotal = Math.max(0, Number(total) || 0);
+  const weightTotal = weightedItems.reduce((sum, item) => sum + Math.max(0, item.weight), 0) || 1;
+  const allocated = weightedItems.map((item, index) => {
+    const exact = safeTotal * Math.max(0, item.weight) / weightTotal;
+    return { ...item, index, count: Math.floor(exact), remainder: exact - Math.floor(exact) };
+  });
+  let remaining = safeTotal - allocated.reduce((sum, item) => sum + item.count, 0);
+  [...allocated].sort((left, right) => right.remainder - left.remainder || left.index - right.index)
+    .forEach((item) => {
+      if (remaining <= 0) return;
+      allocated[item.index].count += 1;
+      remaining -= 1;
+    });
+  return new Map(allocated.map((item) => [item.key, item.count]));
 }
 
 export class PracticeService {
@@ -399,7 +418,6 @@ export class PracticeService {
       focusKnowledge = [...new Set(this.store.questions().flatMap((question) => question.knowledge || []))].slice(0, 3);
     }
     const primaryFocus = focusKnowledge[0] || "综合基础";
-    const targeted = records.filter((record) => record.practiceMode === "targeted").length;
     const selfTests = records.filter((record) => record.practiceMode === "self_test").length;
     const unresolved = this.wrongReviewDetails(learnerId).length;
     const hasRecords = records.length > 0;
@@ -409,13 +427,13 @@ export class PracticeService {
       steps: [
         {
           order: 1, title: "诊断薄弱点",
-          detail: hasRecords ? `当前优先巩固：${focusKnowledge.join("、")}` : "先完成一轮智能组卷自测。",
+          detail: hasRecords ? `当前优先巩固：${focusKnowledge.join("、")}` : "先完成一轮个性化学习任务。",
           status: hasRecords ? "已完成" : "进行中"
         },
         {
-          order: 2, title: "针对训练",
-          detail: targeted ? `已完成 ${targeted} 次针对练习。` : `围绕“${primaryFocus}”完成至少 3 题。`,
-          status: targeted >= 3 ? "已完成" : "进行中"
+          order: 2, title: "知识复习",
+          detail: `围绕“${primaryFocus}”回顾核心概念、关键规则和辅助例题。`,
+          status: hasRecords ? "已安排" : "待开始"
         },
         {
           order: 3, title: "错题复盘",
@@ -423,14 +441,14 @@ export class PracticeService {
           status: unresolved ? "待完成" : hasRecords ? "已完成" : "待完成"
         },
         {
-          order: 4, title: "阶段自测",
-          detail: selfTests ? `已记录 ${selfTests} 次自测答题。` : "训练后完成阶段自测。",
+          order: 4, title: "个性化学习",
+          detail: selfTests ? `已记录 ${selfTests} 次个性化学习作答。` : "复习后完成针对性学习任务。",
           status: selfTests >= 5 ? "已完成" : "待完成"
         }
       ],
       review: hasRecords && knowledge.length
-        ? `已完成 ${records.length} 次作答；当前“${knowledge[0].knowledge}”正确率为 ${knowledge[0].rate}%，下一轮优先安排该方向。`
-        : "尚未形成学习轨迹。建议先进行 AI 阶段自测，完成初始诊断。"
+        ? `已完成 ${records.length} 次作答；当前“${knowledge[0].knowledge}”正确率为 ${knowledge[0].rate}%，建议优先复习该知识点。`
+        : "尚未形成学习记录。建议先进入个性化学习，完成基础任务并建立掌握度。"
     };
   }
 
@@ -447,6 +465,71 @@ export class PracticeService {
       .map((entry) => entry.question);
   }
 
+  selectPersonalizedBankQuestions(profile, learnerId = "") {
+    const count = Math.max(1, Math.min(Number(profile?.count) || 5, 10));
+    const weak = new Map((profile?.weakKnowledge || []).map((item) => [item.name, Number(item.wrongCount) || 0]));
+    const mastery = new Map((profile?.knowledgeMastery || []).map((item) => [item.name, Number(item.rate) || 0]));
+    const targetPriority = new Map();
+    (profile?.targetKnowledgePlan || []).forEach((name, index) => {
+      if (!targetPriority.has(name)) targetPriority.set(name, count - index);
+    });
+    const answered = new Set(this.recordsForLearner(learnerId).map((record) => record.questionId));
+    const ranked = this.store.questions({ scope: profile?.scope || "all" })
+      .filter((question) => personalizedQuestionTypes.has(question.type))
+      .map((question) => {
+        const knowledge = question.knowledge || [];
+        const score = Number(!answered.has(question.id)) * 8
+          + knowledge.reduce((sum, name) => sum + (weak.get(name) || 0) * 18, 0)
+          + knowledge.reduce((sum, name) => sum + (targetPriority.get(name) || 0) * 3, 0)
+          + knowledge.reduce((sum, name) => sum + (mastery.has(name) ? (100 - mastery.get(name)) / 8 : 0), 0)
+          + Math.max(0, 5 - Math.abs((Number(question.difficulty) || 2) - 3));
+        return { question, score };
+      })
+      .sort((left, right) => right.score - left.score
+        || String(left.question.id).localeCompare(String(right.question.id)));
+
+    const nonChoiceTarget = count >= 2 ? Math.max(1, Math.round(count * 0.25)) : 0;
+    const pickQuestions = (pool, total, nonChoiceCount) => {
+      const chosen = [
+        ...pool.filter((entry) => entry.question.type === "single_choice").slice(0, total - nonChoiceCount),
+        ...pool.filter((entry) => entry.question.type !== "single_choice").slice(0, nonChoiceCount)
+      ];
+      const chosenIds = new Set(chosen.map((entry) => entry.question.id));
+      for (const entry of pool) {
+        if (chosen.length >= total) break;
+        if (!chosenIds.has(entry.question.id)) {
+          chosen.push(entry);
+          chosenIds.add(entry.question.id);
+        }
+      }
+      return chosen;
+    };
+    let selected;
+    if (profile?.scope === "all" && !weak.size) {
+      const scopeWeights = [
+        { key: "basic-logic", weight: 3 },
+        { key: "combinational", weight: 2 },
+        { key: "sequential", weight: 1 }
+      ];
+      const scopeCounts = allocateWeightedCounts(count, scopeWeights);
+      const nonChoiceCounts = allocateWeightedCounts(nonChoiceTarget,
+        scopeWeights.map((item) => ({ key: item.key, weight: scopeCounts.get(item.key) })));
+      selected = scopeWeights.flatMap(({ key }) => pickQuestions(
+        ranked.filter((entry) => entry.question.scope === key),
+        scopeCounts.get(key),
+        Math.min(nonChoiceCounts.get(key), scopeCounts.get(key))
+      ));
+    } else {
+      selected = pickQuestions(ranked, count, nonChoiceTarget);
+    }
+    return selected.sort((left, right) => (personalizedTypeRank[left.question.type] ?? 9)
+      - (personalizedTypeRank[right.question.type] ?? 9)
+      || right.score - left.score
+      || String(left.question.id).localeCompare(String(right.question.id)))
+      .slice(0, count)
+      .map((entry) => entry.question);
+  }
+
   selfTestProfile(scope, count, learnerId = "") {
     const selectedScope = scope && scope !== "all" ? String(scope) : "all";
     const selectedCount = Math.max(1, Math.min(Number(count) || 5, 10));
@@ -457,6 +540,15 @@ export class PracticeService {
     const availableKnowledge = [...new Set(this.store.questions({ scope: selectedScope })
       .flatMap((question) => question.knowledge || []))]
       .map((name) => String(name).slice(0, 80)).slice(0, 24);
+    const knowledgeMastery = this.knowledgeStats(learnerId)
+      .filter((item) => availableKnowledge.includes(item.knowledge))
+      .slice(0, 16)
+      .map((item) => ({
+        name: String(item.knowledge).slice(0, 80),
+        rate: item.rate,
+        attempts: item.attempts,
+        status: item.status
+      }));
     const targetKnowledgePlan = buildTargetKnowledgePlan(
       weakKnowledge,
       availableKnowledge,
@@ -484,6 +576,7 @@ export class PracticeService {
       scope: selectedScope,
       count: selectedCount,
       weakKnowledge,
+      knowledgeMastery,
       focusKnowledge: [...new Set(targetKnowledgePlan)],
       targetKnowledgePlan,
       availableKnowledge,
@@ -491,15 +584,73 @@ export class PracticeService {
     };
   }
 
-  async selfTest(scope, count, learnerId = "") {
+  selfTestNeedsAi(scope, count, learnerId = "") {
+    return this.prepareSelfTest(scope, count, learnerId).shortage > 0;
+  }
+
+  prepareSelfTest(scope, count, learnerId = "") {
+    const profile = this.selfTestProfile(scope, count, learnerId);
+    const localQuestions = this.selectPersonalizedBankQuestions(profile, learnerId);
+    return {
+      profile,
+      localQuestions,
+      shortage: profile.count - localQuestions.length
+    };
+  }
+
+  async selfTest(scope, count, learnerId = "", prepared = null) {
+    const plan = prepared || this.prepareSelfTest(scope, count, learnerId);
+    const { profile, localQuestions, shortage } = plan;
+    if (shortage <= 0) return localQuestions;
     if (!this.ai?.generateSelfTest) {
-      const error = new Error("阶段自测的大模型服务不可用，请稍后重试。");
+      const error = new Error("个性化学习任务生成服务不可用，请稍后重试。");
       error.status = 503;
       error.code = "AI_SELF_TEST_UNAVAILABLE";
       throw error;
     }
-    const questions = await this.ai.generateSelfTest(this.selfTestProfile(scope, count, learnerId));
-    return this.store.addGeneratedSelfTestQuestions(questions);
+
+    const remainingTargets = [...profile.targetKnowledgePlan];
+    localQuestions.forEach((question) => {
+      const index = remainingTargets.findIndex((name) => question.knowledge?.includes(name));
+      if (index >= 0) remainingTargets.splice(index, 1);
+    });
+    const targetKnowledgePlan = remainingTargets.slice(0, shortage);
+    const fallbackTargets = profile.targetKnowledgePlan.length
+      ? profile.targetKnowledgePlan
+      : profile.availableKnowledge;
+    for (let index = 0; targetKnowledgePlan.length < shortage && fallbackTargets.length; index += 1) {
+      targetKnowledgePlan.push(fallbackTargets[index % fallbackTargets.length]);
+    }
+
+    const desiredNonChoice = profile.count >= 2 ? Math.max(1, Math.round(profile.count * 0.25)) : 0;
+    const localNonChoice = localQuestions.filter((question) => question.type !== "single_choice").length;
+    const analysisCount = Math.min(shortage, Math.max(0, desiredNonChoice - localNonChoice));
+    const choiceCount = shortage - analysisCount;
+    const targetSet = new Set(targetKnowledgePlan);
+    const relevantWrongQuestions = profile.wrongQuestions
+      .filter((question) => question.knowledge?.some((name) => targetSet.has(name)));
+    const supplementProfile = {
+      scope: profile.scope,
+      count: shortage,
+      choiceCount,
+      analysisCount,
+      targetKnowledgePlan,
+      focusKnowledge: [...new Set(targetKnowledgePlan)],
+      weakKnowledge: profile.weakKnowledge.filter((item) => targetSet.has(item.name)).slice(0, 6),
+      knowledgeMastery: profile.knowledgeMastery.filter((item) => targetSet.has(item.name)).slice(0, 6),
+      availableKnowledge: [...new Set([...targetKnowledgePlan, ...profile.availableKnowledge])].slice(0, 12),
+      wrongQuestions: (relevantWrongQuestions.length ? relevantWrongQuestions : profile.wrongQuestions).slice(0, 3),
+      excludeQuestions: localQuestions.slice(0, 8).map((question) => String(question.text || "").slice(0, 140))
+    };
+    const generated = await this.ai.generateSelfTest(supplementProfile);
+    const localTexts = new Set(localQuestions.map((question) => normalized(question.text)));
+    const uniqueGenerated = generated.filter((question) => !localTexts.has(normalized(question.text)));
+    if (uniqueGenerated.length !== shortage) {
+      throw serviceError("AI 补充任务与本地题库重复，请稍后重试。", 502, "AI_SELF_TEST_FAILED");
+    }
+    const registered = this.store.addGeneratedSelfTestQuestions(uniqueGenerated);
+    return [...localQuestions, ...registered].sort((left, right) =>
+      (personalizedTypeRank[left.type] ?? 9) - (personalizedTypeRank[right.type] ?? 9));
   }
 
   targeted(knowledge, count, learnerId = "") {
@@ -529,7 +680,7 @@ export class PracticeService {
         round: `第${index}轮`,
         answered: batch.length,
         correctRate: accuracy(batch),
-        mode: { normal: "普通练习", targeted: "针对训练", wrong_review: "错题复盘", self_test: "阶段自测" }[dominant]
+        mode: { normal: "普通练习", targeted: "针对训练", wrong_review: "错题复盘", self_test: "个性化学习" }[dominant]
       });
     }
     const size = Math.min(5, records.length);
@@ -581,7 +732,7 @@ export class PracticeService {
     }
     const badges = [];
     if (records.length) badges.push("完成首次练习");
-    if (records.length >= 5) badges.push("初次自测");
+    if (records.length >= 5) badges.push("首次个性化学习");
     if (corrected.size) badges.push("错题攻克");
     if (streakDays >= 3) badges.push("连续学习");
     if (records.length >= 5 && records.slice(-5).every((record) => record.correct)) badges.push("五题连对");
@@ -593,10 +744,10 @@ export class PracticeService {
       correctedMistakes: corrected.size,
       badges,
       message: !records.length
-        ? "完成一轮练习，系统就能为你生成专属学习路线。"
+        ? "完成一轮练习，系统就能为你推荐优先复习的知识点。"
         : this.wrongReviewDetails(learnerId).length
-          ? `本轮优先攻克 ${this.learningPlan(learnerId).primaryFocus}，每订正一道错题都会推动路线前进。`
-          : "当前错题已清零，可以通过阶段自测验证掌握是否稳定。"
+          ? `本轮优先复习 ${this.learningPlan(learnerId).primaryFocus}，每订正一道错题都会更新巩固重点。`
+          : "当前错题已清零，可以通过个性化学习任务继续巩固掌握。"
     };
   }
 }

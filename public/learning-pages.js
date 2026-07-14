@@ -570,55 +570,176 @@ async function initRoutePage() {
   (progress.knowledge || []).forEach((item) => {
     if (!knowledgeByName.has(item.knowledge)) knowledgeByName.set(item.knowledge, { name: item.knowledge, scope: "custom" });
   });
-
-  const steps = document.querySelector("#routeSteps");
-  const stepNotes = {
-    1: ["查看近期错题分布", "确认本轮优先知识点"],
-    2: ["完成本轮针对练习", "错题自动进入复盘队列"],
-    3: ["先查看知识点讲解", "完成独立变式题"],
-    4: ["AI 根据错题自动组卷", "检验掌握是否稳定"]
+  const lessonProfiles = [
+    {
+      match: /优先编码器|编码器/,
+      summary: "把多个输入状态压缩为较少位的代码输出；优先编码器还要处理多个输入同时有效的情况。",
+      concept: "先确认输入和输出位数、有效电平以及优先级方向。普通编码器默认同一时刻只有一个输入有效，优先编码器则输出最高优先级输入对应的编码。",
+      method: "从最高优先级输入开始逐项判断，把低优先级输出条件写成“高优先级均无效且当前输入有效”。",
+      rules: ["n 位二进制编码可表示最多 2ⁿ 个输入状态。", "多个输入同时有效时，只保留优先级最高者。", "阅读器件符号时先辨认有效电平，低有效端不能直接按高有效理解。"],
+      check: "能够根据有效输入确定编码输出，并解释普通编码器与优先编码器的差别。"
+    },
+    {
+      match: /译码器|数据选择器/,
+      summary: "利用控制输入在多条信号路径之间建立唯一对应关系，是组合逻辑中常见的选择与分配结构。",
+      concept: "译码器把二进制代码展开为独立输出；数据选择器则由选择端决定哪一路数据送到输出。两者都要先确认使能端和有效电平。",
+      method: "列出控制变量的二进制组合，再逐行确定被选中的输出或数据通道，最后处理使能条件。",
+      rules: ["n 位译码输入通常对应 2ⁿ 个输出。", "数据选择器的选择端决定通道编号，数据端决定最终逻辑值。", "使能无效时，器件输出由其无效状态规定，与选择输入无关。"],
+      check: "能够由控制码找出有效输出或被选择的数据通道。"
+    },
+    {
+      match: /半加器|全加器|加法器|比较器/,
+      summary: "对二进制数执行算术或大小判断，核心是把每一位的输入、进位和输出关系写清楚。",
+      concept: "半加器处理两个本位输入，全加器还接收低位进位；比较器分别判断大于、等于和小于条件。",
+      method: "先完成一位电路的真值表和表达式，再通过级联扩展到多位结构，并检查进位或级联输入。",
+      rules: ["半加器：S=A⊕B，C=AB。", "全加器：S=A⊕B⊕Cin，进位由至少两个输入为 1 的条件产生。", "多位比较从最高位开始，只有高位相等时才继续比较低位。"],
+      check: "能够写出一位运算关系，并说明多位电路如何级联。"
+    },
+    {
+      match: /D 触发器|JK 触发器|SR 触发器|T 触发器|触发器/,
+      summary: "在时钟或触发条件到来时保存一位状态，是时序电路分析的基础。",
+      concept: "触发器的次态不仅取决于当前输入，还取决于现态。不同类型触发器通过特性表或特性方程描述状态更新。",
+      method: "先找有效时钟沿，再读取该时刻输入，最后根据特性表从 Qₙ 推出 Qₙ₊₁；不要在非有效沿随意改变状态。",
+      rules: ["D 触发器在有效沿满足 Qₙ₊₁=D。", "T 触发器 T=0 保持、T=1 翻转。", "JK 触发器 00 保持、01 置 0、10 置 1、11 翻转；SR 触发器要注意禁用组合。"],
+      check: "能够依据有效时钟沿和输入序列逐拍求出 Q 的变化。"
+    },
+    {
+      match: /移位寄存器|寄存器/,
+      summary: "由多个触发器共同保存多位数据，并在时钟作用下完成并行装载或串行移位。",
+      concept: "每个触发器保存一位，所有级通常共享时钟。移位方向决定相邻级之间的数据传递关系。",
+      method: "画出每一级的现态，从数据入口开始，按一个时钟沿同时更新所有级，避免把同步更新误写成逐级立即传播。",
+      rules: ["寄存器位数等于可同时保存的二进制位数。", "移位发生在有效时钟沿，各级使用沿到来前的旧状态。", "串入并出、并入串出等结构的区别在输入输出方式。"],
+      check: "能够根据初态、串行输入和时钟次数写出寄存器内容。"
+    },
+    {
+      match: /同步计数器|异步计数器|二进制计数器|模计数器|计数器/,
+      summary: "按照时钟脉冲在有限状态之间循环，是典型的时序逻辑状态机。",
+      concept: "模 M 计数器包含 M 个有效状态。同步计数器各级共用时钟，异步计数器由前一级输出触发后一级。",
+      method: "先确定模数和状态编码，再列状态转移表，最后由触发器特性求激励条件并检查无效状态如何回到有效循环。",
+      rules: ["容纳 M 个状态至少需要 ⌈log₂M⌉ 个触发器。", "同步计数器延迟较小；异步计数器结构简单但存在逐级传播延迟。", "非 2ⁿ 模计数器必须设计清零、置数或状态跳转逻辑。"],
+      check: "能够确定触发器数量、有效状态序列和下一状态。"
+    },
+    {
+      match: /波形分析|状态分析|状态转移表/,
+      summary: "把时钟、输入和现态联系起来，逐个有效时刻推导电路的下一状态和输出。",
+      concept: "状态表是离散描述，波形图是时间描述，两者表达的是同一组状态转移关系。",
+      method: "标出所有有效时钟沿，建立“现态—输入—次态—输出”表，再把每个次态带入下一拍作为现态。",
+      rules: ["只在规定的有效沿更新边沿触发器。", "组合输出可随输入变化，寄存输出通常只在状态更新后变化。", "分析前必须明确初态；没有初态时结果可能不唯一。"],
+      check: "能够从电路、状态表或波形中的任一种表示推导另外两种。"
+    },
+    {
+      match: /卡诺图|最小项|逻辑函数化简/,
+      summary: "利用相邻项合并消去变量，把逻辑函数化为更容易实现的形式。",
+      concept: "最小项对应输入变量的一种唯一取值。卡诺图按照格雷码排列，使几何相邻的单元只有一个变量不同。",
+      method: "先准确填图，再用 1、2、4、8… 个单元组成尽可能大的矩形圈，允许重叠并确保所有目标项至少被覆盖一次。",
+      rules: ["分组数量必须是 2 的整数次幂。", "分组越大，能够消去的变量越多。", "卡诺图左右边、上下边也相邻；不要遗漏边界合并。"],
+      check: "能够从最小项表达式填卡诺图并写出化简结果。"
+    },
+    {
+      match: /德摩根定律|逻辑代数|真值表|逻辑函数实现/,
+      summary: "用代数、真值表和门电路三种方式描述同一个逻辑关系。",
+      concept: "真值表枚举所有输入组合；逻辑表达式便于推导；门电路体现物理实现。三种表示应能相互转换。",
+      method: "复杂表达式先识别运算层级，再使用基本定律逐步变形，每一步都可用真值表抽查关键输入组合。",
+      rules: ["德摩根定律：乘积取反等于各项取反后相加；和式取反等于各项取反后相乘。", "吸收律：A+AB=A，A(A+B)=A。", "变量与其反变量满足 A+A′=1、AA′=0。"],
+      check: "能够在真值表、逻辑式和门电路之间进行转换并验证等价性。"
+    },
+    {
+      match: /或非门|逻辑门/,
+      summary: "用基本逻辑运算建立数字电路的输入输出关系。",
+      concept: "与、或、非是基本运算；与非、或非具有完备性，可以独立实现任意逻辑函数。异或常用于奇偶和不等关系。",
+      method: "从最内层逻辑门开始逐级计算中间节点，遇到输出端小圆圈先标记取反，再判断整体关系。",
+      rules: ["与门要求所有输入为 1 才输出 1。", "或门只要任一输入为 1 就输出 1。", "与非和或非都在基本运算结果后再取反。"],
+      check: "能够根据门电路逐级计算输出，并由逻辑式搭建对应电路。"
+    },
+    {
+      match: /二进制转换|十六进制转换|二进制运算|BCD 编码|格雷码|数制与编码/,
+      summary: "在不同数制和编码之间保持同一数值或信息含义，是后续数字电路分析的基础。",
+      concept: "数制转换保持数值不变，编码转换保持信息含义不变。BCD、格雷码等不能简单当作普通二进制数处理。",
+      method: "按位权展开可以统一处理任意进制；二进制与十六进制可从小数点向两侧每四位一组快速互换。",
+      rules: ["二进制位权从右到左依次为 2⁰、2¹、2²…。", "十六进制一位对应四位二进制。", "8421 BCD 按十进制数字逐位编码；格雷码相邻状态仅一位变化。"],
+      check: "能够区分数值转换与编码转换，并独立完成典型换算。"
+    },
+    {
+      match: /竞争冒险/,
+      summary: "同一输入变化通过不同延迟路径到达输出时，可能产生短暂错误脉冲。",
+      concept: "竞争描述信号到达先后不同，冒险描述这种竞争在输出端造成的瞬态错误。静态冒险可借助卡诺图检查相邻项是否被共同覆盖。",
+      method: "找出可能同时变化的路径，比较传播延迟，并在卡诺图中为相邻项增加冗余覆盖项。",
+      rules: ["组合逻辑中的不同路径通常具有不同传播延迟。", "增加共识项可以消除常见静态冒险。", "同步设计还应确保毛刺不会在有效采样时刻被寄存。"],
+      check: "能够识别潜在冒险路径并说明常见的消除方法。"
+    },
+    {
+      match: /组合逻辑设计|组合逻辑/,
+      summary: "输出只由当前输入决定，不保存历史状态；设计过程强调从需求到真值表再到电路实现。",
+      concept: "组合逻辑没有记忆单元和反馈状态。设计时应先定义输入输出含义，再建立完整逻辑关系。",
+      method: "按照“需求分析 → 变量定义 → 真值表 → 表达式 → 化简 → 门级实现 → 验证”的顺序完成设计。",
+      rules: ["先处理无关项和非法输入，避免真值表含义不清。", "化简目标应结合实际门电路资源，而不只追求项数最少。", "实现后至少用关键边界输入验证输出。"],
+      check: "能够把文字需求转换成真值表、逻辑表达式和可验证的门级电路。"
+    }
+  ];
+  const fallbackLesson = {
+    summary: "数字电路中的一个基础知识点，需要从输入、输出、约束条件和典型应用四个方面建立理解。",
+    concept: "先明确它解决什么问题，再确认信号的有效电平、时钟条件或状态依赖。",
+    method: "把抽象描述转换为真值表、状态表、逻辑表达式或波形图，再用题目中的具体输入验证规则。",
+    rules: ["先读清输入、输出和有效条件。", "区分组合逻辑的即时关系与时序逻辑的状态更新。", "使用一个典型输入验证结论是否符合定义。"],
+    check: "能够用自己的语言说明定义，并在典型题目中正确应用。"
   };
-  const renderSteps = () => {
-    const routeSteps = plan.steps || [];
-    const progressingIndex = routeSteps.findIndex((step) => step.status === "进行中");
-    const pendingIndex = routeSteps.findIndex((step) => step.status !== "已完成");
-    const activeIndex = progressingIndex >= 0 ? progressingIndex : Math.max(0, pendingIndex);
-    steps.innerHTML = routeSteps.map((step, index) => {
-      const isDone = step.status === "已完成";
-      const isActive = index === activeIndex && !isDone;
-      const notes = isActive ? (stepNotes[step.order] || []).map((note) => `<span class="route-step-note">${escapeHtml(note)}</span>`).join("") : "";
-      const detail = Number(step.order) === 2 && selectedFocus !== plan.primaryFocus
-        ? `围绕“${selectedFocus}”完成本轮针对练习。`
-        : step.detail;
-      const displayStatus = isActive ? "当前阶段" : step.status === "进行中" ? "待下一步" : step.status;
-      return `<article class="route-step ${isDone ? "done" : isActive ? "active" : ""}">
-        <span class="route-step-index">${escapeHtml(step.order)}</span>
-        <div class="route-step-main"><div class="route-step-copy"><strong>${escapeHtml(step.title)}</strong><p>${escapeHtml(detail)}</p></div><span class="route-step-state">${escapeHtml(displayStatus)}</span></div>
-        ${notes ? `<div class="route-step-notes">${notes}</div>` : ""}
-      </article>`;
-    }).join("");
-    const doneCount = routeSteps.filter((step) => step.status === "已完成").length;
-    const progressSummary = document.querySelector("#routeProgressSummary");
-    if (progressSummary) progressSummary.textContent = `${doneCount} / ${routeSteps.length || 4}`;
-    document.querySelector("#routeHeaderProgress").textContent = `${doneCount} / ${routeSteps.length || 4} 阶段完成`;
-  };
-  renderSteps();
 
-  document.querySelector("#routeEvidenceCopy").textContent = plan.review || "完成一轮练习后，系统会更新路线依据。";
-  const focusName = document.querySelector("#routeFocusName");
-  const focusCopy = document.querySelector("#routeFocusCopy");
-  const knowledgeList = document.querySelector("#routeKnowledgeList");
-  const renderFocus = () => {
+  const lessonFor = (knowledge) => lessonProfiles.find((profile) => profile.match.test(knowledge)) || fallbackLesson;
+  const questionsFor = (knowledge) => (questions || []).filter((question) => (question.knowledge || []).includes(knowledge));
+  const typeLabels = { single_choice: "选择题", fill_blank: "填空题", analysis: "分析题" };
+  const tabButtons = [...document.querySelectorAll("[data-route-tab]")];
+  const tabPanels = [...document.querySelectorAll("[data-route-panel]")];
+  let activeRouteTab = "core";
+  const activateRouteTab = (tabName) => {
+    activeRouteTab = tabName;
+    tabButtons.forEach((button) => {
+      const active = button.dataset.routeTab === tabName;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+    tabPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.routePanel !== tabName;
+    });
+  };
+  tabButtons.forEach((button) => button.addEventListener("click", () => {
+    if (!button.disabled) activateRouteTab(button.dataset.routeTab || "core");
+  }));
+
+  function renderLesson() {
+    const lesson = lessonFor(selectedFocus);
+    const matched = questionsFor(selectedFocus).sort((left, right) => Number(!left.explanation) - Number(!right.explanation)
+      || Number(left.type !== "single_choice") - Number(right.type !== "single_choice")
+      || (left.difficulty || 0) - (right.difficulty || 0));
+    const example = matched[0] || null;
     const selectedProgress = progressByKnowledge.get(selectedFocus);
-    focusName.textContent = selectedFocus;
-    focusCopy.textContent = selectedProgress
-      ? `当前正确率为 ${clampPercent(selectedProgress.rate)}%。本轮先补齐概念与解题步骤，再进行针对训练。`
-      : "该知识点尚未形成稳定记录。本轮将先完成基础诊断，再安排针对训练。";
-    const related = [...(progress.knowledge || [])]
-      .sort((left, right) => Number(left.knowledge !== selectedFocus) - Number(right.knowledge !== selectedFocus) || left.rate - right.rate)
-      .slice(0, 4);
-    knowledgeList.innerHTML = related.map((item) => `<div class="route-knowledge-item"><span>${escapeHtml(item.knowledge)}</span><span>${clampPercent(item.rate)}%</span></div>`).join("") || '<div class="platform-empty">暂无知识点记录</div>';
-  };
+    document.querySelector("#routeLessonTitle").textContent = selectedFocus;
+    document.querySelector("#routeLessonMastery").textContent = selectedProgress
+      ? `当前掌握度 ${clampPercent(selectedProgress.rate)}%`
+      : "尚未形成练习记录";
+    document.querySelector("#routeLessonSummary").textContent = `“${selectedFocus}”${lesson.summary}`;
+    document.querySelector("#routeLessonConcept").textContent = lesson.concept;
+    document.querySelector("#routeLessonMethod").textContent = lesson.method;
+    document.querySelector("#routeLessonRules").innerHTML = lesson.rules.map((rule) => `<li>${escapeHtml(rule)}</li>`).join("");
+    document.querySelector("#routeLessonCheck").textContent = lesson.check;
+    document.querySelector("#routeExampleCountLabel").textContent = matched.length ? `${matched.length} 道可用` : "暂无例题";
+    document.querySelector("#routeLessonDuration").textContent = matched.length ? "约 8 分钟" : "约 5 分钟";
+
+    const exampleTab = document.querySelector("#routeExampleTab");
+    exampleTab.disabled = !example;
+    if (example) {
+      document.querySelector("#routeExampleTitle").textContent = example.title || `${selectedFocus}例题`;
+      document.querySelector("#routeExampleType").textContent = typeLabels[example.type] || "例题";
+      document.querySelector("#routeExampleQuestion").textContent = example.text || "";
+      document.querySelector("#routeExampleDiagram").innerHTML = safeDiagramSvg(example.diagramSvg);
+      document.querySelector("#routeExampleOptions").innerHTML = example.type === "single_choice"
+        ? (example.options || []).map((option, index) => `<div><span>${optionLetter(index)}</span><p>${escapeHtml(option)}</p></div>`).join("")
+        : "";
+      document.querySelector("#routeExampleAnswer").textContent = `参考答案：${questionAnswerText(example) || "请结合上述规则作答"}`;
+      document.querySelector("#routeExampleExplanation").textContent = example.explanation || `先识别“${selectedFocus}”的适用条件，再按关键规则逐步推导。`;
+    }
+    if (!example && activeRouteTab === "example") activeRouteTab = "core";
+    activateRouteTab(activeRouteTab);
+  }
 
   const knowledgeGroups = document.querySelector("#routeKnowledgeGroups");
   const search = document.querySelector("#routeKnowledgeSearch");
@@ -647,38 +768,14 @@ async function initRoutePage() {
     knowledgeGroups.innerHTML = content || '<div class="route-knowledge-empty">没有找到匹配的知识点</div>';
   };
   renderKnowledgeGroups();
-  renderFocus();
+  renderLesson();
   search.addEventListener("input", renderKnowledgeGroups);
   knowledgeGroups.addEventListener("click", (event) => {
     const option = event.target.closest("[data-knowledge]");
     if (!option) return;
     selectedFocus = option.dataset.knowledge || selectedFocus;
-    document.querySelector("#routeQuestionCountLabel").textContent = "最多 5 题";
     renderKnowledgeGroups();
-    renderFocus();
-    renderSteps();
-  });
-
-  const runner = createRunner("route", { mode: "targeted" });
-  const status = pageNotice("routeStatus");
-  document.querySelector("#routeStartButton").addEventListener("click", async () => {
-    const button = document.querySelector("#routeStartButton");
-    button.disabled = true;
-    button.textContent = "正在准备训练…";
-    try {
-      const questions = await platformApi(`/api/targeted-questions?knowledge=${encodeURIComponent(selectedFocus)}&count=5`);
-      const section = document.querySelector("#routePracticeSection");
-      section.hidden = false;
-      runner.setQuestions(questions);
-      document.querySelector("#routeQuestionCountLabel").textContent = `${questions.length} 题`;
-      setPlatformNotice(status, `已围绕“${selectedFocus}”准备 ${questions.length} 道针对训练题，作答记录只计入本轮路线。`);
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (error) {
-      setPlatformNotice(status, `训练准备失败：${error.message}`, true);
-    } finally {
-      button.disabled = false;
-      button.textContent = "重新生成本轮训练";
-    }
+    renderLesson();
   });
 }
 
@@ -896,15 +993,26 @@ async function initSelfTestPage() {
     const weak = visibleWeakKnowledge();
     const coverage = weak.length
       ? weak.map((item) => ({ name: item.name, detail: `${item.wrongCount} 次待巩固`, weight: item.wrongCount }))
-      : scopeFallbacks[selectedScope].map((name, index) => ({ name, detail: "初始诊断覆盖", weight: 3 - index }));
+      : scopeFallbacks[selectedScope].map((name, index) => ({ name, detail: "基础巩固覆盖", weight: 3 - index }));
     const totalWeight = coverage.reduce((sum, item) => sum + item.weight, 0) || 1;
+    const quotas = coverage.map((item, index) => {
+      const exact = count * item.weight / totalWeight;
+      return { index, count: Math.floor(exact), remainder: exact - Math.floor(exact) };
+    });
+    let remaining = count - quotas.reduce((sum, item) => sum + item.count, 0);
+    [...quotas].sort((left, right) => right.remainder - left.remainder || left.index - right.index)
+      .forEach((item) => {
+        if (remaining <= 0) return;
+        quotas[item.index].count += 1;
+        remaining -= 1;
+      });
     document.querySelector("#selfTestPreviewScope").textContent = `覆盖${scopeLabels[selectedScope]}`;
     document.querySelector("#selfTestPaperTotal").textContent = `共 ${count} 题`;
     document.querySelector("#selfTestChoiceCount").textContent = `${choiceCount} 题`;
     document.querySelector("#selfTestAnalysisCount").textContent = `${analysisCount} 题`;
     document.querySelector("#selfTestDuration").textContent = `约 ${Math.max(12, Math.round(count * 2.5))} 分钟`;
     document.querySelector("#selfTestCoverageList").innerHTML = coverage.map((item, index) => {
-      const quota = Math.max(1, Math.round(count * item.weight / totalWeight));
+      const quota = quotas[index].count;
       return `<div class="self-test-coverage-item"><span>${String(index + 1).padStart(2, "0")}</span><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.detail)}</small></div><em>约 ${quota} 题</em></div>`;
     }).join("");
     scopeButtons.forEach((button) => button.classList.toggle("active", button.dataset.value === selectedScope));
@@ -917,7 +1025,7 @@ async function initSelfTestPage() {
     if (!weak.length) {
       summary.textContent = "暂无薄弱点记录";
       note.hidden = true;
-      list.innerHTML = '<div class="self-test-source-loading">将按所选范围生成初始诊断卷</div>';
+      list.innerHTML = '<div class="self-test-source-loading">将按所选范围生成基础巩固任务</div>';
       return;
     }
     note.hidden = false;
@@ -954,8 +1062,8 @@ async function initSelfTestPage() {
   document.querySelector("#generateSelfTestButton").addEventListener("click", async () => {
     const button = document.querySelector("#generateSelfTestButton");
     button.disabled = true;
-    button.innerHTML = "<span>AI 正在分析并组卷…</span><small>正在匹配薄弱知识点</small>";
-    setPlatformNotice(status, "大模型正在分析错题知识点并生成新试卷。请稍候...");
+    button.innerHTML = "<span>正在生成学习任务…</span><small>优先从本地题库匹配薄弱知识点</small>";
+    setPlatformNotice(status, "正在根据错题记录、掌握程度和薄弱知识点组合针对性学习任务；仅在题库不足时由 AI 补充。请稍候...");
     try {
       questions = await platformApi("/api/self-test", {
         method: "POST",
@@ -969,16 +1077,16 @@ async function initSelfTestPage() {
       runner.setQuestions(questions);
       renderDirectory();
       paper.classList.add("active");
-      setPlatformNotice(status, `AI 阶段自测已生成，共 ${questions.length} 题。`);
+      setPlatformNotice(status, `个性化学习任务已生成，共 ${questions.length} 题。`);
       paper.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
       const message = /AI Key|未配置|AI_SELF_TEST_UNAVAILABLE/i.test(error.message)
-        ? "AI 组卷服务尚未配置。请先返回“普通练习”，在右下角“AI 助教 → 设置”中完成配置，再回来生成试卷。"
+        ? "个性化学习服务尚未配置。请先返回“普通练习”，在右下角“AI 助教 → 设置”中完成配置，再回来生成学习任务。"
         : error.message;
       setPlatformNotice(status, message, true);
     } finally {
       button.disabled = false;
-      button.innerHTML = "<span>重新生成阶段自测</span>";
+      button.innerHTML = "<span>重新生成学习任务</span>";
     }
   });
 }
@@ -1059,9 +1167,9 @@ async function initReviewPage() {
     document.querySelector("#reviewAdvice").innerHTML = `<strong>${stats.answered ? `下一步优先：${escapeHtml(primaryFocus)}` : "先完成一轮练习"}</strong><p>${escapeHtml(motivation.message || progress.effectiveness?.conclusion || "继续完成练习，形成更完整的学习轨迹。")}</p>`;
     const chevron = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>';
     document.querySelector("#reviewActions").innerHTML = `
-      <a class="review-action-link primary" href="./learning-route.html"><span>1</span><span><strong>巩固薄弱知识点</strong><small>围绕“${escapeHtml(primaryFocus)}”继续训练</small></span>${chevron}</a>
+      <a class="review-action-link primary" href="./learning-route.html"><span>1</span><span><strong>复习薄弱知识点</strong><small>围绕“${escapeHtml(primaryFocus)}”回顾概念与规则</small></span>${chevron}</a>
       <a class="review-action-link" href="./wrong-review.html"><span>2</span><span><strong>完成错题复盘</strong><small>${progress.unresolvedWrong || 0} 道题等待订正</small></span>${chevron}</a>
-      <a class="review-action-link" href="./self-test.html"><span>3</span><span><strong>进行阶段自测</strong><small>验证本轮学习成果</small></span>${chevron}</a>`;
+      <a class="review-action-link" href="./self-test.html"><span>3</span><span><strong>开始个性化学习</strong><small>根据学习记录生成针对性任务</small></span>${chevron}</a>`;
     renderTrend();
   }
   async function load() {

@@ -1801,8 +1801,8 @@
             <span class="ghost-helper-title">AI 虚影辅助</span>
           </button>
           <div class="ghost-helper-body">
-            <small>输入目标电路，例如：半加器、全加器、2选1多路选择器。</small>
-            <textarea id="ghostPrompt" rows="2" placeholder="想搭建：半加器"></textarea>
+            <small>描述目标功能，AI 将结合当前画布规划元件与连线。</small>
+            <textarea id="ghostPrompt" rows="2" placeholder="例如：两个输入不同时点亮输出灯"></textarea>
             <div class="ghost-buttons">
               <button class="primary" id="ghostGenerateButton" type="button">生成虚影</button>
               <button id="ghostClearButton" type="button">清除</button>
@@ -2030,6 +2030,8 @@
     let libraryResizeState = null;
     let analysisResizeState = null;
     let activeGhost = null;
+    let ghostRequestController = null;
+    let ghostRequestSequence = 0;
     const inputSnapRadius = 34;
     const componentResizeZone = 10;
     const ghostMatchTolerance = 130;
@@ -2451,10 +2453,13 @@
         ghost.style.left = `${point.x}px`;
         ghost.style.top = `${point.y}px`;
         ghost.style.transform = `scale(${boardZoom})`;
-        ghost.innerHTML = `
-          <span class="ghost-kind">${componentDefs[node.type].label}</span>
-          <span class="ghost-name">${node.label}</span>
-        `;
+        const kind = document.createElement("span");
+        kind.className = "ghost-kind";
+        kind.textContent = componentDefs[node.type].label;
+        const name = document.createElement("span");
+        name.className = "ghost-name";
+        name.textContent = node.label;
+        ghost.append(kind, name);
         ghostLayer.appendChild(ghost);
       });
     }
@@ -2469,27 +2474,291 @@
     function cloneGhostTemplate(template) {
       return {
         name: template.name,
+        summary: "AI 不可用时采用的内置备用结构。",
+        source: "fallback",
         nodes: template.nodes.map((node) => ({ ...node })),
-        wires: template.wires.map((wire) => ({ ...wire })),
-        truth: template.truth
+        wires: template.wires.map((wire) => ({ ...wire }))
       };
     }
 
-    function generateGhostGuide() {
-      const template = templateFromPrompt(ghostPrompt.value);
-      if (!template) {
-        ghostStatus.textContent = "暂未识别目标。当前支持：半加器、全加器、2选1多路选择器。";
-        showToast("请输入半加器、全加器或多路选择器");
+    function ghostCanvasSnapshot() {
+      return {
+        components: components.slice(0, 24).map((component) => ({
+          id: component.id,
+          type: component.type
+        })),
+        wires: wires.slice(0, 48).map((wire) => ({
+          from: wire.from.id,
+          fromPort: wire.from.port || 0,
+          to: wire.to.id,
+          toPort: wire.to.port || 0
+        }))
+      };
+    }
+
+    function normalizeGhostTopology(rawPlan) {
+      if (!rawPlan || typeof rawPlan !== "object" || !Array.isArray(rawPlan.nodes) || !Array.isArray(rawPlan.wires)) {
+        throw new Error("方案结构不完整");
+      }
+      if (rawPlan.nodes.length < 2 || rawPlan.nodes.length > 24 || rawPlan.wires.length > 64) {
+        throw new Error("方案规模超出画布可处理范围");
+      }
+      const nodeIds = new Set();
+      const nodes = rawPlan.nodes.map((item, index) => {
+        const id = String(item?.id || `N${index + 1}`).trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+        const type = String(item?.type || "").trim().toUpperCase();
+        if (!id || nodeIds.has(id) || !componentDefs[type]) throw new Error("方案包含重复或不支持的元件");
+        nodeIds.add(id);
+        return {
+          id,
+          type,
+          label: String(item?.label || `${componentDefs[type].cn} ${index + 1}`).trim().slice(0, 60),
+          reuseComponentId: String(item?.reuseComponentId || "").trim().slice(0, 80)
+        };
+      });
+      if (!nodes.some((node) => node.type === "OUTPUT")) throw new Error("方案缺少输出元件");
+      const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+      const occupiedInputs = new Set();
+      const outgoingNodes = new Set();
+      const wiresNormalized = rawPlan.wires.map((item) => {
+        const from = String(item?.from?.id || item?.from?.node || item?.from || "").trim();
+        const to = String(item?.to?.id || item?.to?.node || item?.to || "").trim();
+        const source = nodeMap.get(from);
+        const target = nodeMap.get(to);
+        if (!source || !target || from === to) throw new Error("方案包含无效连线");
+        const rawFromPort = item?.fromPort ?? item?.from?.port;
+        const fromPort = rawFromPort == null ? 0 : Number(rawFromPort);
+        const rawToPort = item?.toPort ?? item?.port ?? item?.to?.port;
+        let toPort = rawToPort == null ? -1 : Number(rawToPort);
+        if (toPort < 0) {
+          toPort = Array.from({ length: inputCount(target.type) }, (_, index) => index)
+            .find((index) => !occupiedInputs.has(`${to}:${index}`));
+        }
+        if (!Number.isInteger(fromPort) || fromPort < 0 || fromPort >= outputCount(source.type)
+          || !Number.isInteger(toPort) || toPort < 0 || toPort >= inputCount(target.type)) {
+          throw new Error("方案包含越界端口");
+        }
+        const inputKey = `${to}:${toPort}`;
+        if (occupiedInputs.has(inputKey)) throw new Error("同一输入端口被重复连接");
+        occupiedInputs.add(inputKey);
+        outgoingNodes.add(from);
+        return { from, fromPort, to, toPort };
+      });
+      if (!wiresNormalized.length) throw new Error("方案缺少连线");
+      nodes.forEach((node) => {
+        for (let port = 0; port < inputCount(node.type); port += 1) {
+          if (!occupiedInputs.has(`${node.id}:${port}`)) throw new Error(`${node.label} 的输入端口未连接完整`);
+        }
+        if (node.type !== "OUTPUT" && !outgoingNodes.has(node.id)) throw new Error(`${node.label} 未接入目标电路`);
+      });
+
+      const indegree = new Map(nodes.map((node) => [node.id, 0]));
+      const adjacency = new Map(nodes.map((node) => [node.id, []]));
+      wiresNormalized.forEach((wire) => {
+        indegree.set(wire.to, indegree.get(wire.to) + 1);
+        adjacency.get(wire.from).push(wire.to);
+      });
+      const queue = nodes.filter((node) => indegree.get(node.id) === 0).map((node) => node.id);
+      let visited = 0;
+      while (queue.length) {
+        const id = queue.shift();
+        visited += 1;
+        adjacency.get(id).forEach((nextId) => {
+          indegree.set(nextId, indegree.get(nextId) - 1);
+          if (indegree.get(nextId) === 0) queue.push(nextId);
+        });
+      }
+      if (visited !== nodes.length) throw new Error("方案包含组合逻辑环路");
+      return {
+        name: String(rawPlan.name || "AI 生成电路").trim().slice(0, 80),
+        summary: String(rawPlan.summary || "已生成元件与连接关系。").trim().slice(0, 220),
+        source: rawPlan.source === "ai" ? "ai" : "fallback",
+        nodes,
+        wires: wiresNormalized
+      };
+    }
+
+    function layoutGhostTopology(plan) {
+      const indegree = new Map(plan.nodes.map((node) => [node.id, 0]));
+      const adjacency = new Map(plan.nodes.map((node) => [node.id, []]));
+      plan.wires.forEach((wire) => {
+        indegree.set(wire.to, indegree.get(wire.to) + 1);
+        adjacency.get(wire.from).push(wire.to);
+      });
+      const depth = new Map(plan.nodes.map((node) => [node.id, 0]));
+      const queue = plan.nodes.filter((node) => indegree.get(node.id) === 0).map((node) => node.id);
+      while (queue.length) {
+        const id = queue.shift();
+        adjacency.get(id).forEach((nextId) => {
+          depth.set(nextId, Math.max(depth.get(nextId), depth.get(id) + 1));
+          indegree.set(nextId, indegree.get(nextId) - 1);
+          if (indegree.get(nextId) === 0) queue.push(nextId);
+        });
+      }
+      const maximumDepth = Math.max(...depth.values(), 1);
+      const columns = new Map();
+      plan.nodes.forEach((node) => {
+        const column = depth.get(node.id);
+        columns.set(column, [...(columns.get(column) || []), node]);
+      });
+      const usedComponents = new Set();
+      const positioned = [];
+      [...columns.entries()].sort((left, right) => left[0] - right[0]).forEach(([column, columnNodes]) => {
+        columnNodes.sort((left, right) => left.id.localeCompare(right.id));
+        columnNodes.forEach((node, row) => {
+          const reusable = components.find((component) => component.id === node.reuseComponentId
+            && component.type === node.type && !usedComponents.has(component.id));
+          if (reusable) usedComponents.add(reusable.id);
+          const x = reusable ? reusable.x : 90 + column * (1320 / maximumDepth);
+          const y = reusable ? reusable.y : columnNodes.length === 1
+            ? 455
+            : 70 + row * (820 / (columnNodes.length - 1));
+          positioned.push({ ...node, x: clamp(x, 30, boardWorldSize.width - 150), y: clamp(y, 30, boardWorldSize.height - 100) });
+        });
+      });
+      return { ...plan, nodes: positioned };
+    }
+
+    function evaluateGhostOutputs(plan, inputValues = {}) {
+      const virtualNodes = plan.nodes.map((node) => {
+        const def = componentDefs[node.type];
+        const outputs = Array(outputCount(def)).fill(null);
+        const value = node.type === "INPUT" ? (inputValues[node.id] ? 1 : 0) : def.constValue ?? null;
+        if (node.type === "INPUT" || typeof def.constValue === "number") outputs[0] = value;
+        return {
+          id: node.id,
+          type: node.type,
+          value,
+          inputs: Array(inputCount(def)).fill(null),
+          outputs,
+          output: outputs[0] ?? null
+        };
+      });
+      const virtualById = new Map(virtualNodes.map((node) => [node.id, node]));
+      let changed = true;
+      let guard = 0;
+      while (changed && guard < virtualNodes.length + plan.wires.length + 8) {
+        changed = false;
+        guard += 1;
+        plan.wires.forEach((wire) => {
+          const source = virtualById.get(wire.from);
+          const target = virtualById.get(wire.to);
+          const value = source.outputs?.[wire.fromPort] ?? null;
+          if (target.inputs[wire.toPort] !== value) {
+            target.inputs[wire.toPort] = value;
+            changed = true;
+          }
+        });
+        virtualNodes.forEach((node) => {
+          const previous = JSON.stringify([node.output, node.outputs]);
+          if (node.type === "OUTPUT") {
+            node.output = node.inputs[0];
+          } else if (node.type !== "INPUT" && typeof componentDefs[node.type].constValue !== "number") {
+            node.outputs = evaluateComponentOutputs(node);
+            node.output = node.outputs[0] ?? null;
+          }
+          if (previous !== JSON.stringify([node.output, node.outputs])) changed = true;
+        });
+      }
+      return Object.fromEntries(virtualNodes.filter((node) => node.type === "OUTPUT")
+        .map((node) => [node.id, node.output]));
+    }
+
+    function validateGhostSimulation(plan) {
+      const inputs = plan.nodes.filter((node) => node.type === "INPUT");
+      const combinations = inputs.length <= 6 ? 2 ** inputs.length : 64;
+      for (let pattern = 0; pattern < combinations; pattern += 1) {
+        const values = Object.fromEntries(inputs.map((node, index) => [node.id, (pattern >> (index % 6)) & 1]));
+        const outputs = evaluateGhostOutputs(plan, values);
+        if (!Object.keys(outputs).length || Object.values(outputs).some((value) => value !== 0 && value !== 1)) {
+          throw new Error("本地仿真无法得到确定输出");
+        }
+      }
+    }
+
+    function prepareGhostPlan(rawPlan) {
+      const plan = layoutGhostTopology(normalizeGhostTopology(rawPlan));
+      validateGhostSimulation(plan);
+      return { ...plan, truth: (values) => evaluateGhostOutputs(plan, values) };
+    }
+
+    async function requestGhostPlan(requirement, signal) {
+      const response = await fetch("/api/ghost-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirement, canvas: ghostCanvasSnapshot() }),
+        signal
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const error = new Error(data.error || `AI 请求失败：${response.status}`);
+        error.code = data.code || "AI_GHOST_FAILED";
+        throw error;
+      }
+      if (!data.plan) throw new Error("AI 没有返回可用方案");
+      return data;
+    }
+
+    async function generateGhostGuide() {
+      const requirement = ghostPrompt.value.trim();
+      if (!requirement) {
+        ghostStatus.textContent = "请先描述希望搭建的电路功能。";
+        showToast("请输入电路需求");
         return;
       }
-      activeGhost = cloneGhostTemplate(template);
-      setBoardPan(0, 0, false);
-      render();
-      ghostStatus.textContent = `已生成「${activeGhost.name}」虚影。\n按虚影拖放元件并连接，系统会实时检查完成度。`;
-      appendAnalysisMessage("system", `AI 虚影已生成：${activeGhost.name}。请根据半透明目标结构手动搭建电路。`);
+      if (ghostGenerateButton.disabled) return;
+      const requestId = ++ghostRequestSequence;
+      ghostRequestController?.abort();
+      const controller = new AbortController();
+      ghostRequestController = controller;
+      const timeout = window.setTimeout(() => controller.abort(), 22000);
+      ghostGenerateButton.disabled = true;
+      ghostGenerateButton.textContent = "AI 规划中…";
+      ghostStatus.textContent = "AI 正在结合当前画布、可用元件和连接规则规划电路结构…";
+      try {
+        const result = await requestGhostPlan(requirement, controller.signal);
+        if (requestId !== ghostRequestSequence) return;
+        activeGhost = prepareGhostPlan(result.plan);
+        setBoardPan(0, 0, false);
+        render();
+        const elapsed = result.elapsedMs > 0 ? `，耗时 ${(result.elapsedMs / 1000).toFixed(1)} 秒` : "";
+        ghostStatus.textContent = `已生成「${activeGhost.name}」AI 虚影${elapsed}。\n本地已完成自动布局、端口校验和仿真验证，请按虚影搭建。`;
+        appendAnalysisMessage("system", `AI 已规划「${activeGhost.name}」的元件与连接关系；坐标、端口和仿真由本地完成。${activeGhost.summary}`);
+      } catch (error) {
+        if (requestId !== ghostRequestSequence) return;
+        const fallback = templateFromPrompt(requirement);
+        if (!fallback) {
+          const reason = error.name === "AbortError" ? "AI 响应超时" : error.message;
+          ghostStatus.textContent = `${reason}，且没有匹配到内置备用模板。请简化需求后重试。`;
+          showToast("AI 虚影生成失败");
+          return;
+        }
+        try {
+          activeGhost = prepareGhostPlan(cloneGhostTemplate(fallback));
+          setBoardPan(0, 0, false);
+          render();
+          ghostStatus.textContent = `AI 暂不可用，已使用内置「${activeGhost.name}」模板作为备用。\n本地已完成布局、端口校验和仿真验证。`;
+          appendAnalysisMessage("system", `AI 虚影生成未完成，已切换到内置「${activeGhost.name}」备用模板。`);
+        } catch (fallbackError) {
+          ghostStatus.textContent = `备用模板校验失败：${fallbackError.message}`;
+          showToast("虚影方案不可用");
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        if (requestId === ghostRequestSequence) {
+          ghostRequestController = null;
+          ghostGenerateButton.disabled = false;
+          ghostGenerateButton.textContent = "生成虚影";
+        }
+      }
     }
 
     function clearGhostGuide() {
+      ghostRequestSequence += 1;
+      ghostRequestController?.abort();
+      ghostRequestController = null;
+      ghostGenerateButton.disabled = false;
+      ghostGenerateButton.textContent = "生成虚影";
       activeGhost = null;
       render();
       ghostStatus.textContent = "尚未生成虚影。";
@@ -2519,8 +2788,9 @@
       return matches;
     }
 
-    function wireMatchesTarget(fromId, toId) {
-      return wires.some((wire) => wire.from.id === fromId && wire.to.id === toId);
+    function wireMatchesTarget(fromId, fromPort, toId, toPort) {
+      return wires.some((wire) => wire.from.id === fromId && (wire.from.port || 0) === fromPort
+        && wire.to.id === toId && (wire.to.port || 0) === toPort);
     }
 
     function updateGhostEvaluation() {
@@ -2534,7 +2804,7 @@
       const matchedWires = activeGhost.wires.filter((wire) => {
         const from = matches.get(wire.from);
         const to = matches.get(wire.to);
-        return from && to && wireMatchesTarget(from.id, to.id);
+        return from && to && wireMatchesTarget(from.id, wire.fromPort, to.id, wire.toPort);
       }).length;
 
       const inputValues = {};

@@ -74,14 +74,67 @@ test("targeted practice prioritizes the requested knowledge", () => {
   }
 });
 
+test("personalized learning uses the local bank without calling AI when enough questions exist", async () => {
+  const { store, cleanup } = fixture();
+  let calls = 0;
+  const practice = new PracticeService(store, {
+    async generateSelfTest() {
+      calls += 1;
+      throw new Error("AI should not be called when the local bank is sufficient");
+    }
+  });
+  try {
+    const questions = await practice.selfTest("basic-logic", 8, "local-first-learner");
+    assert.equal(calls, 0);
+    assert.equal(questions.length, 8);
+    assert.ok(questions.every((question) => ["single_choice", "fill_blank", "analysis"].includes(question.type)));
+    const typeRank = { single_choice: 0, fill_blank: 1, analysis: 2 };
+    assert.deepEqual(questions.map((question) => question.type), [...questions]
+      .sort((left, right) => typeRank[left.type] - typeRank[right.type])
+      .map((question) => question.type));
+  } finally {
+    cleanup();
+  }
+});
+
+test("personalized learning calls AI once only for the local bank shortage", async () => {
+  const { store, cleanup } = fixture();
+  const localQuestion = store.questions({ scope: "basic-logic" }).find((question) => question.type === "single_choice");
+  store.questions = () => [localQuestion];
+  let calls = 0;
+  let requestedCount = 0;
+  const practice = new PracticeService(store, {
+    async generateSelfTest(profile) {
+      calls += 1;
+      requestedCount = profile.count;
+      return Array.from({ length: profile.count }, (_, index) => ({
+        ...localQuestion,
+        id: `ai-shortage-${index}`,
+        title: `AI 补充任务 ${index + 1}`,
+        text: `AI 补充题干 ${index + 1}`,
+        generatedSelfTest: true,
+        source: "AI 个性化学习"
+      }));
+    }
+  });
+  try {
+    const questions = await practice.selfTest("basic-logic", 3, "shortage-learner");
+    assert.equal(calls, 1);
+    assert.equal(requestedCount, 2);
+    assert.equal(questions.length, 3);
+  } finally {
+    cleanup();
+  }
+});
+
 test("AI self-test uses wrong knowledge and registers generated questions for normal grading", async () => {
   const { store, cleanup } = fixture();
   let receivedProfile;
   const generatedQuestion = {
     id: "ai-selftest-fixture-1",
     scope: "basic-logic",
-    chapter: "AI 阶段自测",
-    title: "德摩根定律自测",
+    chapter: "个性化学习",
+    title: "德摩根定律巩固",
     type: "single_choice",
     text: "(A·B)' 等价于什么？",
     options: ["A'+B'", "A'·B'", "A+B", "A·B"],
@@ -92,7 +145,7 @@ test("AI self-test uses wrong knowledge and registers generated questions for no
     keywords: [],
     difficulty: 2,
     generatedSelfTest: true,
-    source: "AI 阶段自测"
+    source: "AI 个性化学习"
   };
   const ai = {
     async generateSelfTest(profile) {
@@ -104,11 +157,15 @@ test("AI self-test uses wrong knowledge and registers generated questions for no
 
   try {
     await practice.answer({ questionId: "base-007", answer: "B", practiceMode: "normal" });
+    const originalQuestions = store.questions.bind(store);
+    const profileOnlyQuestion = { ...originalQuestions().find((question) => question.id === "base-007"), type: "profile_only" };
+    store.questions = (filters = {}) => Object.keys(filters).length ? [profileOnlyQuestion] : originalQuestions(filters);
     const paper = await practice.selfTest("all", 1);
 
     assert.equal(paper.length, 1);
     assert.equal(receivedProfile.count, 1);
     assert.ok(receivedProfile.weakKnowledge.some((item) => item.name === "德摩根定律"));
+    assert.ok(receivedProfile.knowledgeMastery.some((item) => item.name === "德摩根定律"));
     assert.deepEqual(receivedProfile.targetKnowledgePlan, [receivedProfile.weakKnowledge[0].name]);
     assert.equal(store.questions().some((question) => question.id === generatedQuestion.id), false);
     assert.equal(store.question(generatedQuestion.id)?.generatedSelfTest, true);

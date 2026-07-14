@@ -29,6 +29,93 @@ function answerIndex(value) {
   return Number.isInteger(numeric) ? numeric : null;
 }
 
+const ghostComponentCatalog = Object.freeze({
+  INPUT: { inputs: [], outputs: ["Q"] },
+  OUTPUT: { inputs: ["IN"], outputs: [] },
+  CONST0: { inputs: [], outputs: ["0"] },
+  CONST1: { inputs: [], outputs: ["1"] },
+  AND: { inputs: ["A", "B"], outputs: ["Y"] },
+  OR: { inputs: ["A", "B"], outputs: ["Y"] },
+  NOT: { inputs: ["A"], outputs: ["Y"] },
+  XOR: { inputs: ["A", "B"], outputs: ["Y"] },
+  NAND: { inputs: ["A", "B"], outputs: ["Y"] },
+  NOR: { inputs: ["A", "B"], outputs: ["Y"] },
+  XNOR: { inputs: ["A", "B"], outputs: ["Y"] },
+  HALF_ADDER: { inputs: ["A", "B"], outputs: ["S", "C"] },
+  FULL_ADDER: { inputs: ["A", "B", "Cin"], outputs: ["S", "Cout"] },
+  MUX2: { inputs: ["D0", "D1", "S"], outputs: ["Y"] },
+  MUX4: { inputs: ["D0", "D1", "D2", "D3", "S1", "S0"], outputs: ["Y"] },
+  DECODER24: { inputs: ["A1", "A0"], outputs: ["Y0", "Y1", "Y2", "Y3"] },
+  COMPARATOR: { inputs: ["A", "B"], outputs: ["A>B", "A=B", "A<B"] },
+  PARITY: { inputs: ["A", "B", "C", "D"], outputs: ["P"] }
+});
+
+function ghostPortIndex(value, labels, fallback = 0) {
+  if (Number.isInteger(value)) return value;
+  const text = String(value ?? "").trim();
+  if (!text) return fallback;
+  if (/^\d+$/.test(text)) return Number(text);
+  return labels.findIndex((label) => label.toLowerCase() === text.toLowerCase());
+}
+
+function normalizeGhostPlan(raw = {}) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("AI 虚影方案必须是对象");
+  }
+  const rawNodes = Array.isArray(raw.nodes) ? raw.nodes.slice(0, 24) : [];
+  const nodes = [];
+  const nodeById = new Map();
+  rawNodes.forEach((item, index) => {
+    const type = String(item?.type || "").trim().toUpperCase();
+    const id = String(item?.id || `N${index + 1}`).trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+    if (!id || nodeById.has(id)) throw new Error("AI 虚影方案包含重复或无效的元件 ID");
+    if (!ghostComponentCatalog[type]) throw new Error(`AI 虚影方案包含不支持的元件 ${type || "未知"}`);
+    const node = {
+      id,
+      type,
+      label: String(item?.label || `${type} ${index + 1}`).trim().slice(0, 60),
+      ...(String(item?.reuseComponentId || "").trim()
+        ? { reuseComponentId: String(item.reuseComponentId).trim().slice(0, 80) }
+        : {})
+    };
+    nodes.push(node);
+    nodeById.set(id, node);
+  });
+  if (nodes.length < 2 || !nodes.some((node) => node.type === "OUTPUT")) {
+    throw new Error("AI 虚影方案缺少可执行的元件或输出");
+  }
+
+  const occupiedInputs = new Set();
+  const wires = (Array.isArray(raw.wires) ? raw.wires : Array.isArray(raw.connections) ? raw.connections : [])
+    .slice(0, 64).map((item) => {
+      const from = String(item?.from?.node || item?.from?.id || item?.from || "").trim();
+      const to = String(item?.to?.node || item?.to?.id || item?.to || "").trim();
+      const source = nodeById.get(from);
+      const target = nodeById.get(to);
+      if (!source || !target || from === to) throw new Error("AI 虚影方案包含无效连线");
+      const sourceDef = ghostComponentCatalog[source.type];
+      const targetDef = ghostComponentCatalog[target.type];
+      const fromPort = ghostPortIndex(item?.fromPort ?? item?.from?.port, sourceDef.outputs, 0);
+      const toPort = ghostPortIndex(item?.toPort ?? item?.port ?? item?.to?.port, targetDef.inputs, 0);
+      if (fromPort < 0 || fromPort >= sourceDef.outputs.length
+        || toPort < 0 || toPort >= targetDef.inputs.length) {
+        throw new Error("AI 虚影方案包含越界端口");
+      }
+      const inputKey = `${to}:${toPort}`;
+      if (occupiedInputs.has(inputKey)) throw new Error("AI 虚影方案重复连接同一输入端口");
+      occupiedInputs.add(inputKey);
+      return { from, fromPort, to, toPort };
+    });
+  if (!wires.length) throw new Error("AI 虚影方案缺少连线");
+  return {
+    name: String(raw.name || "AI 生成电路").trim().slice(0, 80),
+    summary: String(raw.summary || "已根据需求生成元件与连接关系。").trim().slice(0, 220),
+    nodes,
+    wires,
+    source: "ai"
+  };
+}
+
 function semanticList(value, field) {
   if (!Array.isArray(value) || value.length > 8) {
     throw new Error(`AI 语义判题字段 ${field} 无效`);
@@ -146,20 +233,20 @@ function normalizeSelfTestQuestion(rawQuestion = {}, profile, index) {
   return {
     id: `ai-selftest-${randomUUID()}`,
     scope: profile.scope === "all" ? String(rawQuestion.scope || "custom").trim() || "custom" : profile.scope,
-    chapter: "AI 阶段自测",
-    title: String(rawQuestion.title || `阶段自测第 ${index + 1} 题`).trim(),
+    chapter: "个性化学习",
+    title: String(rawQuestion.title || `个性化学习任务 ${index + 1}`).trim().slice(0, 160),
     type: isChoice ? "single_choice" : "analysis",
-    text: String(rawQuestion.text || "").trim(),
+    text: String(rawQuestion.text || "").trim().slice(0, 1600),
     options: isChoice ? options : [],
     answer: isChoice && Number.isInteger(answer) ? answer : null,
-    answerText,
-    explanation: String(rawQuestion.explanation || "").trim(),
+    answerText: answerText.slice(0, 1000),
+    explanation: String(rawQuestion.explanation || "").trim().slice(0, 400),
     knowledge,
     targetKnowledge: String(rawQuestion.targetKnowledge || fallbackKnowledge).trim(),
     keywords: isChoice ? [] : keywords,
     difficulty: Math.max(1, Math.min(Number(rawQuestion.difficulty) || 2, 5)),
     generatedSelfTest: true,
-    source: "AI 阶段自测"
+    source: "AI 个性化学习"
   };
 }
 
@@ -213,7 +300,7 @@ export class AiService {
     return Boolean(this.store.aiConfig().apiKey);
   }
 
-  model({ temperature = 0.2, maxTokens = 700 } = {}) {
+  model({ temperature = 0.2, maxTokens = 700, timeout = 45000, maxRetries = 2 } = {}) {
     const config = this.store.aiConfig();
     if (!config.apiKey) throw new Error("未配置 AI Key");
     return new ChatOpenAI({
@@ -222,11 +309,70 @@ export class AiService {
       temperature,
       maxTokens,
       streamUsage: false,
-      timeout: 45000,
+      timeout,
+      maxRetries,
       configuration: {
         baseURL: config.baseUrl
       }
     });
+  }
+
+  async generateGhostPlan(request = {}) {
+    if (!this.configured()) {
+      const error = new Error("AI 虚影生成尚未配置，请先设置 AI Key。");
+      error.status = 503;
+      error.code = "AI_NOT_CONFIGURED";
+      throw error;
+    }
+    const requirement = String(request.requirement || "").trim().slice(0, 600);
+    if (!requirement) {
+      const error = new Error("请先输入电路需求。");
+      error.status = 400;
+      error.code = "GHOST_REQUIREMENT_REQUIRED";
+      throw error;
+    }
+    const canvas = request.canvas && typeof request.canvas === "object" ? request.canvas : {};
+    const compactCanvas = {
+      components: (Array.isArray(canvas.components) ? canvas.components : []).slice(0, 24)
+        .map((item) => ({ id: String(item?.id || "").slice(0, 80), type: String(item?.type || "").slice(0, 40) })),
+      wires: (Array.isArray(canvas.wires) ? canvas.wires : []).slice(0, 48)
+        .map((item) => ({
+          from: String(item?.from?.id ?? item?.from ?? "").slice(0, 80),
+          fromPort: Number(item?.fromPort ?? item?.from?.port ?? 0),
+          to: String(item?.to?.id ?? item?.to ?? "").slice(0, 80),
+          toPort: Number(item?.toPort ?? item?.port ?? item?.to?.port ?? 0)
+        }))
+    };
+    const catalog = Object.entries(ghostComponentCatalog).map(([type, ports]) => ({ type, ...ports }));
+    const prompt = [
+      `需求：${requirement}`,
+      `当前画布：${JSON.stringify(compactCanvas)}`,
+      `可用元件：${JSON.stringify(catalog)}`,
+      "只规划元件和连线，不输出坐标、SVG、仿真结果或长篇解释。尽量复用当前画布已有元件，可用 reuseComponentId 标记。",
+      "连接规则：输出只能连接输入；禁止自连；每个输入端口最多一条连线；端口使用从 0 开始的索引。",
+      "只输出 JSON：{\"name\":\"名称\",\"summary\":\"一句话说明\",\"nodes\":[{\"id\":\"A\",\"type\":\"INPUT\",\"label\":\"输入A\",\"reuseComponentId\":\"可选\"}],\"wires\":[{\"from\":\"A\",\"fromPort\":0,\"to\":\"G1\",\"toPort\":0}]}"
+    ].join("\n");
+    try {
+      const response = await this.model({
+        temperature: 0.1,
+        maxTokens: 1400,
+        timeout: 18000,
+        maxRetries: 0
+      }).invoke([
+        {
+          role: "system",
+          content: "你是数字电路拓扑规划器，只输出合法 JSON。使用给定元件，生成可连接、可仿真的组合逻辑拓扑，坐标和验证由本地程序完成。"
+        },
+        { role: "user", content: prompt }
+      ]);
+      return normalizeGhostPlan(JSON.parse(cleanJson(contentText(response.content))));
+    } catch (cause) {
+      const error = new Error("AI 虚影方案生成失败，将尝试使用内置模板。");
+      error.status = 502;
+      error.code = "AI_GHOST_FAILED";
+      error.cause = cause;
+      throw error;
+    }
   }
 
   async gradeAnalysisAnswer(question, studentAnswer) {
@@ -418,26 +564,56 @@ export class AiService {
 
   async generateSelfTest(profile) {
     if (!this.configured()) {
-      const error = new Error("尚未配置 AI Key，无法由大模型生成阶段自测。请先在右下角 AI 助教的“设置”中完成配置。");
+      const error = new Error("尚未配置 AI Key，无法由大模型生成个性化学习任务。请先在右下角 AI 助教的“设置”中完成配置。");
       error.status = 503;
       error.code = "AI_NOT_CONFIGURED";
       throw error;
     }
 
     const count = Math.max(1, Math.min(Number(profile.count) || 5, 10));
-    const analysisCount = count >= 2 ? Math.max(1, Math.round(count * 0.25)) : 0;
-    const choiceCount = count - analysisCount;
-    const hasWrongHistory = (profile.weakKnowledge || []).length > 0;
+    const defaultAnalysisCount = count >= 2 ? Math.max(1, Math.round(count * 0.25)) : 0;
+    const choiceCount = Number.isInteger(profile.choiceCount)
+      ? Math.max(0, Math.min(profile.choiceCount, count))
+      : count - defaultAnalysisCount;
+    const analysisCount = count - choiceCount;
+    const targetKnowledgePlan = (profile.targetKnowledgePlan || []).slice(0, count)
+      .map((item) => String(item || "").slice(0, 80));
+    const compactProfile = {
+      ...profile,
+      count,
+      choiceCount,
+      analysisCount,
+      targetKnowledgePlan,
+      focusKnowledge: [...new Set(targetKnowledgePlan.length
+        ? targetKnowledgePlan
+        : (profile.focusKnowledge || []).slice(0, 6))],
+      weakKnowledge: (profile.weakKnowledge || []).slice(0, 6)
+        .map((item) => ({ name: String(item.name || "").slice(0, 80), wrongCount: Number(item.wrongCount) || 0 })),
+      knowledgeMastery: (profile.knowledgeMastery || []).slice(0, 6)
+        .map((item) => ({ name: String(item.name || "").slice(0, 80), rate: Number(item.rate) || 0 })),
+      availableKnowledge: (profile.availableKnowledge || []).slice(0, 12)
+        .map((item) => String(item || "").slice(0, 80)),
+      wrongQuestions: (profile.wrongQuestions || []).slice(0, 3).map((item) => ({
+        text: String(item.text || "").slice(0, 220),
+        knowledge: (item.knowledge || []).slice(0, 4).map((name) => String(name || "").slice(0, 80)),
+        difficulty: Number(item.difficulty) || 2
+      })),
+      excludeQuestions: (profile.excludeQuestions || []).slice(0, 8)
+        .map((item) => String(item || "").slice(0, 140))
+    };
+    const hasWrongHistory = compactProfile.weakKnowledge.length > 0;
     const prompt = [
-      `请生成一套包含 ${count} 道题的大学数字电路阶段自测试卷。`,
+      `请生成一组包含 ${count} 道题的大学数字电路个性化学习任务。`,
       hasWrongHistory
-        ? "试卷必须针对学生历史答错的知识点，不得改成泛泛的随机题。"
-        : "当前没有历史错题，请依据当前练习范围生成一套初始诊断卷。",
-      `练习范围：${profile.scope || "all"}`,
-      `薄弱知识点及错误次数：${JSON.stringify(profile.weakKnowledge || [])}`,
-      `本范围可用知识点：${JSON.stringify(profile.availableKnowledge || [])}`,
-      `近期错题摘要：${JSON.stringify(profile.wrongQuestions || [])}`,
-      `逐题知识点配额（questions 必须按此顺序对应）：${JSON.stringify(profile.targetKnowledgePlan || [])}`,
+        ? "学习任务必须针对学生历史答错的知识点，不得改成泛泛的随机题。"
+        : "当前没有历史错题，请依据当前学习范围生成一组基础巩固任务。",
+      `练习范围：${compactProfile.scope || "all"}`,
+      `薄弱知识点：${JSON.stringify(compactProfile.weakKnowledge)}`,
+      `掌握程度：${JSON.stringify(compactProfile.knowledgeMastery)}`,
+      `可用知识点：${JSON.stringify(compactProfile.availableKnowledge)}`,
+      `近期错题摘要：${JSON.stringify(compactProfile.wrongQuestions)}`,
+      `不得重复的本地题干：${JSON.stringify(compactProfile.excludeQuestions)}`,
+      `逐题知识点配额（questions 必须按此顺序对应）：${JSON.stringify(compactProfile.targetKnowledgePlan)}`,
       `题型数量：${choiceCount} 道单项选择题，${analysisCount} 道简答题。`,
       "输出严格 JSON，不要输出 Markdown、代码围栏或额外说明。JSON 结构必须为：",
       '{"questions":[{"title":"标题","type":"single_choice 或 analysis","targetKnowledge":"本题指定知识点","text":"题干","options":["选项1","选项2","选项3","选项4"],"answer":0,"answerText":"参考答案","explanation":"解析","knowledge":["知识点"],"keywords":["关键词1","关键词2"],"difficulty":3,"scope":"basic-logic/combinational/sequential/custom"}]}',
@@ -446,31 +622,33 @@ export class AiService {
       "2. questions 的第 N 题必须使用知识点配额中的第 N 项；targetKnowledge 和 knowledge 都要原样包含该名称。",
       "3. 选择题必须有 4 个不重复选项，answer 使用 0-3 表示正确选项。",
       "4. 简答题的 options 必须为空数组、answer 必须为 null，并提供完整 answerText 和 3-6 个 keywords。",
-      "5. 每题都要提供准确解析，难度为 1-5；题干中不得泄露答案。",
+      "5. 每题解析限 1-2 句、最多 120 字，难度为 1-5；题干中不得泄露答案。",
       "6. 数字电路符号使用清晰普通文本，例如 F=A·B、Q(n+1)=D、非Y0。"
     ].join("\n");
 
     try {
       const response = await this.model({
         temperature: 0.25,
-        maxTokens: Math.max(3200, count * 650)
+        maxTokens: Math.min(1800, Math.max(700, count * 320)),
+        timeout: 25000,
+        maxRetries: 1
       }).invoke([
         {
           role: "system",
-          content: "你是大学数字电路课程的命题教师。你只输出合法 JSON，并确保每道题可独立作答和判分。"
+          content: "你是大学数字电路课程的个性化学习任务设计助手。你只输出合法 JSON，并确保每道题可独立作答、获得反馈并用于巩固知识。"
         },
         { role: "user", content: prompt }
       ]);
       const parsed = JSON.parse(cleanJson(contentText(response.content)));
       const rawQuestions = Array.isArray(parsed) ? parsed : parsed.questions;
       if (!Array.isArray(rawQuestions)) throw new Error("大模型没有返回 questions 数组");
-      const validationProfile = { ...profile, count, choiceCount, analysisCount };
+      const validationProfile = compactProfile;
       const questions = rawQuestions.slice(0, count)
-        .map((question, index) => normalizeSelfTestQuestion(question, validationProfile, index));
+        .map((question, index) => normalizeSelfTestQuestion(question, compactProfile, index));
       validateSelfTestQuestions(questions, validationProfile);
       return questions.sort((left, right) => Number(left.type !== "single_choice") - Number(right.type !== "single_choice"));
     } catch (cause) {
-      const error = new Error("AI 阶段自测生成失败，请稍后重试。");
+      const error = new Error("AI 个性化学习任务生成失败，请稍后重试。");
       error.status = 502;
       error.code = "AI_SELF_TEST_FAILED";
       error.cause = cause;

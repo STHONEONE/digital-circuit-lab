@@ -1,9 +1,9 @@
 (() => {
 const learningNavItems = [
   { key: "center", href: "./index.html", label: "普通练习", icon: "book-open.svg", title: "数字电路智能练习系统" },
-  { key: "route", href: "./learning-route.html", label: "学习路线", icon: "route.svg", title: "学习路线 · 数字电路学习平台" },
+  { key: "route", href: "./learning-route.html", label: "知识复习", icon: "route.svg", title: "知识复习 · 数字电路学习平台" },
   { key: "wrong", href: "./wrong-review.html", label: "错题复盘", icon: "clipboard-pen-line.svg", title: "错题复盘 · 数字电路学习平台" },
-  { key: "self-test", href: "./self-test.html", label: "阶段自测", icon: "square-function.svg", title: "阶段自测 · 数字电路学习平台" },
+  { key: "self-test", href: "./self-test.html", label: "个性化学习", icon: "square-function.svg", title: "个性化学习 · 数字电路学习平台" },
   { key: "review", href: "./learning-review.html", label: "学习报告", icon: "chart-pie.svg", title: "学习报告 · 数字电路学习平台" }
 ];
 

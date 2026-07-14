@@ -1,36 +1,36 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>阶段自测 · 数字电路学习平台</title><link rel="icon" href="data:,"><link rel="stylesheet" href="./styles.css?v=20260711-2"><link rel="stylesheet" href="./site-nav.css?v=20260622-1"><link rel="stylesheet" href="./learning-pages.css?v=20260713-2"><link rel="stylesheet" href="./answer-feedback.css?v=20260712-1"></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>个性化学习 · 数字电路学习平台</title><link rel="icon" href="data:,"><link rel="stylesheet" href="./styles.css?v=20260711-2"><link rel="stylesheet" href="./site-nav.css?v=20260622-1"><link rel="stylesheet" href="./learning-pages.css?v=20260714-3"><link rel="stylesheet" href="./answer-feedback.css?v=20260712-1"></head>
 <body class="inner-page platform-page-body self-test-page" data-learning-page="self-test"><canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas><div class="circuit-bg-overlay" aria-hidden="true"></div><div class="app">
   <div class="desktop-rail-logo" aria-hidden="true"><img src="./assets/icons/circuit-board.svg" alt=""></div>
   <header class="topbar"><div><p>数字电路课程设计 · Node.js 智能学习平台</p><h1>数字电路个性化学习中心</h1></div><div class="top-actions"><a class="home-return-link" href="./home.html">回到首页</a><nav class="site-nav" aria-label="页面导航"><a class="site-nav__link active" href="./index.html" aria-current="page">学习中心</a><a class="site-nav__link" href="./gate-builder-demo.html">实践中心</a><a class="site-nav__link" href="./labs.html">实验中心</a><a class="site-nav__link" href="./extensions.html">扩展仿真</a></nav></div></header>
   <main class="platform-layout"><aside class="platform-sidebar" data-learning-nav aria-label="学习中心模块导航"></aside><section class="platform-page"><div class="platform-page-frame">
-    <header class="platform-page-header self-test-header"><div><h2>阶段自测</h2><p>AI 根据近期错题与薄弱知识点自动组卷</p></div></header>
-    <section id="selfTestConfig" class="self-test-config" aria-label="AI 阶段自测组卷工作台">
+    <header class="platform-page-header self-test-header"><div><h2>个性化学习</h2><p>系统根据错题记录和掌握程度优先匹配本地题库，题库不足时由 AI 补充</p></div></header>
+    <section id="selfTestConfig" class="self-test-config" aria-label="个性化学习任务工作台">
       <aside class="platform-surface self-test-controls">
-        <div class="self-test-panel-heading"><span>01</span><div><h3>组卷参数</h3><p>确定本次检测边界</p></div></div>
-        <fieldset class="self-test-scope-fieldset"><legend>组卷范围</legend><div class="self-test-scope-options" data-self-test-scopes><button type="button" class="active" data-value="all">全部范围</button><button type="button" data-value="basic-logic">基础逻辑</button><button type="button" data-value="combinational">组合逻辑</button><button type="button" data-value="sequential">时序逻辑</button></div></fieldset>
-        <label class="platform-field self-test-native-scope">练习范围<select id="selfTestScope"><option value="all">全部范围</option><option value="basic-logic">基础逻辑</option><option value="combinational">组合逻辑</option><option value="sequential">时序逻辑</option></select></label>
-        <label class="platform-field">试卷题数<select id="selfTestCount"><option value="5">5 题 · 快速诊断</option><option value="8" selected>8 题 · 标准自测</option><option value="10">10 题 · 深度检测</option></select></label>
-        <div class="self-test-source"><div class="self-test-source-title"><span>薄弱知识点来源</span><strong id="selfTestWeakSummary">正在读取错题记录</strong></div><div id="selfTestWeakList" class="self-test-weak-list" aria-live="polite"><div class="self-test-source-loading">分析近期错题中…</div></div><p id="selfTestSourceNote">优先读取当前学习账号的未订正错题</p></div>
+        <div class="self-test-panel-heading"><span>01</span><div><h3>学习任务设置</h3><p>确定本次巩固范围</p></div></div>
+        <fieldset class="self-test-scope-fieldset"><legend>知识范围</legend><div class="self-test-scope-options" data-self-test-scopes><button type="button" class="active" data-value="all">全部范围</button><button type="button" data-value="basic-logic">基础逻辑</button><button type="button" data-value="combinational">组合逻辑</button><button type="button" data-value="sequential">时序逻辑</button></div></fieldset>
+        <label class="platform-field self-test-native-scope">学习范围<select id="selfTestScope"><option value="all">全部范围</option><option value="basic-logic">基础逻辑</option><option value="combinational">组合逻辑</option><option value="sequential">时序逻辑</option></select></label>
+        <label class="platform-field">学习任务量<select id="selfTestCount"><option value="5">5 题 · 快速巩固</option><option value="8" selected>8 题 · 标准学习</option><option value="10">10 题 · 深度巩固</option></select></label>
+        <div class="self-test-source"><div class="self-test-source-title"><span>个性化依据</span><strong id="selfTestWeakSummary">正在读取学习记录</strong></div><div id="selfTestWeakList" class="self-test-weak-list" aria-live="polite"><div class="self-test-source-loading">分析掌握情况中…</div></div><p id="selfTestSourceNote">优先结合未订正错题与知识点掌握程度</p></div>
       </aside>
       <section class="platform-surface self-test-preview">
-        <div class="self-test-panel-heading"><span>02</span><div><h3>自测卷预览</h3><p id="selfTestPreviewScope">覆盖全部知识范围</p></div><strong id="selfTestPaperTotal">共 8 题</strong></div>
-        <div class="self-test-paper-sheet" aria-label="预计试卷结构">
-          <div class="self-test-sheet-top"><span>数字电路 · AI 阶段自测卷</span><em>自适应难度</em></div>
+        <div class="self-test-panel-heading"><span>02</span><div><h3>学习任务预览</h3><p id="selfTestPreviewScope">覆盖全部知识范围</p></div><strong id="selfTestPaperTotal">共 8 题</strong></div>
+        <div class="self-test-paper-sheet" aria-label="预计学习任务结构">
+          <div class="self-test-sheet-top"><span>数字电路 · 个性化学习任务</span><em>动态适配</em></div>
           <div class="self-test-coverage-list" id="selfTestCoverageList"></div>
-          <div class="self-test-type-structure"><h4>题型结构</h4><div><span><i class="choice"></i>选择题</span><strong id="selfTestChoiceCount">6 题</strong></div><div><span><i class="analysis"></i>分析题</span><strong id="selfTestAnalysisCount">2 题</strong></div></div>
+          <div class="self-test-type-structure"><h4>任务结构</h4><div><span><i class="choice"></i>选择题</span><strong id="selfTestChoiceCount">6 题</strong></div><div><span><i class="analysis"></i>综合题</span><strong id="selfTestAnalysisCount">2 题</strong></div></div>
         </div>
-        <p class="self-test-preview-note"><span aria-hidden="true">◇</span> 题目将按“基础判断 → 综合分析”排序，作答后即时反馈</p>
+        <p class="self-test-preview-note"><span aria-hidden="true">◇</span> 学习任务按“基础巩固 → 综合应用”排序，作答后即时反馈</p>
       </section>
       <aside class="platform-surface self-test-rationale">
-        <div class="self-test-panel-heading"><span>03</span><div><h3>AI 组卷依据</h3><p>让每一道题都有来源</p></div></div>
-        <ol class="self-test-rationale-list"><li><span>1</span><div><strong>错题频次加权</strong><p>错误次数越多，知识点配额越高</p></div></li><li><span>2</span><div><strong>掌握度动态匹配</strong><p>在当前水平上安排适配难度</p></div></li><li><span>3</span><div><strong>间隔重复排序</strong><p>优先验证需要再次巩固的内容</p></div></li></ol>
-        <div class="self-test-estimate"><span>预计完成时间</span><strong id="selfTestDuration">约 20 分钟</strong><small>根据题量与题型结构估算</small></div>
-        <button id="generateSelfTestButton" class="platform-button primary self-test-start-button" type="button"><span>生成并开始自测</span></button>
+        <div class="self-test-panel-heading"><span>03</span><div><h3>任务生成依据</h3><p>让每项学习任务都有针对性</p></div></div>
+        <ol class="self-test-rationale-list"><li><span>1</span><div><strong>错题频次加权</strong><p>错误次数越多，知识点练习比重越高</p></div></li><li><span>2</span><div><strong>掌握度动态匹配</strong><p>根据当前水平安排适配难度</p></div></li><li><span>3</span><div><strong>巩固优先排序</strong><p>优先安排需要再次巩固的内容</p></div></li></ol>
+        <div class="self-test-estimate"><span>预计学习时间</span><strong id="selfTestDuration">约 20 分钟</strong><small>根据任务量与题型结构估算</small></div>
+        <button id="generateSelfTestButton" class="platform-button primary self-test-start-button" type="button"><span>生成并开始学习</span></button>
         <div id="selfTestStatus" class="platform-notice" hidden></div>
-        <p class="self-test-privacy"><span aria-hidden="true">✦</span> 仅使用你的学习记录进行本次组卷</p>
+        <p class="self-test-privacy"><span aria-hidden="true">✦</span> 优先使用本地题库与当前学习记录</p>
       </aside>
     </section>
-    <section id="selfTestPaper" class="self-test-paper"><aside class="platform-surface paper-directory"><div class="platform-section-heading"><div><h3>试卷目录</h3><p id="paperProgress">0 / 0</p></div></div><div id="paperDirectoryList" class="paper-directory-list"></div></aside><section class="platform-surface"><div data-question-runner="self-test"></div></section></section>
+    <section id="selfTestPaper" class="self-test-paper"><aside class="platform-surface paper-directory"><div class="platform-section-heading"><div><h3>任务目录</h3><p id="paperProgress">0 / 0</p></div></div><div id="paperDirectoryList" class="paper-directory-list"></div></aside><section class="platform-surface"><div data-question-runner="self-test"></div></section></section>
   </div></section></main>
-</div><script src="./circuit-background.js?v=20260620-1"></script><script src="./learning-shell.js?v=20260713-2"></script><script src="./answer-feedback.js?v=20260712-1"></script><script src="./learning-pages.js?v=20260713-1"></script></body></html>
+</div><script src="./circuit-background.js?v=20260620-1"></script><script src="./learning-shell.js?v=20260714-1"></script><script src="./answer-feedback.js?v=20260712-1"></script><script src="./learning-pages.js?v=20260714-2"></script></body></html>

@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>学习路线 · 数字电路学习平台</title><link rel="icon" href="data:,">
-<link rel="stylesheet" href="./styles.css?v=20260711-2"><link rel="stylesheet" href="./site-nav.css?v=20260622-1"><link rel="stylesheet" href="./learning-pages.css?v=20260713-2"><link rel="stylesheet" href="./answer-feedback.css?v=20260712-1">
+<title>知识复习 · 数字电路学习平台</title><link rel="icon" href="data:,">
+<link rel="stylesheet" href="./styles.css?v=20260711-2"><link rel="stylesheet" href="./site-nav.css?v=20260622-1"><link rel="stylesheet" href="./learning-pages.css?v=20260714-3"><link rel="stylesheet" href="./answer-feedback.css?v=20260712-1">
 </head>
 <body class="inner-page platform-page-body" data-learning-page="route">
   <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas><div class="circuit-bg-overlay" aria-hidden="true"></div>
@@ -11,30 +11,40 @@
     <div class="desktop-rail-logo" aria-hidden="true"><img src="./assets/icons/circuit-board.svg" alt=""></div>
     <header class="topbar"><div><p>数字电路课程设计 · Node.js 智能学习平台</p><h1>数字电路个性化学习中心</h1></div><div class="top-actions"><a class="home-return-link" href="./home.html">回到首页</a><nav class="site-nav" aria-label="页面导航"><a class="site-nav__link active" href="./index.html" aria-current="page">学习中心</a><a class="site-nav__link" href="./gate-builder-demo.html">实践中心</a><a class="site-nav__link" href="./labs.html">实验中心</a><a class="site-nav__link" href="./extensions.html">扩展仿真</a></nav></div></header>
     <main class="platform-layout"><aside class="platform-sidebar" data-learning-nav aria-label="学习中心模块导航"></aside><section class="platform-page"><div class="platform-page-frame">
-<header class="platform-page-header route-page-header"><div><h2>学习路线</h2><p>按薄弱点安排下一步学习。选择知识点后，系统会同步调整当前任务与针对训练。</p></div><div class="route-header-progress"><span>本轮路线</span><strong id="routeHeaderProgress">正在分析</strong></div></header>
+<header class="platform-page-header route-page-header"><div><h2>知识复习</h2><p>选择知识点，阅读核心内容、典型例题并完成巩固练习。</p></div></header>
       <div class="route-workspace">
         <aside class="platform-surface route-knowledge-console">
-          <div class="platform-section-heading"><div><h3>知识体系</h3><p>选择需要继续加强的知识点。</p></div></div>
-          <label class="route-knowledge-search"><span class="sr-only">搜索知识点</span><input id="routeKnowledgeSearch" type="search" placeholder="搜索知识点" autocomplete="off"></label>
+          <div class="route-directory-heading"><h3>知识体系</h3><label class="route-knowledge-search"><span class="sr-only">搜索知识点</span><input id="routeKnowledgeSearch" type="search" placeholder="搜索知识点" autocomplete="off"></label></div>
           <div id="routeKnowledgeGroups" class="route-knowledge-groups"></div>
-          <div class="route-knowledge-legend"><span><i class="mastered"></i>已掌握</span><span><i></i>待加强</span></div>
+          <div class="route-knowledge-legend"><span><i class="mastered"></i>已掌握</span><span><i></i>待巩固</span></div>
         </aside>
-        <section class="platform-surface route-timeline">
-          <div class="platform-section-heading route-path-heading"><div><h3>学习路径</h3></div><span id="routeProgressSummary" class="route-progress-summary" hidden>0 / 4</span></div>
-          <div id="routeSteps" class="route-steps"></div>
-          <div class="route-evidence"><strong>路线依据</strong><p id="routeEvidenceCopy">正在读取你的学习记录...</p></div>
+        <section class="platform-surface route-lesson-console" aria-live="polite">
+          <div class="route-lesson-heading">
+            <div><span>当前知识点</span><h3 id="routeLessonTitle">正在准备复习内容</h3></div>
+            <div class="route-lesson-meta" aria-label="当前知识点概览"><span id="routeLessonMastery" class="route-lesson-mastery">读取学习记录</span><span>预计 <strong id="routeLessonDuration">约 6 分钟</strong></span><span>例题 <strong id="routeExampleCountLabel">正在匹配</strong></span></div>
+          </div>
+          <div class="route-lesson-tabs" role="tablist" aria-label="知识复习内容"><button type="button" class="active" role="tab" aria-selected="true" data-route-tab="core">核心知识</button><button type="button" role="tab" aria-selected="false" data-route-tab="example" id="routeExampleTab">典型例题</button><button type="button" role="tab" aria-selected="false" data-route-tab="practice">巩固练习</button></div>
+          <div class="route-lesson-scroll">
+            <section class="route-lesson-panel" data-route-panel="core">
+              <section class="route-lesson-lead"><p id="routeLessonSummary">正在根据所选知识点整理复习内容...</p></section>
+              <div class="route-lesson-foundation">
+                <section><h4>核心概念</h4><p id="routeLessonConcept"></p></section>
+                <section><h4>理解方法</h4><p id="routeLessonMethod"></p></section>
+              </div>
+              <section class="route-lesson-rules"><div><h4>关键规则</h4><span>按顺序理解</span></div><ol id="routeLessonRules"></ol></section>
+            </section>
+            <section id="routeLessonExample" class="route-lesson-panel route-lesson-example" data-route-panel="example" hidden>
+              <div class="route-example-heading"><div><span>例题辅助</span><h4 id="routeExampleTitle">典型例题</h4></div><em id="routeExampleType">理解应用</em></div>
+              <p id="routeExampleQuestion" class="route-example-question"></p>
+              <div id="routeExampleDiagram" class="route-example-diagram"></div>
+              <div id="routeExampleOptions" class="route-example-options"></div>
+              <details class="route-example-solution"><summary>查看解题过程</summary><div><strong id="routeExampleAnswer"></strong><p id="routeExampleExplanation"></p></div></details>
+            </section>
+            <section class="route-lesson-panel route-practice-panel" data-route-panel="practice" hidden><section class="route-lesson-check"><h4>巩固目标</h4><p id="routeLessonCheck"></p></section><div class="route-practice-copy"><span>下一步</span><p>完成针对性学习任务，继续巩固当前知识点并更新掌握度。</p></div><a class="platform-button primary route-next-link" href="./self-test.html">开始巩固练习</a></section>
+          </div>
         </section>
-        <aside class="platform-surface route-focus-console">
-          <div class="platform-section-heading"><div><h3>当前任务</h3><p>完成后将自动推进学习路线。</p></div></div>
-          <span class="route-focus-label">薄弱知识点</span><div id="routeFocusName" class="route-focus-name">正在分析</div>
-          <p id="routeFocusCopy" class="route-focus-copy">读取你的学习记录...</p>
-          <div class="route-task-meta"><span>预计学习时长<strong>12 分钟</strong></span><span>针对练习<strong id="routeQuestionCountLabel">最多 5 题</strong></span></div>
-          <div><span class="route-focus-label">相关知识点</span><div id="routeKnowledgeList" class="route-knowledge-list"></div></div>
-          <button id="routeStartButton" class="platform-button primary route-start-button" type="button">开始学习</button>
-        </aside>
       </div>
-      <section id="routePracticeSection" class="platform-surface" hidden><div data-question-runner="route"></div></section>
     </div></section></main>
   </div>
-<script src="./circuit-background.js?v=20260620-1"></script><script src="./learning-shell.js?v=20260713-2"></script><script src="./answer-feedback.js?v=20260712-1"></script><script src="./learning-pages.js?v=20260713-1"></script>
+<script src="./circuit-background.js?v=20260620-1"></script><script src="./learning-shell.js?v=20260714-1"></script><script src="./answer-feedback.js?v=20260712-1"></script><script src="./learning-pages.js?v=20260714-2"></script>
 </body></html>
