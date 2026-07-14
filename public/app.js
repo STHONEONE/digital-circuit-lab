@@ -4,8 +4,6 @@ const requestedScope = new URLSearchParams(window.location.search).get("scope");
 const availableScopes = new Set(["all", "basic-logic", "combinational", "sequential"]);
 let currentScope = availableScopes.has(requestedScope) ? requestedScope : "all";
 let currentSource = "";
-let currentQuestionType = "all";
-let currentQuestionCount = "all";
 let currentIndex = 0;
 let selectedOption = null;
 let practiceMode = "normal";
@@ -55,9 +53,6 @@ const els = {
   scopePanel: document.querySelector("#scopePanel"),
   scopePanelBody: document.querySelector("#scopePanelBody"),
   scopeToggleButton: document.querySelector("#scopeToggleButton"),
-  practiceTypeSelect: document.querySelector("#practiceTypeSelect"),
-  practiceCountSelect: document.querySelector("#practiceCountSelect"),
-  startPracticeButton: document.querySelector("#startPracticeButton"),
   practiceSettingsSummary: document.querySelector("#practiceSettingsSummary"),
   fileInput: document.querySelector("#fileInput"),
   fileName: document.querySelector("#fileName"),
@@ -234,24 +229,14 @@ function showSystemNotice(message, type = "", autoHide = type !== "error") {
   }
 }
 
-function shuffled(list) {
-  const result = [...list];
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
-  }
-  return result;
-}
-
 function learningQuestionTypeRank(question) {
   if (question.type === "single_choice") return 0;
   if (question.type === "analysis") return 2;
   return 1;
 }
 
-function orderLearningCenterQuestions(list, randomize = false) {
-  const source = randomize ? shuffled(list) : [...list];
-  return source.map((question, index) => ({ question, index }))
+function orderLearningCenterQuestions(list) {
+  return [...list].map((question, index) => ({ question, index }))
     .sort((left, right) => learningQuestionTypeRank(left.question) - learningQuestionTypeRank(right.question)
       || left.index - right.index)
     .map((entry) => entry.question);
@@ -281,13 +266,7 @@ async function loadQuestions() {
   if (currentSource) params.set("source", currentSource);
   const loadedQuestions = await fetchJson(`/api/questions?${params.toString()}`);
   if (practiceMode === "normal") {
-    const typeFiltered = currentQuestionType === "all"
-      ? loadedQuestions
-      : loadedQuestions.filter((question) => question.type === currentQuestionType);
-    const ordered = orderLearningCenterQuestions(typeFiltered, currentScope === "all" && !currentSource);
-    questions = currentQuestionCount === "all"
-      ? ordered
-      : ordered.slice(0, Math.max(1, Number(currentQuestionCount) || ordered.length));
+    questions = orderLearningCenterQuestions(loadedQuestions);
     updatePracticeSettingsSummary(questions.length);
   } else {
     questions = loadedQuestions;
@@ -299,15 +278,20 @@ function updatePracticeSettingsSummary(loadedCount = null) {
   if (!els.practiceSettingsSummary) return;
   els.practiceSettingsSummary.textContent = Number.isInteger(loadedCount)
     ? `题库已载入 ${loadedCount} 题`
-    : "开始后载入所选题目";
+    : "正在载入所选题库";
 }
 
-async function startConfiguredPractice() {
+function syncPracticeScopeUrl() {
   const url = new URL(window.location.href);
   if (currentScope === "all") url.searchParams.delete("scope");
   else url.searchParams.set("scope", currentScope);
   window.history.replaceState({}, "", url);
-  await returnToNormalPractice();
+}
+
+function focusPracticeWorkspace() {
+  const questionCard = document.querySelector(".question-card");
+  questionCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+  els.meta?.focus({ preventScroll: true });
 }
 
 async function loadSources() {
@@ -582,6 +566,7 @@ function renderSources() {
   all.addEventListener("click", async () => {
     currentSource = "";
     await returnToNormalPractice();
+    focusPracticeWorkspace();
   });
   els.sourceList.append(all);
 
@@ -593,6 +578,7 @@ function renderSources() {
     button.addEventListener("click", async () => {
       currentSource = source;
       await returnToNormalPractice();
+      focusPracticeWorkspace();
     });
     els.sourceList.append(button);
   });
@@ -646,7 +632,7 @@ function renderQuestion() {
     renderQuestionPicker();
     els.questionText.textContent = practiceMode === "wrong_review"
       ? "当前没有待复盘错题，继续保持。"
-      : "当前设置下没有可用题目，请调整练习设置或导入题库。";
+      : "当前题库没有可用题目，请选择其他题库或导入新题库。";
     els.knowledge.innerHTML = "";
     els.options.innerHTML = "";
     els.answerInput.style.display = "none";
@@ -2164,30 +2150,17 @@ document.querySelectorAll(".segments button").forEach((button) => {
 });
 
 document.querySelectorAll(".segments button").forEach((button) => {
-  button.addEventListener("click", () => {
+  button.addEventListener("click", async () => {
     document.querySelectorAll(".segments button").forEach((item) => item.classList.remove("active"));
     button.classList.add("active");
     currentScope = button.dataset.scope;
     currentIndex = 0;
     updatePracticeSettingsSummary();
+    syncPracticeScopeUrl();
+    await returnToNormalPractice();
+    focusPracticeWorkspace();
   });
 });
-
-els.practiceTypeSelect?.addEventListener("change", () => {
-  currentQuestionType = els.practiceTypeSelect.value;
-  updatePracticeSettingsSummary();
-});
-
-els.practiceCountSelect?.addEventListener("change", () => {
-  currentQuestionCount = els.practiceCountSelect.value;
-  updatePracticeSettingsSummary();
-});
-
-els.startPracticeButton?.addEventListener("click", () => runAction(
-  els.startPracticeButton,
-  startConfiguredPractice,
-  "正在准备练习…"
-));
 
 els.refreshButton?.addEventListener("click", () => runAction(els.refreshButton, loadAll, "刷新中…"));
 els.shutdownButton.addEventListener("click", shutdownSystem);

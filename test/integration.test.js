@@ -68,7 +68,7 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /data-scope="combinational"/);
   assert.match(appHome, /data-scope="sequential"/);
   assert.match(appHome, /id="practiceSettings"/);
-  assert.match(appHome, /id="startPracticeButton"/);
+  assert.doesNotMatch(appHome, /id="startPracticeButton"/);
   assert.match(appHome, /id="questionDiagram"/);
   assert.match(appHome, /id="prevButton"/);
   assert.match(appHome, /site-nav__link active" href="\.\/index\.html" aria-current="page"/);
@@ -78,9 +78,8 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /gate-builder-demo\.html/);
   assert.match(appScript, /function renderSvg/);
   assert.match(appScript, /moveQuestion\(-1\)/);
-  assert.match(appScript, /startConfiguredPractice/);
-  assert.match(appScript, /currentQuestionType/);
-  assert.match(appScript, /currentQuestionCount/);
+  assert.match(appScript, /focusPracticeWorkspace/);
+  assert.doesNotMatch(appScript, /function shuffled/);
   assert.match(appScript, /\/api\/wrong-remediation/);
   assert.match(appScript, /generatedVariant/);
   assert.match(appScript, /orderLearningCenterQuestions/);
@@ -225,9 +224,9 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(index, /learning-shell\.js/);
   assert.match(index, /learning-pages\.css/);
   assert.match(index, /id="practiceSettings"/);
-  assert.match(index, /id="practiceTypeSelect"/);
-  assert.match(index, /id="practiceCountSelect"/);
-  assert.match(index, /id="startPracticeButton"/);
+  assert.doesNotMatch(index, /id="practiceTypeSelect"/);
+  assert.doesNotMatch(index, /id="practiceCountSelect"/);
+  assert.doesNotMatch(index, /id="startPracticeButton"/);
   assert.match(index, /id="desktopInsights" class="desktop-insights" hidden/);
   assert.doesNotMatch(index, /id="scopeNavButton"/);
   assert.match(appController, /new URLSearchParams\(window\.location\.search\)/);

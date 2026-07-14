@@ -116,15 +116,12 @@
       </div>
 
       <section class="workspace">
-        <section id="practiceSettings" class="panel practice-settings" aria-labelledby="practiceSettingsTitle">
-          <div class="practice-settings-heading">
-            <div>
-              <h2 id="practiceSettingsTitle">开始前设置</h2>
-              <p>选择本轮知识范围、题型和题目数量，再开始答题。</p>
-            </div>
-            <button id="startPracticeButton" class="practice-settings-start" type="button">开始本轮练习</button>
-          </div>
+        <section id="practiceSettings" class="panel practice-settings" aria-label="练习题库">
           <div id="scopePanel" class="practice-settings-body">
+            <div class="practice-bank-copy">
+              <strong>练习题库</strong>
+              <span>选择后立即载入并开始答题</span>
+            </div>
             <fieldset class="practice-settings-fieldset">
               <legend>知识范围</legend>
               <div class="segments practice-scope-options" aria-label="知识范围">
@@ -134,27 +131,9 @@
                 <button data-scope="sequential" type="button">时序逻辑</button>
               </div>
             </fieldset>
-            <label class="practice-settings-field" for="practiceTypeSelect">
-              <span>题型</span>
-              <select id="practiceTypeSelect">
-                <option value="all">全部题型</option>
-                <option value="single_choice">选择题</option>
-                <option value="fill_blank">填空题</option>
-                <option value="analysis">简答题</option>
-              </select>
-            </label>
-            <label class="practice-settings-field" for="practiceCountSelect">
-              <span>题目数量</span>
-              <select id="practiceCountSelect">
-                <option value="all">全部题目</option>
-                <option value="10">10 题</option>
-                <option value="20">20 题</option>
-                <option value="30">30 题</option>
-              </select>
-            </label>
             <div class="practice-settings-result" aria-live="polite">
               <span>题库状态</span>
-              <strong id="practiceSettingsSummary">开始后载入所选题目</strong>
+              <strong id="practiceSettingsSummary">正在载入题目</strong>
             </div>
           </div>
           <details class="practice-source-settings">

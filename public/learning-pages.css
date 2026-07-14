@@ -105,57 +105,33 @@ html.learning-embedded body {
 
 .practice-settings {
   display: grid;
-  gap: 16px;
+  gap: 6px;
   border-color: rgba(125, 211, 252, .22);
   background: linear-gradient(135deg, rgba(8, 24, 52, .9), rgba(5, 15, 33, .76));
-  padding: 18px 20px;
+  padding: 9px 16px 8px;
   box-shadow: 0 16px 38px rgba(0, 0, 0, .18);
 }
 
-.practice-settings-heading {
+.practice-bank-copy {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  min-width: 150px;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.practice-settings-heading h2 {
-  margin: 2px 0 4px;
+.practice-bank-copy strong {
   color: #f8fdff;
-  font-size: 22px;
+  font-size: 16px;
 }
 
-.practice-settings-heading p {
-  margin: 0;
+.practice-bank-copy span {
   color: #9eb8d2;
-  font-size: 13px;
-}
-
-.practice-settings-eyebrow {
-  color: #67e8f9;
   font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .12em;
-}
-
-.practice-settings-start {
-  min-width: 154px;
-  border-color: transparent;
-  background: linear-gradient(105deg, #22d3ee, #5b8cff 72%, #7c5cff);
-  color: #03101f;
-  padding-inline: 20px;
-  box-shadow: 0 8px 22px rgba(34, 211, 238, .14);
-}
-
-.practice-settings-start:hover {
-  border-color: transparent;
-  color: #03101f;
-  filter: brightness(1.04);
 }
 
 .practice-settings-body {
   display: grid;
-  grid-template-columns: minmax(360px, 1.7fr) minmax(150px, .6fr) minmax(150px, .6fr) minmax(220px, 1fr);
+  grid-template-columns: auto minmax(420px, 1fr) minmax(180px, auto);
   align-items: end;
   gap: 14px;
 }
@@ -168,10 +144,9 @@ html.learning-embedded body {
 }
 
 .practice-settings-fieldset legend,
-.practice-settings-field > span,
 .practice-settings-result > span {
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 3px;
   color: #9eb8d2;
   font-size: 12px;
   font-weight: 800;
@@ -183,11 +158,11 @@ html.learning-embedded body {
 }
 
 .practice-scope-options button {
-  min-height: 42px;
+  min-height: 36px;
   border-color: rgba(125, 211, 252, .2);
   background: rgba(7, 20, 42, .72);
   color: #cfe4f7;
-  padding: 8px 10px;
+  padding: 5px 10px;
 }
 
 .practice-scope-options button.active {
@@ -197,18 +172,10 @@ html.learning-embedded body {
   box-shadow: none;
 }
 
-.practice-settings-field select {
-  width: 100%;
-  min-height: 42px;
-  border-color: rgba(125, 211, 252, .22);
-  background: rgba(7, 20, 42, .82);
-  color: #eaf6ff;
-}
-
 .practice-settings-result {
-  min-height: 42px;
+  min-height: 36px;
   border-left: 1px solid rgba(125, 211, 252, .18);
-  padding: 0 0 2px 14px;
+  padding: 0 0 0 12px;
 }
 
 .practice-settings-result strong {
@@ -220,13 +187,14 @@ html.learning-embedded body {
 
 .practice-source-settings {
   border-top: 1px solid rgba(125, 211, 252, .14);
-  padding-top: 12px;
+  padding-top: 6px;
 }
 
 .practice-source-settings summary {
   color: #b9d2e8;
   font-size: 13px;
   font-weight: 800;
+  line-height: 1.25;
   cursor: pointer;
 }
 
@@ -985,9 +953,9 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
   .wrong-workspace { height: auto; max-height: none; }
   .wrong-list { max-height: 320px; }
   .wrong-main-column { grid-template-rows: auto auto; }
-  .practice-settings-body { grid-template-columns: 1fr 1fr; }
+  .practice-settings-body { grid-template-columns: 1fr; }
   .practice-settings-fieldset,
-  .practice-settings-result { grid-column: 1 / -1; }
+  .practice-settings-result { grid-column: auto; }
   .practice-source-body { grid-template-columns: 1fr; }
   .practice-source-body .source-list { grid-column: auto; }
 }
@@ -1009,12 +977,12 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
   .report-footer-actions { width: 100%; }
   .report-footer-actions .platform-button { flex: 1; }
   .platform-question-actions { grid-template-columns: 1fr; }
-  .practice-settings-heading { align-items: stretch; flex-direction: column; }
-  .practice-settings-start { width: 100%; }
   .practice-settings-body { grid-template-columns: 1fr; }
+  .practice-settings { padding: 10px 12px; }
   .practice-settings-fieldset,
   .practice-settings-result { grid-column: auto; }
   .practice-scope-options { grid-template-columns: 1fr 1fr; }
+  .practice-scope-options button { min-height: 40px; }
   .route-header-progress { width: 100%; border-top: 1px solid rgba(125, 211, 252, .14); border-left: 0; padding: 14px 0 0; }
   .route-step { padding-left: 58px; }
   .route-step-index { left: 11px; }
