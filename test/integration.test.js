@@ -181,12 +181,34 @@ test("health, pages and question APIs are available", async () => {
   assert.match(extensions, /\?topic=decoder/);
   assert.match(extensions, /\?topic=display/);
   assert.match(topicSimulator, /data-action="topic" data-topic="encoder"/);
+  assert.match(topicSimulator, /data-action="topic" data-topic="decoder"/);
+  assert.match(topicSimulator, /data-action="topic" data-topic="display"/);
   assert.match(topicSimulator, /data-action="open-reference"/);
   assert.match(topicSimulator, /<dialog class="reference-dialog"/);
   assert.match(topicSimulator, /const SECTION_TOPIC/);
   assert.match(topicSimulator, /const isToolMode/);
-  assert.doesNotMatch(topicSimulator, /data-action="nav" data-section="engine"/);
-  assert.doesNotMatch(topicSimulator, /data-action="nav" data-section="compare"/);
+  assert.doesNotMatch(topicSimulator, /id="experiment-tabs"|data-action="nav"/);
+  assert.doesNotMatch(topicSimulator, /<section id="priority16" class="module"/);
+  assert.match(topicSimulator, /<details id="priority16-advanced"/);
+  assert.match(topicSimulator, /data-action="decoder-device" data-section="hc138"/);
+  assert.match(topicSimulator, /data-action="decoder-device" data-section="hc42"/);
+  assert.match(topicSimulator, /const legacyPriority16 = requestedSection === "priority16"/);
+  assert.match(topicSimulator, /encoderMode: legacyPriority16 \? "hc148" : "normal"/);
+  assert.match(topicSimulator, /legacyPriority16\) \$\("priority16-advanced"\)\.open = true/);
+  assert.doesNotMatch(topicSimulator, /<details[^>]*(?:truth-table-details|advanced-experiment)[^>]*\sopen(?:\s|>)/);
+  for (const id of [
+    "priority16-high-controls", "priority16-low-controls", "priority16-result", "priority16-chip-status", "priority16-table",
+    "hc138-enable-controls", "hc138-address-controls", "hc138-result", "hc138-output-grid", "hc138-table",
+    "cascade-controls", "cascade-chip-status", "cascade-result", "cascade-output-grid",
+    "hc42-controls", "hc42-result", "hc42-output-grid", "hc42-table",
+    "seven-bcd-controls", "seven-control-pins", "seven-result", "seven-display", "segment-output-grid", "seven-table",
+    "multi-int", "multi-frac", "multi-rbi-button", "multi-display", "multi-note"
+  ]) {
+    assert.match(topicSimulator, new RegExp(`id="${id}"`), `topic simulator should retain #${id}`);
+  }
+  for (const functionName of ["calcPriority16", "renderPriority16", "calcHc138", "renderCascade", "calcHc42", "calcSeven", "renderMultiDisplay"]) {
+    assert.match(topicSimulator, new RegExp(`function ${functionName}\\(`), `topic simulator should retain ${functionName}()`);
+  }
   assert.match(builder, /outputLabels/);
   assert.match(builder, /evaluateComponentOutputs/);
   assert.match(builder, /fromPort/);

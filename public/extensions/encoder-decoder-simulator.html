@@ -166,20 +166,7 @@
             min-width: 0;
         }
 
-        .experiment-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            border-top: 1px solid var(--border);
-            padding-top: 8px;
-        }
-
-        .experiment-tabs[hidden] {
-            display: none;
-        }
-
         .topic-button,
-        .nav-button,
         .utility-button,
         .mode-button,
         .action-button,
@@ -194,7 +181,6 @@
         }
 
         .topic-button,
-        .nav-button,
         .utility-button {
             padding: 10px 14px;
             font-weight: 700;
@@ -205,10 +191,6 @@
             min-width: 0;
         }
 
-        .nav-button {
-            flex: 0 1 auto;
-        }
-
         .utility-button {
             flex: 0 0 auto;
             min-width: 112px;
@@ -216,7 +198,6 @@
         }
 
         .topic-button:hover,
-        .nav-button:hover,
         .utility-button:hover,
         .mode-button:hover,
         .action-button:hover,
@@ -227,7 +208,6 @@
         }
 
         .topic-button.active,
-        .nav-button.active,
         .mode-button.active {
             background: var(--primary);
             border-color: var(--primary);
@@ -289,12 +269,134 @@
             font-weight: 700;
         }
 
+        .device-switcher {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+        }
+
+        .device-switcher-label {
+            flex: 0 0 auto;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .device-switcher .mode-row {
+            margin: 0;
+        }
+
+        .support-details {
+            min-width: 0;
+            margin-top: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .support-details[hidden] {
+            display: none;
+        }
+
+        .support-details.compact-details {
+            margin-top: 0;
+        }
+
+        .support-details > summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 14px 16px;
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+        }
+
+        .support-details > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .support-details > summary:hover {
+            background: var(--surface-soft);
+        }
+
+        .support-details[open] > summary {
+            border-bottom: 1px solid var(--border);
+            background: #f8fbfd;
+        }
+
+        .summary-copy {
+            display: grid;
+            min-width: 0;
+            gap: 3px;
+        }
+
+        .summary-copy strong {
+            color: var(--ink);
+            font-size: 16px;
+        }
+
+        .summary-copy small {
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .details-icon {
+            flex: 0 0 auto;
+            color: var(--primary-dark);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .support-details[open] > summary .details-icon::before {
+            content: "收起";
+        }
+
+        .support-details:not([open]) > summary .details-icon::before {
+            content: "展开";
+        }
+
+        .details-body {
+            min-width: 0;
+            padding: 16px;
+        }
+
+        .details-body > :first-child {
+            margin-top: 0;
+        }
+
+        .details-body > :last-child {
+            margin-bottom: 0;
+        }
+
+        .advanced-experiment > .details-body > .panel {
+            padding: 0;
+            border: 0;
+            box-shadow: none;
+        }
+
+        .nested-details {
+            box-shadow: none;
+        }
+
         .module-grid {
             display: grid;
             grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
             gap: 16px;
             align-items: start;
             min-width: 0;
+        }
+
+        .priority-advanced-grid {
+            grid-template-columns: minmax(520px, 600px) minmax(0, 1fr);
         }
 
         .wide-grid {
@@ -1066,11 +1168,29 @@
                 padding: 8px 12px;
             }
 
-            .nav-button {
-                flex: 1 1 140px;
+            .device-switcher {
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .device-switcher .mode-row {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .device-switcher .mode-button {
                 min-width: 0;
-                padding: 8px 10px;
+                padding: 8px;
                 white-space: normal;
+            }
+
+            .support-details > summary {
+                align-items: flex-start;
+                padding: 12px;
+            }
+
+            .details-body {
+                padding: 12px;
             }
 
             main {
@@ -1150,13 +1270,6 @@
                     </nav>
                     <button class="utility-button" data-action="open-reference" type="button">器件资料</button>
                 </div>
-                <nav class="experiment-tabs" id="experiment-tabs" aria-label="专题实验导航">
-                    <button class="nav-button active" data-action="nav" data-topic="encoder" data-section="encoder" aria-current="page">基础与芯片编码器</button>
-                    <button class="nav-button" data-action="nav" data-topic="encoder" data-section="priority16">16-4 级联</button>
-                    <button class="nav-button" data-action="nav" data-topic="decoder" data-section="hc138" hidden>74HC138 与级联</button>
-                    <button class="nav-button" data-action="nav" data-topic="decoder" data-section="hc42" hidden>74HC42</button>
-                    <button class="nav-button" data-action="nav" data-topic="display" data-section="seven" hidden>BCD 七段显示</button>
-                </nav>
             </div>
         </div>
     </header>
@@ -1165,7 +1278,7 @@
         <section id="encoder" class="module active">
             <div class="module-heading">
                 <div>
-                    <h2>编码器实验</h2>
+                    <h2>编码器</h2>
                     <p class="module-note">覆盖普通 8 线-3 线编码器、74HC148 优先编码器和 74LS147 十进制优先编码器。低有效输入用 I' 表示，输出同样用撇号标明低有效。</p>
                     <div class="experiment-meta"><span>基础到芯片应用</span><span>预计 12 分钟</span><span>目标：理解编码与优先级</span></div>
                 </div>
@@ -1179,8 +1292,8 @@
                     <div class="mode-row" id="encoder-mode-row"></div>
                     <div id="encoder-control-area"></div>
                     <div class="action-row">
-                        <button class="action-button primary" data-action="encoder-sample">课堂示例</button>
-                        <button class="action-button" data-action="encoder-random">随机测试</button>
+                        <button class="action-button primary" data-action="encoder-sample">加载示例</button>
+                        <button class="action-button" data-action="encoder-random">随机输入</button>
                         <button class="action-button warning" data-action="encoder-reset">复位</button>
                     </div>
                     <div class="soft-note" id="encoder-rule"></div>
@@ -1193,68 +1306,81 @@
                         </div>
                         <div class="result-box" id="encoder-result"></div>
                     </div>
-                    <div class="table-panel">
-                        <div class="panel-title">
-                            <h3>真值表高亮</h3>
+                    <details class="support-details compact-details truth-table-details">
+                        <summary>
+                            <span class="summary-copy"><strong>查看真值表</strong><small>按当前输入高亮对应状态</small></span>
+                            <span class="details-icon" aria-hidden="true"></span>
+                        </summary>
+                        <div class="details-body">
+                            <div class="table-wrap" id="encoder-table" tabindex="0" aria-label="编码器真值表，可横向滚动"></div>
                         </div>
-                        <div class="table-wrap" id="encoder-table"></div>
-                    </div>
+                    </details>
                 </div>
             </div>
-        </section>
-
-        <section id="priority16" class="module">
-            <div class="module-heading">
-                <div>
-                    <h2>两片 74HC148 级联 16 线-4 线优先编码器</h2>
-                    <p class="module-note">高位片负责 I15' 到 I8'，低位片负责 I7' 到 I0'；高位片无有效输入时，低位片才参与编码。</p>
-                    <div class="experiment-meta"><span>进阶</span><span>预计 8 分钟</span><span>前置：74HC148</span></div>
-                </div>
-            </div>
-
-            <div class="module-grid">
-                <div class="panel">
-                    <div class="panel-title">
-                        <h3>16 路输入</h3>
-                    </div>
-                    <h4>高位片 I15' 到 I8'</h4>
-                    <div class="pin-grid" id="priority16-high-controls"></div>
-                    <h4>低位片 I7' 到 I0'</h4>
-                    <div class="pin-grid" id="priority16-low-controls"></div>
-                    <div class="action-row">
-                        <button class="action-button primary" data-action="priority16-sample">课堂示例</button>
-                        <button class="action-button" data-action="priority16-random">随机测试</button>
-                        <button class="action-button warning" data-action="priority16-reset">复位</button>
-                    </div>
-                    <div class="soft-note">规则很简单：只要高位片 I15'-I8' 中任意一路为 L，低位片就被禁止；只有高位片无有效输入时，低位片才参与编码。</div>
-                </div>
-
-                <div class="two-column-stack">
-                    <div class="output-panel">
-                        <div class="panel-title">
-                            <h3>级联输出</h3>
+            <details id="priority16-advanced" class="support-details advanced-experiment" hidden>
+                <summary>
+                    <span class="summary-copy">
+                        <strong>进阶：两片 74HC148 级联的 16 路优先编码</strong>
+                        <small>EO'→EI' 完成优先级级联，页面展示经组合逻辑得到的 4 位高有效结果</small>
+                    </span>
+                    <span class="details-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="details-body">
+                    <div class="module-grid priority-advanced-grid">
+                        <div class="panel">
+                            <div class="panel-title">
+                                <h3>16 路输入</h3>
+                            </div>
+                            <h4>高位片 I15' 到 I8'</h4>
+                            <div class="pin-grid" id="priority16-high-controls"></div>
+                            <h4>低位片 I7' 到 I0'</h4>
+                            <div class="pin-grid" id="priority16-low-controls"></div>
+                            <div class="action-row">
+                                <button class="action-button primary" data-action="priority16-sample">加载示例</button>
+                                <button class="action-button" data-action="priority16-random">随机输入</button>
+                                <button class="action-button warning" data-action="priority16-reset">复位</button>
+                            </div>
+                            <div class="soft-note">高位片负责 I15'-I8'，低位片负责 I7'-I0'。高位片存在有效输入时会禁止低位片；实际电路还需用组合门形成统一的 4 位输出。</div>
                         </div>
-                        <div class="result-box" id="priority16-result"></div>
-                    </div>
 
-                    <div class="output-panel">
-                        <div class="panel-title">
-                            <h3>两片芯片状态</h3>
-                        </div>
-                        <div class="chip-status-grid" id="priority16-chip-status"></div>
-                    </div>
+                        <div class="two-column-stack">
+                            <div class="output-panel">
+                                <div class="panel-title">
+                                    <h3>组合后的编码结果</h3>
+                                </div>
+                                <div class="result-box" id="priority16-result"></div>
+                            </div>
 
-                    <div class="table-panel">
-                        <div class="panel-title">
-                            <h3>16-4 优先编码真值表</h3>
+                            <div class="output-panel">
+                                <div class="panel-title">
+                                    <h3>两片芯片状态</h3>
+                                </div>
+                                <div class="chip-status-grid" id="priority16-chip-status"></div>
+                            </div>
+
+                            <details class="support-details compact-details nested-details truth-table-details">
+                                <summary>
+                                    <span class="summary-copy"><strong>查看 16 路优先编码表</strong><small>更高编号输入具有更高优先级</small></span>
+                                    <span class="details-icon" aria-hidden="true"></span>
+                                </summary>
+                                <div class="details-body">
+                                    <div class="table-wrap" id="priority16-table" tabindex="0" aria-label="16 路优先编码表，可横向滚动"></div>
+                                </div>
+                            </details>
                         </div>
-                        <div class="table-wrap" id="priority16-table"></div>
                     </div>
                 </div>
-            </div>
+            </details>
         </section>
 
         <section id="hc138" class="module">
+            <div class="device-switcher" role="group" aria-label="选择译码器器件">
+                <span class="device-switcher-label">选择器件</span>
+                <div class="mode-row">
+                    <button class="mode-button active" data-action="decoder-device" data-section="hc138" aria-current="page">74HC138 · 3-8 译码</button>
+                    <button class="mode-button" data-action="decoder-device" data-section="hc42">74HC42 · BCD-十进制</button>
+                </div>
+            </div>
             <div class="module-heading">
                 <div>
                     <h2>74HC138 三线-八线译码器</h2>
@@ -1263,7 +1389,7 @@
                 </div>
             </div>
 
-            <div class="wide-grid">
+            <div class="module-grid">
                 <div class="panel">
                     <div class="panel-title">
                         <h3>单片 74HC138</h3>
@@ -1281,38 +1407,62 @@
                     </div>
                     <div class="led-grid" id="hc138-output-grid"></div>
                 </div>
-
-                <div class="table-panel">
-                    <div class="panel-title">
-                        <h3>74HC138 真值表</h3>
-                    </div>
-                    <div class="table-wrap" id="hc138-table"></div>
-                </div>
-
-                <div class="panel">
-                    <div class="panel-title">
-                        <h3>两片级联成 4 线-16 线译码</h3>
-                    </div>
-                    <h4>输入 D3D2D1D0</h4>
-                    <div class="pin-grid" id="cascade-controls"></div>
-                    <div class="chip-pair" id="cascade-chip-status"></div>
-                    <div class="result-box" id="cascade-result"></div>
-                </div>
             </div>
 
-            <div class="table-panel" style="margin-top:16px;">
-                <div class="panel-title">
-                    <h3>级联输出 Y0' 到 Y15'</h3>
+            <details class="support-details truth-table-details">
+                <summary>
+                    <span class="summary-copy"><strong>查看 74HC138 真值表</strong><small>包含使能条件与八种地址状态</small></span>
+                    <span class="details-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="details-body">
+                    <div class="table-wrap" id="hc138-table" tabindex="0" aria-label="74HC138 真值表，可横向滚动"></div>
                 </div>
-                <div class="led-grid" id="cascade-output-grid"></div>
-            </div>
+            </details>
+
+            <details class="support-details advanced-experiment">
+                <summary>
+                    <span class="summary-copy">
+                        <strong>进阶：两片 74HC138 扩展为 4-16 译码</strong>
+                        <small>D3 选择芯片，D2D1D0 作为两片共用的地址输入</small>
+                    </span>
+                    <span class="details-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="details-body">
+                    <div class="module-grid">
+                        <div class="panel">
+                            <div class="panel-title">
+                                <h3>4 位地址与片选</h3>
+                            </div>
+                            <h4>输入 D3D2D1D0</h4>
+                            <div class="pin-grid" id="cascade-controls"></div>
+                            <div class="chip-pair" id="cascade-chip-status"></div>
+                            <div class="result-box" id="cascade-result"></div>
+                            <div class="soft-note" style="margin-top:14px;">D2D1D0 并联到两片地址端；D3 分别接入低组的低有效使能和高组的高有效使能，其余使能端固定在有效电平。</div>
+                        </div>
+
+                        <div class="output-panel">
+                            <div class="panel-title">
+                                <h3>级联输出 Y0' 到 Y15'</h3>
+                            </div>
+                            <div class="led-grid" id="cascade-output-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </details>
         </section>
 
         <section id="hc42" class="module">
+            <div class="device-switcher" role="group" aria-label="选择译码器器件">
+                <span class="device-switcher-label">选择器件</span>
+                <div class="mode-row">
+                    <button class="mode-button" data-action="decoder-device" data-section="hc138">74HC138 · 3-8 译码</button>
+                    <button class="mode-button active" data-action="decoder-device" data-section="hc42" aria-current="page">74HC42 · BCD-十进制</button>
+                </div>
+            </div>
             <div class="module-heading">
                 <div>
                     <h2>74HC42 BCD-十进制译码器</h2>
-                    <p class="module-note">输入 D C B A 组成一个 BCD 码。0 到 9 选中对应的一个低有效输出；10 到 15 不是有效 BCD，本页面按所有输出为 H 处理并高亮为无效状态。</p>
+                    <p class="module-note">输入 D C B A 组成一个 BCD 码。0 到 9 选中对应的一个低有效输出；当 DCBA=1010-1111 时输入非法，器件所有输出均为 H。</p>
                     <div class="experiment-meta"><span>芯片应用</span><span>预计 8 分钟</span><span>目标：区分有效与非法 BCD</span></div>
                 </div>
             </div>
@@ -1333,12 +1483,15 @@
                         </div>
                         <div class="led-grid" id="hc42-output-grid"></div>
                     </div>
-                    <div class="table-panel">
-                        <div class="panel-title">
-                            <h3>74HC42 真值表</h3>
+                    <details class="support-details compact-details truth-table-details">
+                        <summary>
+                            <span class="summary-copy"><strong>查看 74HC42 真值表</strong><small>包含 0-9 有效输入与 10-15 非法输入</small></span>
+                            <span class="details-icon" aria-hidden="true"></span>
+                        </summary>
+                        <div class="details-body">
+                            <div class="table-wrap" id="hc42-table" tabindex="0" aria-label="74HC42 真值表，可横向滚动"></div>
                         </div>
-                        <div class="table-wrap" id="hc42-table"></div>
-                    </div>
+                    </details>
                 </div>
             </div>
         </section>
@@ -1346,8 +1499,8 @@
         <section id="seven" class="module">
             <div class="module-heading">
                 <div>
-                    <h2>BCD-七段显示译码器</h2>
-                    <p class="module-note">演示 BCD 码到 a-g 七段的显示关系，并加入 LT' 灯测、BI' 灭灯、RBI' 前导零熄灭控制。页面显示按 1=亮处理；若对照 74LS47 共阳数码管，芯片段输出是低有效。</p>
+                    <h2>BCD 七段显示与零抑制（教学模型）</h2>
+                    <p class="module-note">0-9 按标准数字显示，页面统一用 1=亮表示段状态。对照 74LS47 时，a-g 为低有效且 BI'/RBO' 共用一个管脚；本页对非 BCD 输入采用熄灭约定，不代表芯片对 10-15 的实际字形。</p>
                     <div class="experiment-meta"><span>综合应用</span><span>预计 12 分钟</span><span>目标：完成显示与消隐观察</span></div>
                 </div>
             </div>
@@ -1378,36 +1531,49 @@
                 </div>
             </div>
 
-            <div class="wide-grid" style="margin-top:16px;">
-                <div class="table-panel">
-                    <div class="panel-title">
-                        <h3>七段显示真值表</h3>
-                    </div>
-                    <div class="table-wrap" id="seven-table"></div>
+            <details class="support-details truth-table-details">
+                <summary>
+                    <span class="summary-copy"><strong>查看七段显示表</strong><small>仅表示正常译码条件下的 BCD 输入与段状态</small></span>
+                    <span class="details-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="details-body">
+                    <div class="table-wrap" id="seven-table" tabindex="0" aria-label="七段显示表，可横向滚动"></div>
                 </div>
+            </details>
 
-                <div class="panel">
-                    <div class="panel-title">
-                        <h3>多位数灭零演示</h3>
+            <details class="support-details advanced-experiment">
+                <summary>
+                    <span class="summary-copy">
+                        <strong>进阶：多位显示零抑制（级联效果）</strong>
+                        <small>收纳整数前导零与小数尾零的显示效果演示</small>
+                    </span>
+                    <span class="details-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="details-body">
+                    <div class="panel">
+                        <div class="panel-title">
+                            <h3>多位显示输入</h3>
+                        </div>
+                        <div class="multi-controls">
+                            <div class="field">
+                                <label for="multi-int">整数部分</label>
+                                <input id="multi-int" data-multi-input value="00123" inputmode="numeric" maxlength="8">
+                            </div>
+                            <div class="field">
+                                <label for="multi-frac">小数部分</label>
+                                <input id="multi-frac" data-multi-input value="00" inputmode="numeric" maxlength="6">
+                            </div>
+                            <div class="field">
+                                <label>RBI' 灭零</label>
+                                <button class="text-button" id="multi-rbi-button" data-action="toggle-multi-rbi"></button>
+                            </div>
+                        </div>
+                        <div class="multi-display" id="multi-display"></div>
+                        <p class="module-note" id="multi-note" style="margin-top:12px;"></p>
+                        <div class="soft-note" style="margin-top:14px;">实际多位电路需按位连接 RBO'→相邻位 RBI'；整数前导零与小数尾零通常分方向、分链处理。本区只演示最终显示效果。</div>
                     </div>
-                    <div class="multi-controls">
-                        <div class="field">
-                            <label for="multi-int">整数部分</label>
-                            <input id="multi-int" data-multi-input value="00123" inputmode="numeric" maxlength="8">
-                        </div>
-                        <div class="field">
-                            <label for="multi-frac">小数部分</label>
-                            <input id="multi-frac" data-multi-input value="00" inputmode="numeric" maxlength="6">
-                        </div>
-                        <div class="field">
-                            <label>RBI' 灭零</label>
-                            <button class="text-button" id="multi-rbi-button" data-action="toggle-multi-rbi"></button>
-                        </div>
-                    </div>
-                    <div class="multi-display" id="multi-display"></div>
-                    <p class="module-note" id="multi-note" style="margin-top:12px;"></p>
                 </div>
-            </div>
+            </details>
         </section>
 
         <section id="engine" class="module">
@@ -1480,11 +1646,11 @@
                         <tbody>
                             <tr data-reference-topic="encoder"><td>普通 8-3 编码器</td><td>I0-I7</td><td>Y2Y1Y0</td><td>高有效</td><td>单个输入有效时输出其编号</td></tr>
                             <tr data-reference-topic="encoder"><td>74HC148</td><td>EI', I0'-I7'</td><td>Y2'Y1'Y0', GS', EO'</td><td>低有效</td><td>最高有效输入优先，I7 最高</td></tr>
-                            <tr data-reference-topic="encoder"><td>两片 74HC148</td><td>I0'-I15'</td><td>Z3Z2Z1Z0</td><td>输入低有效</td><td>高位片优先，无高位请求时低位片工作</td></tr>
+                            <tr data-reference-topic="encoder"><td>两片 74HC148 + 组合门</td><td>I0'-I15'</td><td>Z3Z2Z1Z0</td><td>输入低有效</td><td>EO'→EI' 级联优先级，组合门形成统一 4 位输出</td></tr>
                             <tr data-reference-topic="encoder"><td>74LS147</td><td>I1'-I9'</td><td>Y3'Y2'Y1'Y0'</td><td>低有效</td><td>十进制优先编码，I9 最高</td></tr>
                             <tr data-reference-topic="decoder"><td>74HC138</td><td>S1, S2', S3', A2A1A0</td><td>Y0'-Y7'</td><td>输出低有效</td><td>使能成立后按地址选中一个输出</td></tr>
                             <tr data-reference-topic="decoder"><td>74HC42</td><td>D C B A</td><td>Y0'-Y9'</td><td>输出低有效</td><td>BCD 0-9 对应一个十进制输出</td></tr>
-                            <tr data-reference-topic="display"><td>BCD-七段译码</td><td>D C B A, LT', BI', RBI'</td><td>a-g</td><td>依器件和数码管类型而定</td><td>按数字形状点亮对应段</td></tr>
+                            <tr data-reference-topic="display"><td>BCD-七段教学模型</td><td>D C B A, LT', BI'/RBO', RBI'</td><td>a-g</td><td>页面以 1=亮表示</td><td>0-9 按标准字形；非 BCD 行为依具体芯片而定</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1512,7 +1678,6 @@
 
         const SECTION_TOPIC = Object.freeze({
             encoder: "encoder",
-            priority16: "encoder",
             hc138: "decoder",
             hc42: "decoder",
             seven: "display"
@@ -1527,15 +1692,17 @@
         const isToolMode = pageParams.get("section") === "engine" && pageParams.get("from") === "builder";
         const requestedSection = pageParams.get("section");
         const requestedTopic = pageParams.get("topic");
+        const legacyPriority16 = requestedSection === "priority16";
+        const normalizedRequestedSection = legacyPriority16 ? "encoder" : requestedSection;
         const initialSection = isToolMode
             ? "engine"
-            : (CORE_SECTIONS.has(requestedSection)
-                ? requestedSection
+            : (CORE_SECTIONS.has(normalizedRequestedSection)
+                ? normalizedRequestedSection
                 : (TOPIC_DEFAULT[requestedTopic] || "encoder"));
 
         const state = {
             section: initialSection,
-            encoderMode: "normal",
+            encoderMode: legacyPriority16 ? "hc148" : "normal",
             encoder: {
                 normal: { inputs: Array(8).fill(0) },
                 hc148: { ei: 0, inputs: Array(8).fill(1) },
@@ -1632,16 +1799,13 @@
                 if (active) button.setAttribute("aria-current", "page");
                 else button.removeAttribute("aria-current");
             });
-            document.querySelectorAll(".nav-button").forEach((button) => {
-                const belongsToTopic = button.dataset.topic === activeTopic;
+            document.querySelectorAll("[data-action='decoder-device']").forEach((button) => {
                 const active = button.dataset.section === safeSection;
-                button.hidden = !belongsToTopic;
                 button.classList.toggle("active", active);
+                button.setAttribute("aria-pressed", String(active));
                 if (active) button.setAttribute("aria-current", "page");
                 else button.removeAttribute("aria-current");
             });
-            const visibleExperiments = document.querySelectorAll(`.nav-button[data-topic="${activeTopic}"]`).length;
-            $("experiment-tabs").hidden = !activeTopic || visibleExperiments <= 1;
             if (!isToolMode && activeTopic) {
                 const url = new URL(window.location.href);
                 url.search = "";
@@ -1687,6 +1851,7 @@
             } else {
                 renderLs147();
             }
+            $("priority16-advanced").hidden = state.encoderMode !== "hc148";
         }
 
         function calcNormalEncoder() {
@@ -1969,11 +2134,11 @@
             $("priority16-result").innerHTML = `
                 <div class="result-main">
                     <span>Z3Z2Z1Z0</span>
-                    ${bitBoxes(calc.finalBits)}
+                    ${calc.selected >= 0 ? bitBoxes(calc.finalBits) : '<span class="bit-strip"><span class="bit">—</span></span>'}
                     <span>${calc.selected >= 0 ? `选中 I${calc.selected}'` : "无有效输入"}</span>
                 </div>
                 <div class="result-note ${calc.selected >= 0 ? "" : "warn"}">
-                    ${calc.selected >= 0 ? `最终输出为输入编号 ${calc.selected} 的 4 位二进制码。` : "当前 16 路输入全部为 H，没有有效请求。"}
+                    ${calc.selected >= 0 ? `组合后的高有效输出为输入编号 ${calc.selected} 的 4 位二进制码。` : "当前 16 路输入全部为 H，没有有效编码；不能把该状态当作 I0。"}
                 </div>
             `;
             $("priority16-chip-status").innerHTML = `
@@ -1995,12 +2160,15 @@
 
         function renderPriority16Table(calc) {
             const rows = [
-                `<tr class="${calc.selected < 0 ? "highlight" : ""}"><td>全部为 H</td><td>0000</td><td>无有效输入</td></tr>`,
+                `<tr class="${calc.selected < 0 ? "highlight" : ""}"><td>全部为 H</td><td>—</td><td>无有效编码</td></tr>`,
                 ...Array.from({ length: 16 }, (_, offset) => {
                     const index = 15 - offset;
+                    const condition = index === 15
+                        ? "I15'=L（较低编号任意）"
+                        : `I${index}'=L（I15'-I${index + 1}'=H，较低编号任意）`;
                     return `
                         <tr class="${calc.selected === index ? "highlight" : ""}">
-                            <td>I${index}'=L</td>
+                            <td>${condition}</td>
                             <td>${bitString(bits(index, 4))}</td>
                             <td>${index >= 8 ? "高位片优先" : "高位片无输入时由低位片编码"}</td>
                         </tr>
@@ -2120,7 +2288,7 @@
                     <span>D3D2D1D0</span>${bitBoxes(state.cascade.bits)}
                     <span>选中 Y${calc.value}'</span>
                 </div>
-                <div class="result-note">最高位 D3 只负责选择哪一片 74HC138，低三位 D2D1D0 进入被选中的芯片作为地址。</div>
+                <div class="result-note">D2D1D0 并联到两片地址端；D3 通过互补的使能连接选择低组或高组芯片。</div>
             `;
             $("cascade-output-grid").innerHTML = ledGrid(calc.outputs, "Y", true);
         }
@@ -2148,7 +2316,7 @@
                     <span>十进制 ${calc.value}</span>
                 </div>
                 <div class="result-note ${calc.valid ? "" : "warn"}">
-                    ${calc.valid ? `有效 BCD 输入，Y${calc.value}' 被拉低。` : "10 到 15 不是 BCD 有效数字，本平台将全部输出保持 H。"}
+                    ${calc.valid ? `有效 BCD 输入，Y${calc.value}' 被拉低。` : "10 到 15 不是有效 BCD，74HC42 的所有输出均为 H。"}
                 </div>
             `;
             renderHc42Table(calc);
@@ -2213,7 +2381,7 @@
             ].map(([label, index, hint]) => pinButton("seven-bit", String(index), label, state.seven.bits[index], false, hint)).join("");
             $("seven-control-pins").innerHTML = [
                 pinButton("seven-control", "lt", "LT'", state.seven.lt, true, "0 = 全亮测试"),
-                pinButton("seven-control", "bi", "BI'", state.seven.bi, true, "0 = 强制灭灯"),
+                pinButton("seven-control", "bi", "BI'/RBO'", state.seven.bi, true, "0 = 强制灭灯（输入）"),
                 pinButton("seven-control", "rbi", "RBI'", state.seven.rbi, true, "0 = 灭前导零")
             ].join("");
 
@@ -2581,7 +2749,7 @@
                 return;
             }
 
-            if (action === "nav") {
+            if (action === "decoder-device") {
                 showSection(button.dataset.section);
                 return;
             }
@@ -2695,6 +2863,7 @@
 
         configurePageMode();
         renderAll();
+        if (legacyPriority16) $("priority16-advanced").open = true;
         showSection(initialSection);
     </script>
 </body>
