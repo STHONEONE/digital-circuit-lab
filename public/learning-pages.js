@@ -115,7 +115,7 @@ function renderPlatformEvaluation(container, question, result, compact = false) 
     compact
   });
   if (rendered) return true;
-  container.textContent = `${result.message || (result.correct ? "回答正确" : "需要巩固")}\n参考答案：${result.referenceAnswer || ""}\n\n${result.explanation || ""}`;
+  container.textContent = `${result.message || (result.correct ? "回答正确" : "需要巩固")}\n正确答案已隐藏；需要时可查看解析。`;
   return false;
 }
 
@@ -338,6 +338,7 @@ class PlatformQuestionRunner {
     this.questions = [];
     this.index = 0;
     this.selected = null;
+    this.taskId = "";
     this.renderShell();
   }
 
@@ -361,9 +362,10 @@ class PlatformQuestionRunner {
     this.els.submit.addEventListener("click", () => this.submit());
   }
 
-  setQuestions(questions, index = 0) {
+  setQuestions(questions, index = 0, taskId = "") {
     this.questions = Array.isArray(questions) ? questions : [];
     this.index = Math.max(0, Math.min(index, this.questions.length - 1));
+    this.taskId = taskId || "";
     this.render();
   }
 
@@ -444,7 +446,12 @@ class PlatformQuestionRunner {
       const result = await platformApi("/api/answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: question.id, answer: String(answer), practiceMode: this.mode })
+        body: JSON.stringify({
+          questionId: question.id,
+          answer: String(answer),
+          practiceMode: this.mode,
+          taskId: this.taskId
+        })
       });
       this.showResult(result, question);
       this.onAnswered?.(result, question, answer, this.index);
@@ -714,7 +721,9 @@ async function initRoutePage() {
     const selectedProgress = progressByKnowledge.get(selectedFocus);
     document.querySelector("#routeLessonTitle").textContent = selectedFocus;
     document.querySelector("#routeLessonMastery").textContent = selectedProgress
-      ? `当前掌握度 ${clampPercent(selectedProgress.rate)}%`
+      ? selectedProgress.rate === null
+        ? `掌握度 数据不足 · ${selectedProgress.confidence || "数据不足"}`
+        : `当前掌握度 ${clampPercent(selectedProgress.rate)}% · ${selectedProgress.confidence || "低置信度"}`
       : "尚未形成练习记录";
     document.querySelector("#routeLessonSummary").textContent = `“${selectedFocus}”${lesson.summary}`;
     document.querySelector("#routeLessonConcept").textContent = lesson.concept;
@@ -751,7 +760,8 @@ async function initRoutePage() {
       const progressItem = progressByKnowledge.get(item.name);
       groups.get(scopeOrder.includes(item.scope) ? item.scope : "custom").push({
         ...item,
-        rate: progressItem ? clampPercent(progressItem.rate) : null
+        rate: progressItem?.rate === null || !progressItem ? null : clampPercent(progressItem.rate),
+        confidence: progressItem?.confidence || "数据不足"
       });
     });
     const content = scopeOrder.map((scope) => {
@@ -762,7 +772,7 @@ async function initRoutePage() {
       const average = ratedItems.length ? Math.round(ratedItems.reduce((sum, item) => sum + item.rate, 0) / ratedItems.length) : null;
       return `<details class="route-knowledge-group" ${items.some((item) => item.name === selectedFocus) || query ? "open" : ""}>
         <summary><span>${escapeHtml(scopeLabels[scope])}</span><span>${average === null ? `${items.length} 个知识点` : `${average}%`}</span></summary>
-        <div class="route-knowledge-group-items">${items.map((item) => `<button class="route-knowledge-option${item.name === selectedFocus ? " active" : ""}" type="button" data-knowledge="${escapeHtml(item.name)}"><span>${escapeHtml(item.name)}</span><span>${item.rate === null ? "未练习" : `${item.rate}%`}</span></button>`).join("")}</div>
+        <div class="route-knowledge-group-items">${items.map((item) => `<button class="route-knowledge-option${item.name === selectedFocus ? " active" : ""}" type="button" data-knowledge="${escapeHtml(item.name)}"><span>${escapeHtml(item.name)}</span><span>${item.rate === null ? item.confidence : `${item.rate}% · ${item.confidence}`}</span></button>`).join("")}</div>
       </details>`;
     }).join("");
     knowledgeGroups.innerHTML = content || '<div class="route-knowledge-empty">没有找到匹配的知识点</div>';
@@ -835,18 +845,31 @@ async function initWrongPage() {
     knowledgeLesson.hidden = false;
     variantPreview.hidden = false;
     variantHint.hidden = false;
-    const answerText = questionAnswerText(question) || "暂无参考答案";
     diagnosis.innerHTML = `
       <div class="wrong-diagnosis-heading"><div><span>上次作答对照</span><h3>看清错误，再完成订正</h3></div><span class="wrong-diagnosis-tag">待订正</span></div>
       <div class="wrong-answer-compare">
         <div class="wrong-answer-block is-wrong"><span>你的答案</span><strong>${escapeHtml(displayAttemptAnswer(item))}</strong></div>
-        <div class="wrong-answer-block is-correct"><span>正确答案</span><strong>${escapeHtml(answerText)}</strong></div>
+        <details class="wrong-answer-block is-correct"><summary>需要时查看参考答案</summary><strong>${escapeHtml(questionAnswerText(question) || "暂无参考答案")}</strong></details>
       </div>
-      <div class="wrong-ai-diagnosis"><span>AI 错因诊断</span><p>${escapeHtml(diagnosisText(item))}</p></div>`;
+      <div class="wrong-ai-diagnosis"><span>错因提示</span><p>${escapeHtml(diagnosisText(item))}</p></div>
+      <button id="wrongConfirmMasteredButton" class="platform-button wrong-confirm-button" type="button">我已掌握，移出错题目录</button>`;
     pathKnowledge.textContent = (question.knowledge || []).join(" · ") || question.title || "数字电路综合知识";
     pathExplanation.textContent = question.explanation || `先回顾“${(question.knowledge || ["本题知识点"]).join("、")}”的核心规则，再回到题目逐项验证。`;
     variantStatus.textContent = "等待本题订正";
     focusAnswerButton.disabled = false;
+    diagnosis.querySelector("#wrongConfirmMasteredButton")?.addEventListener("click", async () => {
+      const button = diagnosis.querySelector("#wrongConfirmMasteredButton");
+      button.disabled = true;
+      try {
+        await platformApi(`/api/wrong-review/${encodeURIComponent(question.id)}/confirm`, { method: "POST" });
+        setPlatformNotice(status, "已按你的确认移出错题目录；历史错题记录会继续保留。", false);
+        await load();
+      } catch (error) {
+        setPlatformNotice(status, `确认失败：${error.message}`, true);
+      } finally {
+        button.disabled = false;
+      }
+    });
   }
 
   const runner = createRunner("wrong", {
@@ -857,8 +880,7 @@ async function initWrongPage() {
     },
     onAnswered(result, question, _answer, index) {
       if (result.correct) {
-        setPlatformNotice(status, "订正成功，这道题已从待复盘目录移除。即将加载下一题。");
-        window.setTimeout(() => load().catch((error) => setPlatformNotice(status, error.message, true)), 1200);
+        setPlatformNotice(status, "已记录本次订正；错题会继续保留，确认掌握后可手动移出目录。", false);
         return;
       }
       const item = visibleDetails[index];
@@ -937,6 +959,8 @@ async function initSelfTestPage() {
   const status = document.querySelector("#selfTestStatus");
   const paper = document.querySelector("#selfTestPaper");
   const directory = document.querySelector("#paperDirectoryList");
+  const savedTaskList = document.querySelector("#savedTaskList");
+  const savedTaskCount = document.querySelector("#savedTaskCount");
   const scopeSelect = document.querySelector("#selfTestScope");
   const countSelect = document.querySelector("#selfTestCount");
   const scopeButtons = [...document.querySelectorAll("[data-self-test-scopes] button")];
@@ -955,6 +979,8 @@ async function initSelfTestPage() {
   };
   let weakKnowledge = [];
   let questions = [];
+  let activeTaskId = "";
+  let savedTasks = [];
   const runner = createRunner("self-test", {
     mode: "self_test",
     onIndexChange(index) {
@@ -963,6 +989,7 @@ async function initSelfTestPage() {
     onAnswered(_result, question) {
       completed.add(question.id);
       renderDirectory();
+      loadSavedTasks().catch(() => {});
     }
   });
   function renderDirectory() {
@@ -977,6 +1004,50 @@ async function initSelfTestPage() {
       button.addEventListener("click", () => runner.select(index));
       directory.append(button);
     });
+  }
+  function openTask(task, { scroll = false } = {}) {
+    if (!task) return;
+    activeTaskId = task.id;
+    questions = Array.isArray(task.questions) ? task.questions : [];
+    completed.clear();
+    Object.keys(task.answers || {}).forEach((questionId) => completed.add(questionId));
+    runner.setQuestions(questions, 0, activeTaskId);
+    renderDirectory();
+    paper.classList.add("active");
+    if (scroll) paper.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function renderSavedTasks() {
+    savedTaskCount.textContent = `${savedTasks.length} 份`;
+    if (!savedTasks.length) {
+      savedTaskList.innerHTML = '<div class="saved-task-empty">还没有保存的学习任务；生成后可在这里随时继续。</div>';
+      return;
+    }
+    savedTaskList.innerHTML = "";
+    savedTasks.forEach((task) => {
+      const answered = Object.keys(task.answers || {}).length;
+      const card = document.createElement("article");
+      card.className = "saved-task-card";
+      card.innerHTML = `<div class="saved-task-card-head"><strong>${escapeHtml(task.title || "个性化学习任务")}</strong><span class="saved-task-card-status">${task.completedAt ? "已完成" : "进行中"}</span></div><small>${answered} / ${(task.questions || []).length} 题 · ${escapeHtml((task.profile?.focusKnowledge || []).slice(0, 2).join("、") || "综合巩固")}</small><div class="saved-task-card-actions"><button class="platform-button primary" type="button">${task.completedAt ? "查看题单" : "继续任务"}</button><button class="platform-button danger" type="button">删除</button></div>`;
+      const [openButton, deleteButton] = card.querySelectorAll("button");
+      openButton.addEventListener("click", () => openTask(task, { scroll: true }));
+      deleteButton.addEventListener("click", async () => {
+        if (!confirm("确定删除这份学习任务吗？删除后不能恢复。")) return;
+        await platformApi(`/api/personalized-tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
+        if (activeTaskId === task.id) {
+          activeTaskId = "";
+          questions = [];
+          completed.clear();
+          paper.classList.remove("active");
+        }
+        await loadSavedTasks();
+      });
+      savedTaskList.append(card);
+    });
+  }
+  async function loadSavedTasks() {
+    savedTasks = await platformApi("/api/personalized-tasks");
+    renderSavedTasks();
+    return savedTasks;
   }
   function visibleWeakKnowledge() {
     const selectedScope = scopeSelect.value;
@@ -1057,6 +1128,14 @@ async function initSelfTestPage() {
   } catch {
     weakKnowledge = [];
   }
+  try {
+    await loadSavedTasks();
+    const requestedTaskId = new URLSearchParams(location.search).get("task");
+    const task = requestedTaskId ? savedTasks.find((item) => item.id === requestedTaskId) : savedTasks.find((item) => !item.completedAt);
+    if (task) openTask(task);
+  } catch (error) {
+    savedTaskList.innerHTML = `<div class="saved-task-empty">任务列表加载失败：${escapeHtml(error.message)}</div>`;
+  }
   renderWeakKnowledge();
   renderConfigPreview();
   document.querySelector("#generateSelfTestButton").addEventListener("click", async () => {
@@ -1065,7 +1144,7 @@ async function initSelfTestPage() {
     button.innerHTML = "<span>正在生成学习任务…</span><small>优先从本地题库匹配薄弱知识点</small>";
     setPlatformNotice(status, "正在根据错题记录、掌握程度和薄弱知识点组合针对性学习任务；仅在题库不足时由 AI 补充。请稍候...");
     try {
-      questions = await platformApi("/api/self-test", {
+      const task = await platformApi("/api/personalized-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1073,12 +1152,9 @@ async function initSelfTestPage() {
           count: document.querySelector("#selfTestCount").value
         })
       });
-      completed.clear();
-      runner.setQuestions(questions);
-      renderDirectory();
-      paper.classList.add("active");
-      setPlatformNotice(status, `个性化学习任务已生成，共 ${questions.length} 题。`);
-      paper.scrollIntoView({ behavior: "smooth", block: "start" });
+      await loadSavedTasks();
+      openTask(task, { scroll: true });
+      setPlatformNotice(status, `个性化学习任务已保存，共 ${(task.questions || []).length} 题，可随时继续。`);
     } catch (error) {
       const message = /AI Key|未配置|AI_SELF_TEST_UNAVAILABLE/i.test(error.message)
         ? "个性化学习服务尚未配置。请先返回“普通练习”，在右下角“AI 助教 → 设置”中完成配置，再回来生成学习任务。"
@@ -1114,7 +1190,7 @@ async function initReviewPage() {
     const rounds = trendRange === "recent" ? source.slice(-5) : source;
     const chart = document.querySelector("#reviewTrendChart");
     if (!rounds.length) {
-      chart.innerHTML = '<div class="review-chart-empty"><span>完成 5 次作答后<br>这里会出现第一段正确率趋势</span></div>';
+      chart.innerHTML = '<div class="review-chart-empty"><span>完成一份学习任务后<br>这里会出现学习任务趋势</span></div>';
       return;
     }
     const width = 520;
@@ -1145,8 +1221,8 @@ async function initReviewPage() {
   }
   function renderReport(stats, progress, motivation) {
     reportData = { stats, progress, motivation };
-    const knowledge = [...(progress.knowledge || [])].sort((left, right) => left.rate - right.rate);
-    const weak = knowledge.filter((item) => clampPercent(item.rate) < 80);
+    const knowledge = [...(progress.knowledge || [])].sort((left, right) => (left.rate ?? -1) - (right.rate ?? -1));
+    const weak = knowledge.filter((item) => item.rate === null || clampPercent(item.rate) < 80);
     const improvement = Number(progress.effectiveness?.improvement) || 0;
     const direction = improvement > 0 ? `提升 <em>${improvement}%</em>` : improvement < 0 ? `回落 <em>${Math.abs(improvement)}%</em>` : "保持稳定";
     document.querySelector("#reviewPeriod").textContent = `数据更新于 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} · 每 5 题形成一个学习轮次`;
@@ -1170,6 +1246,31 @@ async function initReviewPage() {
       <a class="review-action-link primary" href="./learning-route.html"><span>1</span><span><strong>复习薄弱知识点</strong><small>围绕“${escapeHtml(primaryFocus)}”回顾概念与规则</small></span>${chevron}</a>
       <a class="review-action-link" href="./wrong-review.html"><span>2</span><span><strong>完成错题复盘</strong><small>${progress.unresolvedWrong || 0} 道题等待订正</small></span>${chevron}</a>
       <a class="review-action-link" href="./self-test.html"><span>3</span><span><strong>开始个性化学习</strong><small>根据学习记录生成针对性任务</small></span>${chevron}</a>`;
+    const activeTask = progress.tasks?.nextTask || null;
+    document.querySelector("#reviewPeriod").textContent = `数据更新于 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} · 按已保存学习任务统计`;
+    document.querySelector("#reviewHeadline").innerHTML = stats.answered
+      ? `已完成<em>${stats.answered}</em> 次作答，已有 ${progress.tasks?.completed || 0} 份学习任务完成`
+      : "生成并完成一份学习任务后，这里会展示你的学习结果。";
+    document.querySelector("#reviewSummary").innerHTML = [
+      renderMetric("answered", "作答次数", `${stats.answered || 0} 次`, `${stats.uniqueQuestions || 0} 道独立题`),
+      renderMetric("accuracy", "首次正确率", stats.firstCorrectRate === null ? "数据不足" : `${stats.firstCorrectRate}%`, "至少 3 道独立题后计算"),
+      renderMetric("review", "迁移正确率", stats.transferCorrectRate === null ? "数据不足" : `${stats.transferCorrectRate}%`, `${stats.transferAttempts || 0} 次迁移作答`),
+      renderMetric("streak", "学习任务", `${progress.tasks?.completed || 0} 份`, progress.tasks?.active ? `${progress.tasks.active} 份进行中` : "暂无进行中任务")
+    ].join("");
+    document.querySelector("#reviewWeakCount").textContent = `${weak.length} 项`;
+    document.querySelector("#reviewKnowledgeList").innerHTML = weak.length
+      ? weak.slice(0, 4).map((item, index) => {
+        const rate = item.rate === null ? "数据不足" : `${clampPercent(item.rate)}%`;
+        const width = item.rate === null ? 0 : clampPercent(item.rate);
+        return `<article class="review-knowledge-row"><div class="review-knowledge-row-head"><span class="review-knowledge-index">${index + 1}</span><span>${escapeHtml(item.knowledge)}</span><strong>${rate}</strong></div><div class="review-progress-track"><i style="width:${width}%"></i></div><small>${escapeHtml(item.status)} · ${escapeHtml(item.confidence || "数据不足")} · ${Math.max(0, Number(item.uniqueQuestions) || 0)} 道独立题</small></article>`;
+      }).join("")
+      : '<div class="review-knowledge-empty"><strong>暂未形成知识点证据</strong><span>完成独立题后，这里会显示掌握度与可信度。</span></div>';
+    const nextFocus = weak[0]?.knowledge || knowledge[0]?.knowledge || "综合基础";
+    document.querySelector("#reviewAdvice").innerHTML = `<strong>${activeTask ? "优先完成当前任务" : `下一步建议：${escapeHtml(nextFocus)}`}</strong><p>${activeTask ? `你有一份进行中的任务，已完成 ${activeTask.answered} / ${activeTask.total} 题。` : "先生成一份推荐任务，系统会根据错题记录和掌握证据安排练习。"}</p>`;
+    const taskHref = activeTask ? `./self-test.html?task=${encodeURIComponent(activeTask.id)}` : "./self-test.html";
+    const taskTitle = activeTask ? "继续今日推荐任务" : "生成今日推荐任务";
+    const taskDetail = activeTask ? `${activeTask.answered} / ${activeTask.total} 题待继续` : "根据当前学习记录生成针对性任务";
+    document.querySelector("#reviewActions").innerHTML = `<a class="review-action-link primary" href="${taskHref}"><span>1</span><span><strong>${taskTitle}</strong><small>${taskDetail}</small></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></a>`;
     renderTrend();
   }
   async function load() {

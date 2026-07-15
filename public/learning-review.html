@@ -10,9 +10,9 @@
     </header>
     <section id="reviewSummary" class="review-summary" aria-label="核心学习指标"></section>
     <div class="review-workspace">
-      <section class="platform-surface review-trend-panel"><div class="platform-section-heading report-panel-heading"><div><h3>近期正确率趋势</h3><p>每 5 次作答形成一个学习轮次</p></div><div class="report-range-switch" role="group" aria-label="趋势范围"><button type="button" class="active" data-review-range="all">全部</button><button type="button" data-review-range="recent">近 5 轮</button></div></div><div id="reviewTrendChart" class="review-trend-chart"></div></section>
+      <section class="platform-surface review-trend-panel"><div class="platform-section-heading report-panel-heading"><div><h3>学习任务完成趋势</h3><p>每一份已保存的学习任务作为一次学习记录</p></div><div class="report-range-switch" role="group" aria-label="趋势范围"><button type="button" class="active" data-review-range="all">全部</button><button type="button" data-review-range="recent">近 5 个任务</button></div></div><div id="reviewTrendChart" class="review-trend-chart"></div></section>
       <section class="platform-surface review-knowledge-panel"><div class="platform-section-heading report-panel-heading"><div><h3>薄弱知识点</h3><p>优先巩固掌握度较低的内容</p></div><span id="reviewWeakCount" class="report-panel-count">0 项</span></div><div id="reviewKnowledgeList" class="review-knowledge-list"></div></section>
-      <aside class="platform-surface review-action-panel"><div class="platform-section-heading report-panel-heading"><div><h3>AI 学习建议</h3><p>根据当前学习轨迹动态生成</p></div></div><div id="reviewAdvice" class="review-advice"></div><div id="reviewActions" class="review-actions"></div></aside>
+      <aside class="platform-surface review-action-panel"><div class="platform-section-heading report-panel-heading"><div><h3>下一步建议</h3><p>根据当前任务与学习记录生成</p></div></div><div id="reviewAdvice" class="review-advice"></div><div id="reviewActions" class="review-actions"></div></aside>
     </div>
     <footer class="report-footer"><div id="reviewMessage" class="report-inline-notice" aria-live="polite"></div><div class="report-footer-actions"><button id="reviewRefreshButton" class="platform-button" type="button">刷新数据</button><button id="reviewClearButton" class="platform-button danger" type="button">清空我的记录</button></div></footer>
   </div></section></main>

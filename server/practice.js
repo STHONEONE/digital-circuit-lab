@@ -7,6 +7,18 @@ function accuracy(records) {
   return Math.round(records.filter((record) => record.correct).length * 100 / records.length);
 }
 
+function masteryConfidence(uniqueQuestions) {
+  if (uniqueQuestions < 3) return "数据不足";
+  if (uniqueQuestions < 5) return "低置信度";
+  if (uniqueQuestions < 8) return "中置信度";
+  return "高置信度";
+}
+
+function recordTime(record) {
+  const value = Date.parse(record?.answeredAt || "");
+  return Number.isFinite(value) ? value : 0;
+}
+
 function normalized(text) {
   return String(text || "").toLowerCase().replace(/\s+/g, "");
 }
@@ -236,7 +248,10 @@ export class PracticeService {
   }
 
   async answer(request) {
-    const storedQuestion = this.store.question(request.questionId);
+    const taskQuestion = request.taskId
+      ? this.store.personalizedTaskQuestion(request.learnerId, request.taskId, request.questionId)
+      : null;
+    const storedQuestion = taskQuestion || this.store.question(request.questionId);
     const question = storedQuestion || this.registeredGeneratedVariant(request.learnerId, request.questionId);
     const userAnswer = String(request.answer ?? "").trim();
     if (!userAnswer) {
@@ -276,14 +291,20 @@ export class PracticeService {
       correct = question.keywords?.length > 0 && matchedKeywords.length >= required;
     }
 
+    let taskProgress = null;
     if (storedQuestion) {
-      this.store.addRecord({
+      const existingAttempts = this.recordsForLearner(request.learnerId)
+        .filter((record) => record.questionId === question.id);
+      const savedRecord = this.store.addRecord({
         questionId: question.id,
         userAnswer,
         correct,
         knowledge: question.knowledge || [],
         practiceMode: mode(request.practiceMode),
         focusKnowledge: request.focusKnowledge || "",
+        taskId: request.taskId || "",
+        isTransfer: Boolean(request.isTransfer),
+        isFirstAttempt: existingAttempts.length === 0,
         ...(evaluation ? {
           score: evaluation.score,
           gradingMode: evaluation.gradingMode,
@@ -293,6 +314,23 @@ export class PracticeService {
         } : {}),
         ...(request.learnerId ? { learnerId: request.learnerId } : {})
       });
+      if (request.taskId) {
+        const task = this.store.recordPersonalizedTaskAnswer(
+          request.learnerId,
+          request.taskId,
+          question.id,
+          correct,
+          savedRecord.id
+        );
+        if (task) {
+          taskProgress = {
+            taskId: task.id,
+            answered: Object.keys(task.answers || {}).length,
+            total: task.questions.length,
+            completed: Boolean(task.completedAt)
+          };
+        }
+      }
     }
 
     if (evaluation) {
@@ -309,7 +347,8 @@ export class PracticeService {
         referenceAnswer: question.answerText,
         explanation: question.explanation,
         matchedKeywords: [],
-        evaluation
+        evaluation,
+        taskProgress
       };
     }
 
@@ -320,7 +359,8 @@ export class PracticeService {
         ? `${String.fromCharCode(65 + question.answer)}. ${question.options[question.answer]}`
         : question.answerText,
       explanation: question.explanation,
-      matchedKeywords
+      matchedKeywords,
+      taskProgress
     };
   }
 
@@ -345,9 +385,19 @@ export class PracticeService {
 
   stats(learnerId = "") {
     const records = this.recordsForLearner(learnerId);
+    const firstByQuestion = new Map();
+    records.forEach((record) => {
+      if (!firstByQuestion.has(record.questionId)) firstByQuestion.set(record.questionId, record);
+    });
+    const firstAttempts = [...firstByQuestion.values()];
+    const transferAttempts = records.filter((record) => record.isTransfer);
     return {
       answered: records.length,
       correctRate: accuracy(records),
+      uniqueQuestions: firstAttempts.length,
+      firstCorrectRate: firstAttempts.length >= 3 ? accuracy(firstAttempts) : null,
+      transferAttempts: transferAttempts.length,
+      transferCorrectRate: transferAttempts.length >= 3 ? accuracy(transferAttempts) : null,
       wrongKnowledge: this.wrongKnowledgeCounts("all", learnerId)
     };
   }
@@ -369,24 +419,40 @@ export class PracticeService {
   }
 
   wrongReviewDetails(learnerId = "") {
-    const latest = new Map();
-    const attempts = new Map();
-    this.recordsForLearner(learnerId).forEach((record) => {
-      latest.set(record.questionId, record);
-      if (!record.correct) attempts.set(record.questionId, (attempts.get(record.questionId) || 0) + 1);
+    const grouped = new Map();
+    this.recordsForLearner(learnerId).filter((record) => !record.correct).forEach((record) => {
+      const records = grouped.get(record.questionId) || [];
+      records.push(record);
+      grouped.set(record.questionId, records);
     });
-    return [...latest.entries()].filter(([, record]) => !record.correct)
-      .map(([id, record]) => ({
+    return [...grouped.entries()].map(([id, wrongRecords]) => {
+      const latestWrong = wrongRecords.at(-1);
+      const confirmation = this.store.wrongReviewConfirmation(learnerId, id);
+      const confirmedAt = Date.parse(confirmation?.confirmedAt || "") || 0;
+      return {
         question: this.store.question(id),
-        wrongAttempts: attempts.get(id) || 1,
+        wrongAttempts: wrongRecords.length,
         latestAttempt: {
-          userAnswer: record.userAnswer || "",
-          answeredAt: record.answeredAt || "",
-          evaluation: record.gradingEvaluation || null
-        }
-      }))
+          userAnswer: latestWrong.userAnswer || "",
+          answeredAt: latestWrong.answeredAt || "",
+          evaluation: latestWrong.gradingEvaluation || null
+        },
+        confirmedAt: confirmation?.confirmedAt || "",
+        active: recordTime(latestWrong) > confirmedAt
+      };
+    }).filter((item) => item.active)
       .filter((item) => item.question)
       .sort((left, right) => right.wrongAttempts - left.wrongAttempts);
+  }
+
+  confirmWrongReview(questionId, learnerId = "") {
+    const question = this.store.question(questionId);
+    const hasWrongRecord = this.recordsForLearner(learnerId)
+      .some((record) => record.questionId === questionId && !record.correct);
+    if (!question || !hasWrongRecord) {
+      throw serviceError("只能确认已记录的错题。", 404, "WRONG_REVIEW_NOT_FOUND");
+    }
+    return this.store.confirmWrongReview(learnerId, questionId);
   }
 
   knowledgeStats(learnerId = "") {
@@ -398,21 +464,30 @@ export class PracticeService {
       });
     });
     return [...groups.entries()].map(([knowledge, records]) => {
-      const rate = accuracy(records);
+      const firstByQuestion = new Map();
+      records.forEach((record) => {
+        if (!firstByQuestion.has(record.questionId)) firstByQuestion.set(record.questionId, record);
+      });
+      const uniqueRecords = [...firstByQuestion.values()];
+      const uniqueQuestions = uniqueRecords.length;
+      const hasSufficientEvidence = uniqueQuestions >= 3;
+      const rate = hasSufficientEvidence ? accuracy(uniqueRecords) : null;
       return {
         knowledge,
         attempts: records.length,
         correct: records.filter((record) => record.correct).length,
+        uniqueQuestions,
         rate,
-        status: rate >= 80 ? "已掌握" : rate >= 60 ? "提升中" : "需巩固"
+        confidence: masteryConfidence(uniqueQuestions),
+        status: !hasSufficientEvidence ? "数据不足" : rate >= 80 ? "已掌握" : rate >= 60 ? "提升中" : "需巩固"
       };
-    }).sort((left, right) => left.rate - right.rate || left.knowledge.localeCompare(right.knowledge));
+    }).sort((left, right) => (left.rate ?? -1) - (right.rate ?? -1) || left.knowledge.localeCompare(right.knowledge));
   }
 
   learningPlan(learnerId = "") {
     const records = this.recordsForLearner(learnerId);
     const knowledge = this.knowledgeStats(learnerId);
-    let focusKnowledge = knowledge.filter((item) => item.rate < 80)
+    let focusKnowledge = knowledge.filter((item) => item.rate === null || item.rate < 80)
       .slice(0, 3).map((item) => item.knowledge);
     if (!focusKnowledge.length) {
       focusKnowledge = [...new Set(this.store.questions().flatMap((question) => question.knowledge || []))].slice(0, 3);
@@ -665,6 +740,56 @@ export class PracticeService {
 
   progress(learnerId = "") {
     const records = this.recordsForLearner(learnerId);
+    const tasks = this.store.personalizedTasksForLearner(learnerId);
+    const taskRounds = tasks.map((task, index) => {
+      const answers = Object.values(task.answers || {});
+      return {
+        round: `任务 ${index + 1}`,
+        title: task.title || "个性化学习任务",
+        answered: answers.length,
+        correctRate: accuracy(answers),
+        completed: Boolean(task.completedAt),
+        createdAt: task.createdAt || "",
+        completedAt: task.completedAt || ""
+      };
+    }).reverse();
+    const taskAttempts = records.filter((record) => record.taskId);
+    const recentTaskRecords = taskAttempts.slice(-Math.min(10, taskAttempts.length));
+    const baselineTaskRecords = taskAttempts.slice(0, Math.min(10, taskAttempts.length));
+    const nextTask = tasks.find((task) => !task.completedAt) || null;
+    const taskRate = accuracy(taskAttempts);
+    const baselineRateFromTasks = accuracy(baselineTaskRecords);
+    const recentRateFromTasks = accuracy(recentTaskRecords);
+    return {
+      rounds: taskRounds,
+      tasks: {
+        total: tasks.length,
+        completed: tasks.filter((task) => task.completedAt).length,
+        active: tasks.filter((task) => !task.completedAt).length,
+        nextTask: nextTask ? {
+          id: nextTask.id,
+          title: nextTask.title,
+          answered: Object.keys(nextTask.answers || {}).length,
+          total: nextTask.questions.length,
+          scope: nextTask.scope
+        } : null
+      },
+      knowledge: this.knowledgeStats(learnerId),
+      effectiveness: {
+        baselineRate: baselineRateFromTasks,
+        recentRate: recentRateFromTasks,
+        improvement: recentRateFromTasks - baselineRateFromTasks,
+        personalizedAttempts: taskAttempts.length,
+        personalizedRate: taskRate,
+        directionEffective: taskAttempts.length >= 3 && recentRateFromTasks >= baselineRateFromTasks + 10,
+        conclusion: taskAttempts.length
+          ? "已按已保存的学习任务汇总本次学习记录。"
+          : "完成一份个性化学习任务后，这里会按真实任务展示学习结果。"
+      },
+      unresolvedWrong: this.wrongReviewDetails(learnerId).length
+    };
+
+    /* Legacy answer-count rounds are retained below only for migration reference. */
     const rounds = [];
     for (let start = 0, index = 1; start < records.length; start += 5, index += 1) {
       const batch = records.slice(start, start + 5);

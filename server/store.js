@@ -23,14 +23,20 @@ export class Store {
     this.dataDir = dataDir;
     this.importedFile = path.join(dataDir, "imported-questions.json");
     this.recordsFile = path.join(dataDir, "answer-records.json");
+    this.wrongReviewFile = path.join(dataDir, "wrong-review-status.json");
+    this.personalizedTasksFile = path.join(dataDir, "personalized-learning-tasks.json");
     this.configFile = path.join(dataDir, "ai-config.json");
     this.generatedSelfTestsFile = path.join(dataDir, "generated-self-test-questions.json");
     fs.mkdirSync(dataDir, { recursive: true });
     this.imported = readJson(this.importedFile, []);
     this.records = readJson(this.recordsFile, []);
+    this.wrongReview = readJson(this.wrongReviewFile, {});
+    this.personalizedTasks = readJson(this.personalizedTasksFile, []);
     this.config = readJson(this.configFile, {});
     const generatedSelfTests = readJson(this.generatedSelfTestsFile, []);
     this.generatedSelfTests = Array.isArray(generatedSelfTests) ? generatedSelfTests : [];
+    if (!this.wrongReview || typeof this.wrongReview !== "object" || Array.isArray(this.wrongReview)) this.wrongReview = {};
+    if (!Array.isArray(this.personalizedTasks)) this.personalizedTasks = [];
   }
 
   questions({ scope, source } = {}) {
@@ -97,8 +103,10 @@ export class Store {
   }
 
   addRecord(record) {
-    this.records.push({ id: randomUUID(), answeredAt: new Date().toISOString(), ...record });
+    const saved = { id: randomUUID(), answeredAt: new Date().toISOString(), ...record };
+    this.records.push(saved);
     writeJson(this.recordsFile, this.records);
+    return saved;
   }
 
   clearRecords(learnerId = "") {
@@ -107,7 +115,94 @@ export class Store {
       ? this.records.filter((record) => record.learnerId !== learnerId)
       : [];
     writeJson(this.recordsFile, this.records);
+    if (learnerId) {
+      Object.keys(this.wrongReview).forEach((key) => {
+        if (key.startsWith(`${learnerId}\u0000`)) delete this.wrongReview[key];
+      });
+      this.personalizedTasks = this.personalizedTasks.filter((task) => task.learnerId !== learnerId);
+      writeJson(this.wrongReviewFile, this.wrongReview);
+      writeJson(this.personalizedTasksFile, this.personalizedTasks);
+    }
     return before - this.records.length;
+  }
+
+  wrongReviewKey(learnerId, questionId) {
+    return `${String(learnerId || "")}\u0000${String(questionId || "")}`;
+  }
+
+  wrongReviewConfirmation(learnerId, questionId) {
+    return this.wrongReview[this.wrongReviewKey(learnerId, questionId)] || null;
+  }
+
+  confirmWrongReview(learnerId, questionId) {
+    const state = { confirmedAt: new Date().toISOString() };
+    this.wrongReview[this.wrongReviewKey(learnerId, questionId)] = state;
+    writeJson(this.wrongReviewFile, this.wrongReview);
+    return state;
+  }
+
+  confirmedWrongReviewCount(learnerId = "") {
+    return Object.entries(this.wrongReview)
+      .filter(([key]) => !learnerId || key.startsWith(`${learnerId}\u0000`)).length;
+  }
+
+  createPersonalizedTask({ learnerId, scope, questions, profile = {} }) {
+    const now = new Date().toISOString();
+    const task = {
+      id: randomUUID(),
+      learnerId: String(learnerId || ""),
+      title: "个性化学习任务",
+      scope: String(scope || "all"),
+      createdAt: now,
+      updatedAt: now,
+      completedAt: "",
+      profile: {
+        focusKnowledge: Array.isArray(profile.focusKnowledge) ? profile.focusKnowledge.slice(0, 6) : []
+      },
+      questions: (Array.isArray(questions) ? questions : []).map((question) => ({ ...question })),
+      answers: {}
+    };
+    this.personalizedTasks.unshift(task);
+    writeJson(this.personalizedTasksFile, this.personalizedTasks);
+    return task;
+  }
+
+  personalizedTasksForLearner(learnerId = "") {
+    return this.personalizedTasks
+      .filter((task) => !learnerId || task.learnerId === learnerId)
+      .sort((left, right) => String(right.updatedAt || right.createdAt).localeCompare(String(left.updatedAt || left.createdAt)));
+  }
+
+  personalizedTask(learnerId, taskId) {
+    return this.personalizedTasks.find((task) => task.id === taskId && task.learnerId === learnerId) || null;
+  }
+
+  personalizedTaskQuestion(learnerId, taskId, questionId) {
+    return this.personalizedTask(learnerId, taskId)?.questions
+      ?.find((question) => question.id === questionId) || null;
+  }
+
+  recordPersonalizedTaskAnswer(learnerId, taskId, questionId, correct, recordId = "") {
+    const task = this.personalizedTask(learnerId, taskId);
+    if (!task || !task.questions.some((question) => question.id === questionId)) return null;
+    task.answers ||= {};
+    task.answers[questionId] = {
+      correct: Boolean(correct),
+      answeredAt: new Date().toISOString(),
+      recordId
+    };
+    task.updatedAt = new Date().toISOString();
+    const complete = task.questions.length > 0 && task.questions.every((question) => task.answers[question.id]);
+    task.completedAt = complete ? (task.completedAt || task.updatedAt) : "";
+    writeJson(this.personalizedTasksFile, this.personalizedTasks);
+    return task;
+  }
+
+  deletePersonalizedTask(learnerId, taskId) {
+    const before = this.personalizedTasks.length;
+    this.personalizedTasks = this.personalizedTasks.filter((task) => !(task.id === taskId && task.learnerId === learnerId));
+    if (before !== this.personalizedTasks.length) writeJson(this.personalizedTasksFile, this.personalizedTasks);
+    return before !== this.personalizedTasks.length;
   }
 
   aiConfig() {

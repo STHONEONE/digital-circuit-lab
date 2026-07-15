@@ -64,7 +64,7 @@
     const reference = document.createElement("details");
     reference.className = "answer-reference";
     const summary = document.createElement("summary");
-    summary.textContent = "查看参考答案与解析";
+    summary.textContent = "需要时查看参考答案与解析";
     const referenceBody = document.createElement("div");
     referenceBody.className = "answer-reference-body";
     const answerTitle = document.createElement("strong");

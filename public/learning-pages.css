@@ -602,6 +602,9 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
 .wrong-answer-block.is-wrong strong { color: #fda4af; }
 .wrong-answer-block.is-correct { border-color: rgba(34, 211, 238, .3); }
 .wrong-answer-block.is-correct strong { color: #67e8f9; }
+.wrong-answer-block.is-correct summary { color: #9eeaf5; cursor: pointer; font-size: 10px; font-weight: 800; }
+.wrong-answer-block.is-correct[open] summary { margin-bottom: 7px; }
+.wrong-confirm-button { min-height: 34px; margin-top: 12px; font-size: 11px; }
 .wrong-ai-diagnosis { border-left: 2px solid #22d3ee; margin-top: 10px; padding-left: 10px; }
 .wrong-ai-diagnosis span { color: #67e8f9; font-size: 9px; font-weight: 900; }
 .wrong-ai-diagnosis p { margin: 3px 0 0; color: #9fb8d1; font-size: 10px; line-height: 1.5; }
@@ -705,6 +708,16 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
 .self-test-rationale .platform-notice { margin-top: 12px; font-size: 10px; line-height: 1.5; }
 .self-test-paper { display: none; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; }
 .self-test-paper.active { display: grid; }
+.self-test-saved-tasks { display: grid; gap: 12px; padding: 16px 18px; }
+.saved-task-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.saved-task-card { display: grid; min-height: 94px; border: 1px solid rgba(125, 211, 252, .16); border-radius: 10px; background: rgba(4, 15, 33, .52); gap: 9px; padding: 12px; }
+.saved-task-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.saved-task-card strong { color: #eaf6ff; font-size: 13px; }
+.saved-task-card small { color: #7894b0; font-size: 10px; }
+.saved-task-card-status { border: 1px solid rgba(34, 211, 238, .3); border-radius: 999px; color: #8be8fa; padding: 3px 7px; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.saved-task-card-actions { display: flex; gap: 8px; }
+.saved-task-card-actions .platform-button { min-height: 31px; padding: 6px 9px; font-size: 10px; }
+.saved-task-empty { color: #7894b0; font-size: 11px; padding: 8px 0; }
 .paper-directory { padding: 18px; }
 .paper-directory-list { display: grid; gap: 7px; overflow: visible; }
 .paper-directory-list button { display: grid; grid-template-columns: 30px 1fr; border: 1px solid rgba(125, 211, 252, .16); border-radius: 9px; background: rgba(5, 16, 35, .72); color: #dcecff; align-items: center; gap: 10px; padding: 10px; text-align: left; cursor: pointer; }

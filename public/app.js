@@ -803,7 +803,7 @@ function renderSemanticEvaluation(container, question, result, { compact = false
 function showAnswerResult(question, answer, result, svg = "") {
   els.feedback.className = `feedback semantic-feedback ${result.correct ? "ok" : "bad"}`;
   if (renderSemanticEvaluation(els.feedback, question, result, { svg })) return;
-  const text = `${result.message}\n参考答案：${result.referenceAnswer || ""}\n\n${result.explanation || ""}`;
+  const text = `${result.message}\n正确答案已隐藏；需要时可查看解析。`;
   showFeedback(result.correct, text, svg);
 }
 

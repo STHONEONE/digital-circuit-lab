@@ -579,3 +579,74 @@ test("failed AI grading does not create a wrong-answer record", async () => {
     cleanup();
   }
 });
+
+test("wrong review remains until the learner manually confirms mastery", async () => {
+  const { practice, cleanup } = fixture();
+  try {
+    await practice.answer({ questionId: "comb-001", answer: "A", learnerId: "manual-review" });
+    await practice.answer({ questionId: "comb-001", answer: "B", practiceMode: "wrong_review", learnerId: "manual-review" });
+    assert.equal(practice.wrongReviewDetails("manual-review").length, 1);
+
+    practice.confirmWrongReview("comb-001", "manual-review");
+    assert.equal(practice.wrongReviewDetails("manual-review").length, 0);
+
+    await practice.answer({ questionId: "comb-001", answer: "A", learnerId: "manual-review" });
+    assert.equal(practice.wrongReviewDetails("manual-review").length, 1);
+  } finally {
+    cleanup();
+  }
+});
+
+test("saved personalized tasks retain their questions and completion state", async () => {
+  const { store, practice, cleanup } = fixture();
+  try {
+    const questions = await practice.selfTest("basic-logic", 5, "task-learner");
+    const task = store.createPersonalizedTask({ learnerId: "task-learner", scope: "basic-logic", questions });
+    const choice = task.questions.find((question) => question.type === "single_choice");
+    assert.ok(choice);
+
+    await practice.answer({
+      questionId: choice.id,
+      answer: String(choice.answer),
+      practiceMode: "self_test",
+      learnerId: "task-learner",
+      taskId: task.id
+    });
+    const saved = store.personalizedTask("task-learner", task.id);
+    assert.ok(saved.answers[choice.id]);
+    assert.equal(saved.answers[choice.id].correct, true);
+    assert.equal(store.personalizedTasksForLearner("task-learner").length, 1);
+  } finally {
+    cleanup();
+  }
+});
+
+test("mastery waits for three independent questions and reports confidence", async () => {
+  const { store, practice, cleanup } = fixture();
+  try {
+    const questionGroups = new Map();
+    store.questions().filter((question) => question.type === "single_choice").forEach((question) => {
+      (question.knowledge || []).forEach((knowledge) => {
+        const items = questionGroups.get(knowledge) || [];
+        items.push(question);
+        questionGroups.set(knowledge, items);
+      });
+    });
+    const [knowledge, candidates] = [...questionGroups.entries()].find(([, items]) => items.length >= 3);
+    await Promise.all(candidates.slice(0, 2).map((question) => practice.answer({
+      questionId: question.id,
+      answer: String(question.answer),
+      learnerId: "mastery-learner"
+    })));
+    const first = practice.knowledgeStats("mastery-learner").find((item) => item.knowledge === knowledge);
+    assert.equal(first.rate, null);
+    assert.equal(first.confidence, "数据不足");
+
+    const third = candidates[2];
+    await practice.answer({ questionId: third.id, answer: String(third.answer), learnerId: "mastery-learner" });
+    const second = practice.knowledgeStats("mastery-learner").find((item) => item.knowledge === knowledge);
+    assert.ok(["低置信度", "中置信度", "高置信度"].includes(second.confidence));
+  } finally {
+    cleanup();
+  }
+});

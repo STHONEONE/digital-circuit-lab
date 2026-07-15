@@ -50,6 +50,33 @@ function learnerId(request) {
   return `client-${clientFingerprint(request)}`;
 }
 
+async function generateSelfTestQuestions(body, currentLearnerId) {
+  const prepared = practice.prepareSelfTest(body.scope, body.count, currentLearnerId);
+  const needsAi = prepared.shortage > 0 && ai.configured();
+  const previous = selfTestGenerationState.get(currentLearnerId);
+  const now = Date.now();
+  if (needsAi && previous?.active) {
+    const error = new Error("个性化学习任务正在补充，请等待本次生成完成。");
+    error.status = 429;
+    error.code = "AI_SELF_TEST_BUSY";
+    throw error;
+  }
+  const retryAfterMs = needsAi && previous ? Math.max(0, selfTestCooldownMs - (now - previous.finishedAt)) : 0;
+  if (retryAfterMs > 0) {
+    const error = new Error(`AI 补充学习任务请求过于频繁，请 ${Math.ceil(retryAfterMs / 1000)} 秒后重试。`);
+    error.status = 429;
+    error.code = "AI_SELF_TEST_RATE_LIMITED";
+    error.retryAfterSeconds = Math.ceil(retryAfterMs / 1000);
+    throw error;
+  }
+  if (needsAi) selfTestGenerationState.set(currentLearnerId, { active: true, finishedAt: 0 });
+  try {
+    return { questions: await practice.selfTest(body.scope, body.count, currentLearnerId, prepared), profile: prepared.profile };
+  } finally {
+    if (needsAi) selfTestGenerationState.set(currentLearnerId, { active: false, finishedAt: Date.now() });
+  }
+}
+
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
@@ -87,6 +114,15 @@ app.get("/api/recommendations", (request, response) => response.json(
 app.get("/api/stats", (request, response) => response.json(practice.stats(learnerId(request))));
 app.get("/api/learning-plan", (request, response) => response.json(practice.learningPlan(learnerId(request))));
 app.post("/api/self-test", async (request, response, next) => {
+  try {
+    const result = await generateSelfTestQuestions(request.body || {}, learnerId(request));
+    response.json(result.questions);
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
+
   const body = request.body || {};
   const currentLearnerId = learnerId(request);
   const clientKey = currentLearnerId;
@@ -133,9 +169,41 @@ app.post("/api/self-test", async (request, response, next) => {
 app.get("/api/wrong-review", (request, response) => {
   response.json(practice.wrongReviewDetails(learnerId(request)).map((item) => item.question));
 });
+app.post("/api/personalized-tasks", async (request, response, next) => {
+  try {
+    const currentLearnerId = learnerId(request);
+    const result = await generateSelfTestQuestions(request.body || {}, currentLearnerId);
+    response.status(201).json(store.createPersonalizedTask({
+      learnerId: currentLearnerId,
+      scope: request.body?.scope,
+      questions: result.questions,
+      profile: result.profile
+    }));
+  } catch (error) {
+    next(error);
+  }
+});
+app.get("/api/personalized-tasks", (request, response) => response.json(
+  store.personalizedTasksForLearner(learnerId(request))
+));
+app.get("/api/personalized-tasks/:taskId", (request, response) => {
+  const task = store.personalizedTask(learnerId(request), request.params.taskId);
+  if (!task) return response.status(404).json({ error: "未找到该学习任务。", code: "LEARNING_TASK_NOT_FOUND" });
+  response.json(task);
+});
+app.delete("/api/personalized-tasks/:taskId", (request, response) => response.json({
+  removed: store.deletePersonalizedTask(learnerId(request), request.params.taskId)
+}));
 app.get("/api/wrong-review-details", (request, response) => response.json(
   practice.wrongReviewDetails(learnerId(request))
 ));
+app.post("/api/wrong-review/:questionId/confirm", (request, response, next) => {
+  try {
+    response.json(practice.confirmWrongReview(request.params.questionId, learnerId(request)));
+  } catch (error) {
+    next(error);
+  }
+});
 app.get("/api/targeted-questions", (request, response) => {
   response.json(practice.targeted(request.query.knowledge, request.query.count, learnerId(request)));
 });

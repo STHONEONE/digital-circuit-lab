@@ -406,6 +406,55 @@ test("personalized learning uses the local bank without AI configuration", async
   assert.ok(targeted.every((question) => question.knowledge.includes("比较器")));
 });
 
+test("personalized tasks persist until deletion and wrong review requires manual confirmation", async () => {
+  const learner = "task-http-learner";
+  const headers = { "Content-Type": "application/json", "X-Learner-Id": learner };
+  const createdResponse = await fetch(`${baseUrl}/api/personalized-tasks`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ count: 5, scope: "all" })
+  });
+  const task = await createdResponse.json();
+  const choice = task.questions.find((question) => question.type === "single_choice");
+  assert.equal(createdResponse.status, 201);
+  assert.ok(task.id);
+  assert.ok(choice);
+
+  const answerResponse = await fetch(`${baseUrl}/api/answers`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      questionId: choice.id,
+      answer: String(choice.answer),
+      practiceMode: "self_test",
+      taskId: task.id
+    })
+  });
+  const answer = await answerResponse.json();
+  const tasks = await fetch(`${baseUrl}/api/personalized-tasks`, { headers }).then((response) => response.json());
+  assert.equal(answerResponse.status, 200);
+  assert.equal(answer.taskProgress.taskId, task.id);
+  assert.ok(tasks[0].answers[choice.id]);
+
+  await fetch(`${baseUrl}/api/answers`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ questionId: "comb-001", answer: "A", practiceMode: "normal" })
+  });
+  await fetch(`${baseUrl}/api/answers`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ questionId: "comb-001", answer: "B", practiceMode: "wrong_review" })
+  });
+  assert.equal((await fetch(`${baseUrl}/api/wrong-review-details`, { headers }).then((response) => response.json())).length, 1);
+  const confirmation = await fetch(`${baseUrl}/api/wrong-review/comb-001/confirm`, { method: "POST", headers });
+  assert.equal(confirmation.status, 200);
+  assert.equal((await fetch(`${baseUrl}/api/wrong-review-details`, { headers }).then((response) => response.json())).length, 0);
+
+  const removed = await fetch(`${baseUrl}/api/personalized-tasks/${task.id}`, { method: "DELETE", headers }).then((response) => response.json());
+  assert.equal(removed.removed, true);
+});
+
 test("AI ghost planning reports unavailable AI so the browser can use its template fallback", async () => {
   const response = await fetch(`${baseUrl}/api/ghost-plan`, {
     method: "POST",
