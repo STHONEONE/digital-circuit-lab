@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数字电路编码译码综合仿真平台</title>
+    <title>组合逻辑专题仿真</title>
+    <link rel="icon" href="data:,">
     <style>
         :root {
             --bg: #f5f7fb;
@@ -34,6 +35,7 @@
         body {
             margin: 0;
             min-height: 100vh;
+            overflow-x: hidden;
             font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
             color: var(--ink);
             background: var(--bg);
@@ -55,6 +57,7 @@
 
         .topbar-inner {
             max-width: 1440px;
+            min-width: 0;
             margin: 0 auto;
             padding: 16px 20px 12px;
         }
@@ -144,14 +147,40 @@
             background: var(--amber);
         }
 
-        .nav-tabs {
-            display: flex;
+        .learning-navigation {
+            display: grid;
             gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 4px;
         }
 
+        .navigation-row {
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .topic-tabs {
+            display: grid;
+            flex: 1 1 auto;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .experiment-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-top: 1px solid var(--border);
+            padding-top: 8px;
+        }
+
+        .experiment-tabs[hidden] {
+            display: none;
+        }
+
+        .topic-button,
         .nav-button,
+        .utility-button,
         .mode-button,
         .action-button,
         .pin-control,
@@ -164,15 +193,31 @@
             transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
         }
 
-        .nav-button {
-            flex: 0 0 auto;
+        .topic-button,
+        .nav-button,
+        .utility-button {
             padding: 10px 14px;
             font-weight: 700;
             color: var(--muted);
-            white-space: nowrap;
         }
 
+        .topic-button {
+            min-width: 0;
+        }
+
+        .nav-button {
+            flex: 0 1 auto;
+        }
+
+        .utility-button {
+            flex: 0 0 auto;
+            min-width: 112px;
+            color: var(--primary-dark);
+        }
+
+        .topic-button:hover,
         .nav-button:hover,
+        .utility-button:hover,
         .mode-button:hover,
         .action-button:hover,
         .pin-control:hover,
@@ -181,6 +226,7 @@
             color: var(--primary-dark);
         }
 
+        .topic-button.active,
         .nav-button.active,
         .mode-button.active {
             background: var(--primary);
@@ -191,12 +237,14 @@
 
         main {
             max-width: 1440px;
+            min-width: 0;
             margin: 0 auto;
             padding: 22px 20px 48px;
         }
 
         .module {
             display: none;
+            min-width: 0;
         }
 
         .module.active {
@@ -224,22 +272,42 @@
             line-height: 1.7;
         }
 
+        .experiment-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 10px;
+        }
+
+        .experiment-meta span {
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            padding: 5px 9px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
         .module-grid {
             display: grid;
             grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
             gap: 16px;
             align-items: start;
+            min-width: 0;
         }
 
         .wide-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
+            min-width: 0;
         }
 
         .panel,
         .table-panel,
         .output-panel {
+            min-width: 0;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
@@ -304,12 +372,14 @@
 
         .pin-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(112px, 100%), 1fr));
             gap: 8px;
             margin-bottom: 16px;
+            min-width: 0;
         }
 
         .pin-control {
+            min-width: 0;
             min-height: 76px;
             padding: 10px;
             text-align: left;
@@ -464,7 +534,10 @@
         }
 
         .table-wrap {
+            max-width: 100%;
             overflow-x: auto;
+            overscroll-behavior-inline: contain;
+            scrollbar-gutter: stable;
             border: 1px solid var(--border);
             border-radius: var(--radius);
         }
@@ -877,6 +950,72 @@
             line-height: 1.6;
         }
 
+        .reference-dialog {
+            width: min(920px, calc(100vw - 32px));
+            max-height: min(760px, calc(100vh - 40px));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+            color: var(--ink);
+            box-shadow: 0 24px 72px rgba(15, 23, 42, 0.28);
+            padding: 0;
+        }
+
+        .reference-dialog::backdrop {
+            background: rgba(15, 23, 42, 0.58);
+            backdrop-filter: blur(3px);
+        }
+
+        .reference-dialog-header {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.97);
+            padding: 18px;
+        }
+
+        .reference-dialog-header p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .reference-dialog-body {
+            padding: 18px;
+        }
+
+        .dialog-close {
+            flex: 0 0 auto;
+            min-width: 72px;
+            min-height: 38px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #fff;
+            color: var(--primary-dark);
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        .reference-dialog tbody tr.context-row {
+            background: #edf8f6;
+            box-shadow: inset 4px 0 0 var(--primary);
+            font-weight: 800;
+        }
+
+        body.tool-mode .learning-navigation,
+        body.tool-mode .status-legend {
+            display: none;
+        }
+
+        body.tool-mode .title-row {
+            margin-bottom: 0;
+        }
+
         @media (max-width: 1050px) {
             .module-grid,
             .wide-grid,
@@ -891,6 +1030,10 @@
         }
 
         @media (max-width: 720px) {
+            .topbar {
+                position: relative;
+            }
+
             .title-row {
                 display: block;
             }
@@ -901,8 +1044,33 @@
             }
 
             .status-legend {
-                justify-content: flex-start;
+                display: none;
+            }
+
+            .navigation-row {
+                display: grid;
+            }
+
+            .topic-tabs {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .topic-button {
+                padding: 9px 5px;
+                font-size: 13px;
+            }
+
+            .utility-button {
+                width: 100%;
                 min-width: 0;
+                padding: 8px 12px;
+            }
+
+            .nav-button {
+                flex: 1 1 140px;
+                min-width: 0;
+                padding: 8px 10px;
+                white-space: normal;
             }
 
             main {
@@ -915,6 +1083,7 @@
 
             .module-heading {
                 display: block;
+                margin-bottom: 12px;
             }
 
             .multi-controls,
@@ -935,6 +1104,23 @@
             .segment-grid {
                 grid-template-columns: repeat(4, minmax(42px, 1fr));
             }
+
+            .table-panel .panel-title::after {
+                color: var(--muted);
+                content: "左右滑动查看";
+                font-size: 11px;
+                font-weight: 700;
+            }
+
+            .reference-dialog {
+                width: calc(100vw - 20px);
+                max-height: calc(100vh - 20px);
+            }
+
+            .reference-dialog-header,
+            .reference-dialog-body {
+                padding: 14px;
+            }
         }
     </style>
 </head>
@@ -943,11 +1129,11 @@
         <div class="topbar-inner">
             <div class="title-row">
                 <div>
-                    <h1>数字电路编码译码综合仿真平台</h1>
-                    <p class="subtitle">把编码器、译码器和七段显示统一到一个页面，适合课堂演示、实验预习和真值表对照。</p>
+                    <h1 id="simulator-title">组合逻辑专题仿真</h1>
+                    <p class="subtitle" id="simulator-subtitle">按编码器、译码器和数码显示三个专题逐步完成交互实验。</p>
                 </div>
                 <div class="topbar-actions">
-                    <a class="back-link" href="../extensions.html">返回扩展中心</a>
+                    <a class="back-link" id="simulator-back-link" href="../extensions.html">返回专题仿真</a>
                     <div class="status-legend" aria-label="电平颜色说明">
                         <span class="legend-pill"><span class="legend-dot"></span>有效输入或选中输出</span>
                         <span class="legend-pill"><span class="legend-dot high"></span>普通高电平</span>
@@ -955,15 +1141,23 @@
                     </div>
                 </div>
             </div>
-            <nav class="nav-tabs" aria-label="模块导航">
-                <button class="nav-button active" data-action="nav" data-section="encoder">编码器</button>
-                <button class="nav-button" data-action="nav" data-section="priority16">16-4优先编码</button>
-                <button class="nav-button" data-action="nav" data-section="hc138">74HC138</button>
-                <button class="nav-button" data-action="nav" data-section="hc42">74HC42</button>
-                <button class="nav-button" data-action="nav" data-section="seven">BCD-七段显示</button>
-                <button class="nav-button" data-action="nav" data-section="engine">逻辑引擎</button>
-                <button class="nav-button" data-action="nav" data-section="compare">速查对照</button>
-            </nav>
+            <div class="learning-navigation" id="learning-navigation">
+                <div class="navigation-row">
+                    <nav class="topic-tabs" aria-label="专题导航">
+                        <button class="topic-button active" data-action="topic" data-topic="encoder" aria-current="page">编码器专题</button>
+                        <button class="topic-button" data-action="topic" data-topic="decoder">译码器专题</button>
+                        <button class="topic-button" data-action="topic" data-topic="display">数码显示专题</button>
+                    </nav>
+                    <button class="utility-button" data-action="open-reference" type="button">器件资料</button>
+                </div>
+                <nav class="experiment-tabs" id="experiment-tabs" aria-label="专题实验导航">
+                    <button class="nav-button active" data-action="nav" data-topic="encoder" data-section="encoder" aria-current="page">基础与芯片编码器</button>
+                    <button class="nav-button" data-action="nav" data-topic="encoder" data-section="priority16">16-4 级联</button>
+                    <button class="nav-button" data-action="nav" data-topic="decoder" data-section="hc138" hidden>74HC138 与级联</button>
+                    <button class="nav-button" data-action="nav" data-topic="decoder" data-section="hc42" hidden>74HC42</button>
+                    <button class="nav-button" data-action="nav" data-topic="display" data-section="seven" hidden>BCD 七段显示</button>
+                </nav>
+            </div>
         </div>
     </header>
 
@@ -973,6 +1167,7 @@
                 <div>
                     <h2>编码器实验</h2>
                     <p class="module-note">覆盖普通 8 线-3 线编码器、74HC148 优先编码器和 74LS147 十进制优先编码器。低有效输入用 I' 表示，输出同样用撇号标明低有效。</p>
+                    <div class="experiment-meta"><span>基础到芯片应用</span><span>预计 12 分钟</span><span>目标：理解编码与优先级</span></div>
                 </div>
             </div>
 
@@ -1013,6 +1208,7 @@
                 <div>
                     <h2>两片 74HC148 级联 16 线-4 线优先编码器</h2>
                     <p class="module-note">高位片负责 I15' 到 I8'，低位片负责 I7' 到 I0'；高位片无有效输入时，低位片才参与编码。</p>
+                    <div class="experiment-meta"><span>进阶</span><span>预计 8 分钟</span><span>前置：74HC148</span></div>
                 </div>
             </div>
 
@@ -1063,6 +1259,7 @@
                 <div>
                     <h2>74HC138 三线-八线译码器</h2>
                     <p class="module-note">74HC138 的输出为低有效。只有 S1=1、S2'=0、S3'=0 同时满足时，地址 A2A1A0 对应的一个输出端为 L。</p>
+                    <div class="experiment-meta"><span>基础到级联</span><span>预计 12 分钟</span><span>目标：理解使能与地址选择</span></div>
                 </div>
             </div>
 
@@ -1116,6 +1313,7 @@
                 <div>
                     <h2>74HC42 BCD-十进制译码器</h2>
                     <p class="module-note">输入 D C B A 组成一个 BCD 码。0 到 9 选中对应的一个低有效输出；10 到 15 不是有效 BCD，本页面按所有输出为 H 处理并高亮为无效状态。</p>
+                    <div class="experiment-meta"><span>芯片应用</span><span>预计 8 分钟</span><span>目标：区分有效与非法 BCD</span></div>
                 </div>
             </div>
 
@@ -1150,6 +1348,7 @@
                 <div>
                     <h2>BCD-七段显示译码器</h2>
                     <p class="module-note">演示 BCD 码到 a-g 七段的显示关系，并加入 LT' 灯测、BI' 灭灯、RBI' 前导零熄灭控制。页面显示按 1=亮处理；若对照 74LS47 共阳数码管，芯片段输出是低有效。</p>
+                    <div class="experiment-meta"><span>综合应用</span><span>预计 12 分钟</span><span>目标：完成显示与消隐观察</span></div>
                 </div>
             </div>
 
@@ -1214,8 +1413,8 @@
         <section id="engine" class="module">
             <div class="module-heading">
                 <div>
-                    <h2>通用数字逻辑引擎</h2>
-                    <p class="module-note">输入变量和输出方程后，可交互切换输入并自动生成真值表。</p>
+                    <h2>逻辑表达式工具</h2>
+                    <p class="module-note">输入变量和输出方程后，生成可交互的输入输出与完整真值表，用于验证自定义组合逻辑。</p>
                 </div>
             </div>
 
@@ -1258,62 +1457,16 @@
             </div>
         </section>
 
-        <section id="compare" class="module">
-            <div class="module-heading">
+        <dialog class="reference-dialog" id="reference-dialog" aria-labelledby="reference-title">
+            <div class="reference-dialog-header">
                 <div>
-                    <h2>速查对照</h2>
-                    <p class="module-note">把本章几个容易混淆的器件按“输入、输出、有效电平、典型用途”放在一起，课堂切换时不用来回翻页面。</p>
+                    <h2 id="reference-title">器件资料</h2>
+                    <p>按输入、输出和有效电平快速对照；当前专题相关器件会自动高亮。</p>
                 </div>
+                <button class="dialog-close" data-action="close-reference" type="button">关闭</button>
             </div>
-
-            <div class="quick-list">
-                <div class="quick-item">
-                    <strong>普通 8-3 编码器</strong>
-                    <p>8 个输入中只允许一个为 1，输出该输入编号的 3 位二进制码。多个输入同时有效时状态不可靠。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>74HC148</strong>
-                    <p>8 线-3 线优先编码器，输入和输出均低有效，I7 优先级最高，带 EI'、GS'、EO' 便于级联。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>两片 74HC148 级联</strong>
-                    <p>高位片检测 I15'-I8'，无有效输入时才允许低位片编码，可形成 16 线-4 线优先编码器。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>74LS147</strong>
-                    <p>十进制到 BCD 优先编码器，I9 优先级最高，输出为低有效 BCD 码，适合键盘输入编码。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>74HC138</strong>
-                    <p>3 线-8 线译码器，S1=1 且 S2'=S3'=0 时工作，输出 Y0' 到 Y7' 中只有一个为 L。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>级联 74HC138</strong>
-                    <p>用最高位控制两片芯片的使能，低位片负责 Y0-Y7，高位片负责 Y8-Y15。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>74HC42</strong>
-                    <p>BCD-十进制译码器，0 到 9 选通一个低有效输出，10 到 15 属于非法 BCD 输入。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>BCD-七段译码</strong>
-                    <p>把 4 位 BCD 码转换为 a-g 段亮灭。LT' 用于灯测，BI' 用于强制灭灯，RBI' 用于前导零熄灭。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>通用逻辑引擎</strong>
-                    <p>把任意组合逻辑表达式转成交互测试和真值表，适合验证自定义编码、译码或化简后的表达式。</p>
-                </div>
-                <div class="quick-item">
-                    <strong>讲课建议</strong>
-                    <p>先讲“有效电平”，再讲“优先级”，最后讲“使能级联”。学生会更容易把编码器和译码器区分开。</p>
-                </div>
-            </div>
-
-            <div class="table-panel" style="margin-top:16px;">
-                <div class="panel-title">
-                    <h3>器件对照表</h3>
-                </div>
-                <div class="table-wrap">
+            <div class="reference-dialog-body">
+                <div class="table-wrap" tabindex="0" aria-label="器件资料对照表，可横向滚动">
                     <table>
                         <thead>
                             <tr>
@@ -1325,19 +1478,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td>普通 8-3 编码器</td><td>I0-I7</td><td>Y2Y1Y0</td><td>高有效</td><td>单个输入有效时输出其编号</td></tr>
-                            <tr><td>74HC148</td><td>EI', I0'-I7'</td><td>Y2'Y1'Y0', GS', EO'</td><td>低有效</td><td>最高有效输入优先，I7 最高</td></tr>
-                            <tr><td>两片 74HC148</td><td>I0'-I15'</td><td>Z3Z2Z1Z0</td><td>输入低有效</td><td>高位片优先，无高位请求时低位片工作</td></tr>
-                            <tr><td>74LS147</td><td>I1'-I9'</td><td>Y3'Y2'Y1'Y0'</td><td>低有效</td><td>十进制优先编码，I9 最高</td></tr>
-                            <tr><td>74HC138</td><td>S1, S2', S3', A2A1A0</td><td>Y0'-Y7'</td><td>输出低有效</td><td>使能成立后按地址选中一个输出</td></tr>
-                            <tr><td>74HC42</td><td>D C B A</td><td>Y0'-Y9'</td><td>输出低有效</td><td>BCD 0-9 对应一个十进制输出</td></tr>
-                            <tr><td>BCD-七段译码</td><td>D C B A, LT', BI', RBI'</td><td>a-g</td><td>依器件和数码管类型而定</td><td>按数字形状点亮对应段</td></tr>
-                            <tr><td>通用逻辑引擎</td><td>自定义变量</td><td>自定义方程</td><td>按表达式定义</td><td>自动计算交互输出和真值表</td></tr>
+                            <tr data-reference-topic="encoder"><td>普通 8-3 编码器</td><td>I0-I7</td><td>Y2Y1Y0</td><td>高有效</td><td>单个输入有效时输出其编号</td></tr>
+                            <tr data-reference-topic="encoder"><td>74HC148</td><td>EI', I0'-I7'</td><td>Y2'Y1'Y0', GS', EO'</td><td>低有效</td><td>最高有效输入优先，I7 最高</td></tr>
+                            <tr data-reference-topic="encoder"><td>两片 74HC148</td><td>I0'-I15'</td><td>Z3Z2Z1Z0</td><td>输入低有效</td><td>高位片优先，无高位请求时低位片工作</td></tr>
+                            <tr data-reference-topic="encoder"><td>74LS147</td><td>I1'-I9'</td><td>Y3'Y2'Y1'Y0'</td><td>低有效</td><td>十进制优先编码，I9 最高</td></tr>
+                            <tr data-reference-topic="decoder"><td>74HC138</td><td>S1, S2', S3', A2A1A0</td><td>Y0'-Y7'</td><td>输出低有效</td><td>使能成立后按地址选中一个输出</td></tr>
+                            <tr data-reference-topic="decoder"><td>74HC42</td><td>D C B A</td><td>Y0'-Y9'</td><td>输出低有效</td><td>BCD 0-9 对应一个十进制输出</td></tr>
+                            <tr data-reference-topic="display"><td>BCD-七段译码</td><td>D C B A, LT', BI', RBI'</td><td>a-g</td><td>依器件和数码管类型而定</td><td>按数字形状点亮对应段</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        </section>
+        </dialog>
     </main>
 
     <script>
@@ -1358,8 +1510,31 @@
             9: ["a", "b", "c", "d", "f", "g"]
         };
 
+        const SECTION_TOPIC = Object.freeze({
+            encoder: "encoder",
+            priority16: "encoder",
+            hc138: "decoder",
+            hc42: "decoder",
+            seven: "display"
+        });
+        const TOPIC_DEFAULT = Object.freeze({
+            encoder: "encoder",
+            decoder: "hc138",
+            display: "seven"
+        });
+        const CORE_SECTIONS = new Set(Object.keys(SECTION_TOPIC));
+        const pageParams = new URLSearchParams(window.location.search);
+        const isToolMode = pageParams.get("section") === "engine" && pageParams.get("from") === "builder";
+        const requestedSection = pageParams.get("section");
+        const requestedTopic = pageParams.get("topic");
+        const initialSection = isToolMode
+            ? "engine"
+            : (CORE_SECTIONS.has(requestedSection)
+                ? requestedSection
+                : (TOPIC_DEFAULT[requestedTopic] || "encoder"));
+
         const state = {
-            section: "encoder",
+            section: initialSection,
             encoderMode: "normal",
             encoder: {
                 normal: { inputs: Array(8).fill(0) },
@@ -1443,13 +1618,56 @@
         }
 
         function showSection(sectionId) {
-            state.section = sectionId;
+            const safeSection = sectionId === "engine" && isToolMode
+                ? "engine"
+                : (CORE_SECTIONS.has(sectionId) ? sectionId : "encoder");
+            const activeTopic = SECTION_TOPIC[safeSection] || "";
+            state.section = safeSection;
             document.querySelectorAll(".module").forEach((section) => {
-                section.classList.toggle("active", section.id === sectionId);
+                section.classList.toggle("active", section.id === safeSection);
+            });
+            document.querySelectorAll(".topic-button").forEach((button) => {
+                const active = button.dataset.topic === activeTopic;
+                button.classList.toggle("active", active);
+                if (active) button.setAttribute("aria-current", "page");
+                else button.removeAttribute("aria-current");
             });
             document.querySelectorAll(".nav-button").forEach((button) => {
-                button.classList.toggle("active", button.dataset.section === sectionId);
+                const belongsToTopic = button.dataset.topic === activeTopic;
+                const active = button.dataset.section === safeSection;
+                button.hidden = !belongsToTopic;
+                button.classList.toggle("active", active);
+                if (active) button.setAttribute("aria-current", "page");
+                else button.removeAttribute("aria-current");
             });
+            const visibleExperiments = document.querySelectorAll(`.nav-button[data-topic="${activeTopic}"]`).length;
+            $("experiment-tabs").hidden = !activeTopic || visibleExperiments <= 1;
+            if (!isToolMode && activeTopic) {
+                const url = new URL(window.location.href);
+                url.search = "";
+                url.searchParams.set("topic", activeTopic);
+                if (safeSection !== TOPIC_DEFAULT[activeTopic]) url.searchParams.set("section", safeSection);
+                window.history.replaceState(null, "", url);
+            }
+        }
+
+        function configurePageMode() {
+            if (!isToolMode) return;
+            document.body.classList.add("tool-mode");
+            document.title = "逻辑表达式工具";
+            $("simulator-title").textContent = "逻辑表达式工具";
+            $("simulator-subtitle").textContent = "用表达式生成交互输入输出和真值表，辅助验证电路搭建中的组合逻辑。";
+            $("simulator-back-link").href = "../gate-builder-demo.html";
+            $("simulator-back-link").textContent = "返回电路搭建";
+        }
+
+        function openReferenceDialog() {
+            const activeTopic = SECTION_TOPIC[state.section] || "";
+            document.querySelectorAll("[data-reference-topic]").forEach((row) => {
+                row.classList.toggle("context-row", row.dataset.referenceTopic === activeTopic);
+            });
+            const dialog = $("reference-dialog");
+            if (!dialog.open) dialog.showModal();
         }
 
         function renderEncoder() {
@@ -2358,8 +2576,23 @@
             if (!button) return;
             const action = button.dataset.action;
 
+            if (action === "topic") {
+                showSection(TOPIC_DEFAULT[button.dataset.topic] || "encoder");
+                return;
+            }
+
             if (action === "nav") {
                 showSection(button.dataset.section);
+                return;
+            }
+
+            if (action === "open-reference") {
+                openReferenceDialog();
+                return;
+            }
+
+            if (action === "close-reference") {
+                $("reference-dialog").close();
                 return;
             }
 
@@ -2456,7 +2689,13 @@
             }
         });
 
+        $("reference-dialog").addEventListener("click", (event) => {
+            if (event.target === event.currentTarget) event.currentTarget.close();
+        });
+
+        configurePageMode();
         renderAll();
+        showSection(initialSection);
     </script>
 </body>
 </html>
