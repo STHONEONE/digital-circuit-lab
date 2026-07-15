@@ -650,3 +650,38 @@ test("mastery waits for three independent questions and reports confidence", asy
     cleanup();
   }
 });
+
+test("progress records every answer and exposes the latest ten attempts", () => {
+  const { store, practice, cleanup } = fixture();
+  try {
+    const correctness = [true, false, true, true, false, true, true, false, true, true, false, true];
+    correctness.forEach((correct, index) => store.addRecord({
+      learnerId: "trend-learner",
+      questionId: index % 2 ? "base-002" : "base-001",
+      userAnswer: correct ? "正确作答" : "错误作答",
+      correct,
+      knowledge: ["二进制转换"],
+      practiceMode: index % 3 === 0 ? "wrong_review" : "normal",
+      answeredAt: new Date(Date.UTC(2026, 6, 15, 1, index)).toISOString()
+    }));
+    store.addRecord({
+      learnerId: "another-learner",
+      questionId: "base-003",
+      correct: false,
+      answeredAt: new Date(Date.UTC(2026, 6, 15, 2)).toISOString()
+    });
+
+    const progress = practice.progress("trend-learner");
+    assert.equal(progress.attempts.length, 12);
+    assert.equal(progress.attempts[0].sequence, 1);
+    assert.equal(progress.attempts[0].rollingAccuracy, 100);
+    assert.equal(progress.attempts[4].rollingAccuracy, 60);
+    assert.equal(progress.attempts.at(-1).rollingAccuracy, 60);
+    assert.ok(progress.attempts[0].questionTitle.includes("二进制"));
+    assert.equal(progress.attempts[0].practiceModeLabel, "错题复盘");
+    assert.deepEqual(progress.recentAttempts.map((attempt) => attempt.sequence), [12, 11, 10, 9, 8, 7, 6, 5, 4, 3]);
+    assert.deepEqual(progress.recentSummary, { answered: 10, correct: 7, accuracy: 70 });
+  } finally {
+    cleanup();
+  }
+});

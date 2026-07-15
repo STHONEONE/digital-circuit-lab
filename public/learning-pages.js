@@ -1184,28 +1184,35 @@ async function initReviewPage() {
   function renderMetric(icon, label, value, note) {
     return `<article class="review-metric"><span class="review-metric-icon">${metricIcons[icon]}</span><div class="review-metric-copy"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div></article>`;
   }
+  function formatAttemptTime(value) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "时间未知";
+    return new Intl.DateTimeFormat("zh-CN", {
+      month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false
+    }).format(date);
+  }
   function renderTrend() {
     if (!reportData) return;
-    const source = reportData.progress.rounds || [];
-    const rounds = trendRange === "recent" ? source.slice(-5) : source;
+    const source = reportData.progress.attempts || [];
+    const attempts = trendRange === "recent" ? source.slice(-10) : source;
     const chart = document.querySelector("#reviewTrendChart");
-    if (!rounds.length) {
-      chart.innerHTML = '<div class="review-chart-empty"><span>完成一份学习任务后<br>这里会出现学习任务趋势</span></div>';
+    if (!attempts.length) {
+      chart.innerHTML = '<div class="review-chart-empty"><span>完成一次作答后<br>这里会立即出现答题趋势</span></div>';
       return;
     }
-    const width = 520;
+    const width = 760;
     const height = 276;
     const left = 42;
-    const right = 12;
+    const right = 16;
     const top = 24;
-    const bottom = 46;
+    const bottom = 42;
     const usableWidth = width - left - right;
     const usableHeight = height - top - bottom;
-    const points = rounds.map((round, index) => {
-      const x = rounds.length === 1 ? left + usableWidth / 2 : left + (usableWidth * index / (rounds.length - 1));
-      const rate = clampPercent(round.correctRate);
+    const points = attempts.map((attempt, index) => {
+      const x = attempts.length === 1 ? left + usableWidth / 2 : left + (usableWidth * index / (attempts.length - 1));
+      const rate = clampPercent(attempt.rollingAccuracy);
       const y = top + usableHeight * (1 - rate / 100);
-      return { x, y, rate, round };
+      return { x, y, rate, attempt };
     });
     const line = points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
     const area = `M ${points[0].x.toFixed(1)} ${top + usableHeight} ${points.map((point) => `L ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ")} L ${points.at(-1).x.toFixed(1)} ${top + usableHeight} Z`;
@@ -1213,50 +1220,46 @@ async function initReviewPage() {
       const y = top + usableHeight * (1 - value / 100);
       return `<line class="review-chart-grid" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}"/><text class="review-chart-axis" x="2" y="${y + 3}">${value}</text>`;
     }).join("");
+    const labelStep = Math.max(1, Math.ceil(points.length / 8));
     const labels = points.map((point, index) => {
-      const showLabel = rounds.length <= 8 || index === 0 || index === rounds.length - 1 || index % 2 === 0;
-      return `<circle class="review-chart-dot" cx="${point.x}" cy="${point.y}" r="4"/><text class="review-chart-value" x="${point.x}" y="${Math.max(12, point.y - 10)}">${point.rate}%</text>${showLabel ? `<text class="review-chart-axis" x="${point.x}" y="${height - 17}" text-anchor="middle">${escapeHtml(point.round.round)}</text>` : ""}`;
+      const showAxis = points.length <= 10 || index === 0 || index === points.length - 1 || index % labelStep === 0;
+      const showValue = points.length <= 10 || index === points.length - 1 || index % labelStep === 0;
+      const outcome = point.attempt.correct ? "正确" : "错误";
+      const title = `第 ${point.attempt.sequence} 次 · ${outcome} · 近 5 题正确率 ${point.rate}%`;
+      return `<circle class="review-chart-dot ${point.attempt.correct ? "correct" : "wrong"}" cx="${point.x}" cy="${point.y}" r="4.5"><title>${escapeHtml(title)}</title></circle>${showValue ? `<text class="review-chart-value" x="${point.x}" y="${Math.max(12, point.y - 10)}">${point.rate}%</text>` : ""}${showAxis ? `<text class="review-chart-axis" x="${point.x}" y="${height - 15}" text-anchor="middle">#${point.attempt.sequence}</text>` : ""}`;
     }).join("");
-    chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="学习轮次正确率趋势图"><defs><linearGradient id="reviewLineGradient" x1="0" x2="1"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#6366f1"/></linearGradient><linearGradient id="reviewAreaGradient" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#22d3ee" stop-opacity=".2"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>${grid}<path class="review-chart-area" d="${area}"/><polyline class="review-chart-line" points="${line}"/>${labels}</svg>`;
+    chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="全部作答的近五题滚动正确率趋势图"><defs><linearGradient id="reviewLineGradient" x1="0" x2="1"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#6366f1"/></linearGradient><linearGradient id="reviewAreaGradient" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#22d3ee" stop-opacity=".2"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>${grid}<path class="review-chart-area" d="${area}"/><polyline class="review-chart-line" points="${line}"/>${labels}</svg>`;
   }
-  function renderReport(stats, progress, motivation) {
-    reportData = { stats, progress, motivation };
+  function renderRecentAttempts(progress) {
+    const attempts = progress.recentAttempts || [];
+    const summary = progress.recentSummary || {};
+    document.querySelector("#reviewRecentSummary").textContent = attempts.length
+      ? `${summary.correct || 0} / ${summary.answered || 0} 正确 · ${summary.accuracy || 0}%`
+      : "暂无记录";
+    document.querySelector("#reviewRecentList").innerHTML = attempts.length
+      ? attempts.map((attempt) => {
+        const knowledge = (attempt.knowledge || []).join("、") || "综合知识";
+        return `<article class="review-recent-item ${attempt.correct ? "correct" : "wrong"}"><span class="review-recent-result" aria-label="${attempt.correct ? "回答正确" : "回答错误"}">${attempt.correct ? "✓" : "×"}</span><div class="review-recent-copy"><div><strong><b>#${attempt.sequence}</b>${escapeHtml(attempt.questionTitle)}</strong><span>${attempt.correct ? "正确" : "错误"}</span></div><p><span>${escapeHtml(attempt.practiceModeLabel || "普通练习")} · ${escapeHtml(knowledge)}</span><time datetime="${escapeHtml(attempt.answeredAt || "")}">${escapeHtml(formatAttemptTime(attempt.answeredAt))}</time></p></div></article>`;
+      }).join("")
+      : '<div class="review-recent-empty"><strong>还没有作答记录</strong><span>完成任何一道练习后，本次结果都会出现在这里。</span></div>';
+  }
+  function renderReport(stats, progress) {
+    reportData = { stats, progress };
     const knowledge = [...(progress.knowledge || [])].sort((left, right) => (left.rate ?? -1) - (right.rate ?? -1));
     const weak = knowledge.filter((item) => item.rate === null || clampPercent(item.rate) < 80);
-    const improvement = Number(progress.effectiveness?.improvement) || 0;
-    const direction = improvement > 0 ? `提升 <em>${improvement}%</em>` : improvement < 0 ? `回落 <em>${Math.abs(improvement)}%</em>` : "保持稳定";
-    document.querySelector("#reviewPeriod").textContent = `数据更新于 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} · 每 5 题形成一个学习轮次`;
-    document.querySelector("#reviewHeadline").innerHTML = stats.answered
-      ? `已完成 <em>${stats.answered}</em> 题，近期正确率较初始水平${direction}`
-      : "完成一轮练习后，系统会为你生成个性化成长摘要。";
-    document.querySelector("#reviewSummary").innerHTML = [
-      renderMetric("answered", "累计练习", `${stats.answered || 0} 题`, `${(progress.rounds || []).length} 个学习轮次`),
-      renderMetric("accuracy", "总体正确率", `${stats.correctRate || 0}%`, `近期 ${progress.effectiveness?.recentRate || 0}%`),
-      renderMetric("review", "待复盘", `${progress.unresolvedWrong || 0} 题`, motivation.correctedMistakes ? `已攻克 ${motivation.correctedMistakes} 题` : "订正后自动移出"),
-      renderMetric("streak", "连续学习", `${motivation.streakDays || 0} 天`, `当前 Lv.${motivation.level || 1}`)
-    ].join("");
-    document.querySelector("#reviewWeakCount").textContent = `${weak.length} 项`;
-    document.querySelector("#reviewKnowledgeList").innerHTML = weak.length
-      ? weak.slice(0, 4).map((item, index) => `<article class="review-knowledge-row"><div class="review-knowledge-row-head"><span class="review-knowledge-index">${index + 1}</span><span>${escapeHtml(item.knowledge)}</span><strong>${clampPercent(item.rate)}%</strong></div><div class="review-progress-track"><i style="width:${clampPercent(item.rate)}%"></i></div><small>${escapeHtml(item.status)} · 已练习 ${Math.max(0, Number(item.attempts) || 0)} 次</small></article>`).join("")
-      : '<div class="review-knowledge-empty"><strong>暂未发现明显薄弱点</strong><span>继续练习以积累更完整的知识点数据</span></div>';
-    const primaryFocus = weak[0]?.knowledge || knowledge[0]?.knowledge || "综合基础";
-    document.querySelector("#reviewAdvice").innerHTML = `<strong>${stats.answered ? `下一步优先：${escapeHtml(primaryFocus)}` : "先完成一轮练习"}</strong><p>${escapeHtml(motivation.message || progress.effectiveness?.conclusion || "继续完成练习，形成更完整的学习轨迹。")}</p>`;
-    const chevron = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>';
-    document.querySelector("#reviewActions").innerHTML = `
-      <a class="review-action-link primary" href="./learning-route.html"><span>1</span><span><strong>复习薄弱知识点</strong><small>围绕“${escapeHtml(primaryFocus)}”回顾概念与规则</small></span>${chevron}</a>
-      <a class="review-action-link" href="./wrong-review.html"><span>2</span><span><strong>完成错题复盘</strong><small>${progress.unresolvedWrong || 0} 道题等待订正</small></span>${chevron}</a>
-      <a class="review-action-link" href="./self-test.html"><span>3</span><span><strong>开始个性化学习</strong><small>根据学习记录生成针对性任务</small></span>${chevron}</a>`;
     const activeTask = progress.tasks?.nextTask || null;
-    document.querySelector("#reviewPeriod").textContent = `数据更新于 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} · 按已保存学习任务统计`;
+    const recent = progress.recentSummary || { answered: 0, correct: 0, accuracy: 0 };
+    document.querySelector("#reviewPeriod").textContent = `数据更新于 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} · 记录全部作答`;
     document.querySelector("#reviewHeadline").innerHTML = stats.answered
-      ? `已完成<em>${stats.answered}</em> 次作答，已有 ${progress.tasks?.completed || 0} 份学习任务完成`
-      : "生成并完成一份学习任务后，这里会展示你的学习结果。";
+      ? `已记录 <em>${stats.answered}</em> 次作答，最近 ${recent.answered} 次正确率为 ${recent.accuracy}%`
+      : "完成任何一道练习后，这里都会立即记录并反馈答题结果。";
     document.querySelector("#reviewSummary").innerHTML = [
-      renderMetric("answered", "作答次数", `${stats.answered || 0} 次`, `${stats.uniqueQuestions || 0} 道独立题`),
-      renderMetric("accuracy", "首次正确率", stats.firstCorrectRate === null ? "数据不足" : `${stats.firstCorrectRate}%`, "至少 3 道独立题后计算"),
-      renderMetric("review", "迁移正确率", stats.transferCorrectRate === null ? "数据不足" : `${stats.transferCorrectRate}%`, `${stats.transferAttempts || 0} 次迁移作答`),
-      renderMetric("streak", "学习任务", `${progress.tasks?.completed || 0} 份`, progress.tasks?.active ? `${progress.tasks.active} 份进行中` : "暂无进行中任务")
+      renderMetric("answered", "作答次数", `${stats.answered || 0} 次`, "包含重复练习与订正"),
+      renderMetric("streak", "独立题数", `${stats.uniqueQuestions || 0} 道`, "重复作答不重复计数"),
+      renderMetric("accuracy", "总体正确率", stats.answered ? `${stats.correctRate || 0}%` : "暂无数据", "统计全部已记录作答"),
+      renderMetric("review", "最近 10 次正确率", recent.answered ? `${recent.accuracy || 0}%` : "暂无数据", recent.answered ? `${recent.correct || 0} / ${recent.answered} 次回答正确` : "完成作答后显示")
     ].join("");
+    renderRecentAttempts(progress);
     document.querySelector("#reviewWeakCount").textContent = `${weak.length} 项`;
     document.querySelector("#reviewKnowledgeList").innerHTML = weak.length
       ? weak.slice(0, 4).map((item, index) => {
@@ -1274,10 +1277,10 @@ async function initReviewPage() {
     renderTrend();
   }
   async function load() {
-    const [stats, progress, motivation] = await Promise.all([
-      platformApi("/api/stats"), platformApi("/api/progress"), platformApi("/api/motivation")
+    const [stats, progress] = await Promise.all([
+      platformApi("/api/stats"), platformApi("/api/progress")
     ]);
-    renderReport(stats, progress, motivation);
+    renderReport(stats, progress);
   }
   document.querySelectorAll("[data-review-range]").forEach((button) => button.addEventListener("click", () => {
     trendRange = button.dataset.reviewRange;

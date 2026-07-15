@@ -739,29 +739,46 @@ export class PracticeService {
   }
 
   progress(learnerId = "") {
-    const records = this.recordsForLearner(learnerId);
+    const records = [...this.recordsForLearner(learnerId)]
+      .sort((left, right) => recordTime(left) - recordTime(right));
     const tasks = this.store.personalizedTasksForLearner(learnerId);
-    const taskRounds = tasks.map((task, index) => {
-      const answers = Object.values(task.answers || {});
+    const practiceModeLabels = {
+      normal: "普通练习",
+      targeted: "针对练习",
+      wrong_review: "错题复盘",
+      self_test: "个性化学习"
+    };
+    const attempts = records.map((record, index) => {
+      const question = this.store.question(record.questionId);
+      const rollingWindow = records.slice(Math.max(0, index - 4), index + 1);
       return {
-        round: `任务 ${index + 1}`,
-        title: task.title || "个性化学习任务",
-        answered: answers.length,
-        correctRate: accuracy(answers),
-        completed: Boolean(task.completedAt),
-        createdAt: task.createdAt || "",
-        completedAt: task.completedAt || ""
+        sequence: index + 1,
+        questionId: record.questionId,
+        questionTitle: question?.title || question?.text || `题目 ${record.questionId}`,
+        correct: Boolean(record.correct),
+        answeredAt: record.answeredAt || "",
+        practiceMode: mode(record.practiceMode),
+        practiceModeLabel: practiceModeLabels[mode(record.practiceMode)],
+        knowledge: Array.isArray(record.knowledge) ? record.knowledge.slice(0, 3) : [],
+        rollingAccuracy: accuracy(rollingWindow),
+        isFirstAttempt: Boolean(record.isFirstAttempt),
+        isTransfer: Boolean(record.isTransfer)
       };
-    }).reverse();
-    const taskAttempts = records.filter((record) => record.taskId);
-    const recentTaskRecords = taskAttempts.slice(-Math.min(10, taskAttempts.length));
-    const baselineTaskRecords = taskAttempts.slice(0, Math.min(10, taskAttempts.length));
+    });
+    const recentRecords = records.slice(-10);
+    const baselineRecords = records.slice(0, Math.min(10, records.length));
     const nextTask = tasks.find((task) => !task.completedAt) || null;
-    const taskRate = accuracy(taskAttempts);
-    const baselineRateFromTasks = accuracy(baselineTaskRecords);
-    const recentRateFromTasks = accuracy(recentTaskRecords);
+    const baselineRate = accuracy(baselineRecords);
+    const recentRate = accuracy(recentRecords);
+    const personalized = records.filter((record) => ["targeted", "wrong_review", "self_test"].includes(record.practiceMode));
     return {
-      rounds: taskRounds,
+      attempts,
+      recentAttempts: attempts.slice(-10).reverse(),
+      recentSummary: {
+        answered: recentRecords.length,
+        correct: recentRecords.filter((record) => record.correct).length,
+        accuracy: accuracy(recentRecords)
+      },
       tasks: {
         total: tasks.length,
         completed: tasks.filter((task) => task.completedAt).length,
@@ -776,61 +793,15 @@ export class PracticeService {
       },
       knowledge: this.knowledgeStats(learnerId),
       effectiveness: {
-        baselineRate: baselineRateFromTasks,
-        recentRate: recentRateFromTasks,
-        improvement: recentRateFromTasks - baselineRateFromTasks,
-        personalizedAttempts: taskAttempts.length,
-        personalizedRate: taskRate,
-        directionEffective: taskAttempts.length >= 3 && recentRateFromTasks >= baselineRateFromTasks + 10,
-        conclusion: taskAttempts.length
-          ? "已按已保存的学习任务汇总本次学习记录。"
-          : "完成一份个性化学习任务后，这里会按真实任务展示学习结果。"
-      },
-      unresolvedWrong: this.wrongReviewDetails(learnerId).length
-    };
-
-    /* Legacy answer-count rounds are retained below only for migration reference. */
-    const rounds = [];
-    for (let start = 0, index = 1; start < records.length; start += 5, index += 1) {
-      const batch = records.slice(start, start + 5);
-      const counts = Object.groupBy
-        ? Object.groupBy(batch, (record) => mode(record.practiceMode))
-        : batch.reduce((result, record) => {
-          const key = mode(record.practiceMode);
-          result[key] = [...(result[key] || []), record];
-          return result;
-        }, {});
-      const dominant = Object.entries(counts).sort((left, right) => right[1].length - left[1].length)[0]?.[0] || "normal";
-      rounds.push({
-        round: `第${index}轮`,
-        answered: batch.length,
-        correctRate: accuracy(batch),
-        mode: { normal: "普通练习", targeted: "针对训练", wrong_review: "错题复盘", self_test: "个性化学习" }[dominant]
-      });
-    }
-    const size = Math.min(5, records.length);
-    const baselineRate = size ? accuracy(records.slice(0, size)) : 0;
-    const recentRate = size ? accuracy(records.slice(-size)) : 0;
-    const personalized = records.filter((record) => ["targeted", "wrong_review"].includes(record.practiceMode));
-    const personalizedRate = accuracy(personalized);
-    const improvement = recentRate - baselineRate;
-    let conclusion = "完成至少 3 次针对训练或累计 10 次作答后，系统将验证个性化方向。";
-    if (personalized.length >= 3) {
-      conclusion = personalizedRate >= baselineRate + 10
-        ? "针对训练正确率高于初始水平，当前个性化学习方向有效。"
-        : personalizedRate >= baselineRate
-          ? "针对训练已达到初始水平，建议继续当前方向并增加练习量。"
-          : "针对训练仍低于初始水平，系统将增加基础题和错题复盘。";
-    }
-    return {
-      rounds,
-      knowledge: this.knowledgeStats(learnerId),
-      effectiveness: {
-        baselineRate, recentRate, improvement,
+        baselineRate,
+        recentRate,
+        improvement: recentRate - baselineRate,
         personalizedAttempts: personalized.length,
-        personalizedRate,
-        directionEffective: personalized.length >= 3 && personalizedRate >= baselineRate + 10,
-        conclusion
+        personalizedRate: accuracy(personalized),
+        directionEffective: records.length >= 10 && recentRate >= baselineRate + 10,
+        conclusion: records.length
+          ? "已根据全部作答记录生成趋势与最近练习反馈。"
+          : "完成作答后，这里会立即记录结果并更新学习趋势。"
       },
       unresolvedWrong: this.wrongReviewDetails(learnerId).length
     };

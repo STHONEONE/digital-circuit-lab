@@ -72,7 +72,7 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appHome, /id="questionDiagram"/);
   assert.match(appHome, /id="prevButton"/);
   assert.match(appHome, /site-nav__link active" href="\.\/index\.html" aria-current="page"/);
-  assert.match(appHome, /href="\.\/gate-builder-demo\.html">实践中心/);
+  assert.match(appHome, /href="\.\/gate-builder-demo\.html">电路搭建/);
   assert.match(appHome, /href="\.\/labs\.html">实验中心/);
   assert.doesNotMatch(appHome, /page-transition\.js/);
   assert.match(appHome, /gate-builder-demo\.html/);
@@ -87,7 +87,7 @@ test("health, pages and question APIs are available", async () => {
   assert.match(labs, /交互仿真实验中心/);
   assert.match(labs, /site-nav\.css/);
   assert.match(labs, /href="\.\/index\.html">学习中心/);
-  assert.match(labs, /href="\.\/gate-builder-demo\.html">实践中心/);
+  assert.match(labs, /href="\.\/gate-builder-demo\.html">电路搭建/);
   assert.match(labs, /site-nav__link active" href="\.\/labs\.html" aria-current="page"/);
   assert.doesNotMatch(labs, /page-transition\.js/);
   assert.match(labs, /gate-builder-demo\.html/);
@@ -218,6 +218,7 @@ test("learning center uses five independent pages and embeds practice settings i
   const styles = await fetch(`${baseUrl}/learning-pages.css`).then((response) => response.text());
   const routePage = pages.find(([name]) => name === "learning-route.html")?.[1] || "";
   const selfTestPage = pages.find(([name]) => name === "self-test.html")?.[1] || "";
+  const reviewPage = pages.find(([name]) => name === "learning-review.html")?.[1] || "";
 
   assert.match(index, /data-learning-page="center"/);
   assert.match(index, /class="sidebar platform-sidebar index-platform-sidebar" data-learning-nav/);
@@ -284,6 +285,16 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(selfTestPage, /任务生成依据/);
   assert.match(selfTestPage, /生成并开始学习/);
   assert.doesNotMatch(selfTestPage, /阶段自测|组卷参数|自测卷预览|AI 组卷依据|试卷目录/);
+  assert.match(reviewPage, /全部作答趋势/);
+  assert.match(reviewPage, /最近 10 次作答/);
+  assert.match(reviewPage, /data-review-range="recent">最近 10 次/);
+  assert.doesNotMatch(reviewPage, /学习任务完成趋势|近 5 个任务/);
+  assert.match(controller, /progress\.attempts/);
+  assert.match(controller, /progress\.recentAttempts/);
+  assert.doesNotMatch(controller, /progress\.rounds/);
+  assert.match(controller, /总体正确率/);
+  assert.match(controller, /最近 10 次正确率/);
+  assert.doesNotMatch(controller, /首次正确率|迁移正确率/);
   assert.match(styles, /\.practice-settings/);
   assert.match(styles, /\.learning-view-frame/);
   assert.match(styles, /\.learning-view-frame\[hidden\]/);
@@ -296,6 +307,7 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(styles, /\.wrong-workspace/);
   assert.match(styles, /\.self-test-paper/);
   assert.match(styles, /\.review-summary/);
+  assert.match(styles, /\.review-recent-list/);
 });
 
 test("semantic grading feedback assets expose a shared structured renderer", async () => {
@@ -356,6 +368,10 @@ test("learner-aware HTTP endpoints isolate records and reject invalid IDs safely
   assert.deepEqual(wrongA.map((item) => item.question.id), ["base-007"]);
   assert.deepEqual(wrongB.map((item) => item.question.id), ["base-006"]);
   assert.ok(progressA.knowledge.every((item) => !String(item.knowledge).includes("或非门")));
+  assert.equal(progressA.attempts.length, 1);
+  assert.equal(progressA.recentAttempts.length, 1);
+  assert.equal(progressA.recentAttempts[0].sequence, 1);
+  assert.equal(progressA.recentSummary.answered, 1);
 
   const invalidHeaders = { "X-Learner-Id": "!!!" };
   const invalidStats = await fetch(`${baseUrl}/api/stats`, { headers: invalidHeaders }).then((response) => response.json());
