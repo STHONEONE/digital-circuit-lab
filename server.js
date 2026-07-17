@@ -36,6 +36,7 @@ const expectedErrorCodes = new Set([
   "AI_VARIANT_NOT_AVAILABLE", "AI_VARIANT_NOT_REGISTERED",
   "AI_GHOST_FAILED", "GHOST_REQUIREMENT_REQUIRED",
   "AI_SELF_TEST_FAILED", "AI_SELF_TEST_UNAVAILABLE",
+  "KNOWLEDGE_PRACTICE_NOT_FOUND",
   "IMPORT_ANALYSIS_MISSING_ANSWER"
 ]);
 
@@ -51,8 +52,11 @@ function learnerId(request) {
 }
 
 async function generateSelfTestQuestions(body, currentLearnerId) {
-  const prepared = practice.prepareSelfTest(body.scope, body.count, currentLearnerId);
-  const needsAi = prepared.shortage > 0 && ai.configured();
+  const knowledge = String(body.knowledge || "").trim().slice(0, 80);
+  const prepared = knowledge
+    ? { profile: practice.knowledgeTestProfile(knowledge, body.scope, body.count, currentLearnerId) }
+    : practice.prepareSelfTest(body.scope, body.count, currentLearnerId);
+  const needsAi = knowledge ? ai.configured() : prepared.shortage > 0 && ai.configured();
   const previous = selfTestGenerationState.get(currentLearnerId);
   const now = Date.now();
   if (needsAi && previous?.active) {
@@ -71,7 +75,10 @@ async function generateSelfTestQuestions(body, currentLearnerId) {
   }
   if (needsAi) selfTestGenerationState.set(currentLearnerId, { active: true, finishedAt: 0 });
   try {
-    return { questions: await practice.selfTest(body.scope, body.count, currentLearnerId, prepared), profile: prepared.profile };
+    const questions = knowledge
+      ? await practice.knowledgeTest(knowledge, body.scope, body.count, currentLearnerId, prepared.profile)
+      : await practice.selfTest(body.scope, body.count, currentLearnerId, prepared);
+    return { questions, profile: prepared.profile };
   } finally {
     if (needsAi) selfTestGenerationState.set(currentLearnerId, { active: false, finishedAt: Date.now() });
   }
@@ -176,6 +183,7 @@ app.post("/api/personalized-tasks", async (request, response, next) => {
     response.status(201).json(store.createPersonalizedTask({
       learnerId: currentLearnerId,
       scope: request.body?.scope,
+      title: request.body?.knowledge ? `${String(request.body.knowledge).slice(0, 80)}专项巩固` : undefined,
       questions: result.questions,
       profile: result.profile
     }));

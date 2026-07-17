@@ -146,12 +146,12 @@ export class Store {
       .filter(([key]) => !learnerId || key.startsWith(`${learnerId}\u0000`)).length;
   }
 
-  createPersonalizedTask({ learnerId, scope, questions, profile = {} }) {
+  createPersonalizedTask({ learnerId, scope, title, questions, profile = {} }) {
     const now = new Date().toISOString();
     const task = {
       id: randomUUID(),
       learnerId: String(learnerId || ""),
-      title: "个性化学习任务",
+      title: String(title || "个性化学习任务").slice(0, 100),
       scope: String(scope || "all"),
       createdAt: now,
       updatedAt: now,

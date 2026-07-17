@@ -730,6 +730,8 @@ async function initRoutePage() {
     document.querySelector("#routeLessonMethod").textContent = lesson.method;
     document.querySelector("#routeLessonRules").innerHTML = lesson.rules.map((rule) => `<li>${escapeHtml(rule)}</li>`).join("");
     document.querySelector("#routeLessonCheck").textContent = lesson.check;
+    const selectedKnowledge = knowledgeByName.get(selectedFocus);
+    document.querySelector("#routePracticeLink").href = `./self-test.html?knowledge=${encodeURIComponent(selectedFocus)}&scope=${encodeURIComponent(selectedKnowledge?.scope || "all")}`;
     document.querySelector("#routeExampleCountLabel").textContent = matched.length ? `${matched.length} 道可用` : "暂无例题";
     document.querySelector("#routeLessonDuration").textContent = matched.length ? "约 8 分钟" : "约 5 分钟";
 
@@ -964,6 +966,9 @@ async function initSelfTestPage() {
   const scopeSelect = document.querySelector("#selfTestScope");
   const countSelect = document.querySelector("#selfTestCount");
   const scopeButtons = [...document.querySelectorAll("[data-self-test-scopes] button")];
+  const pageParams = new URLSearchParams(location.search);
+  const knowledgeFocus = String(pageParams.get("knowledge") || "").trim().slice(0, 80);
+  const knowledgeScope = String(pageParams.get("scope") || "all");
   const completed = new Set();
   const scopeLabels = {
     all: "全部知识范围",
@@ -981,6 +986,14 @@ async function initSelfTestPage() {
   let questions = [];
   let activeTaskId = "";
   let savedTasks = [];
+  if (knowledgeFocus && scopeLabels[knowledgeScope]) {
+    scopeSelect.value = knowledgeScope;
+    scopeSelect.disabled = true;
+    scopeButtons.forEach((button) => { button.disabled = true; });
+    document.querySelector(".self-test-panel-heading h3").textContent = `${knowledgeFocus}专项设置`;
+    document.querySelector("#selfTestSourceNote").textContent = "本任务只围绕知识复习页选定的知识点生成";
+    document.querySelector(".self-test-rationale-list").innerHTML = `<li><span>1</span><div><strong>指定知识点</strong><p>全部题目围绕“${escapeHtml(knowledgeFocus)}”</p></div></li><li><span>2</span><div><strong>AI 动态生成</strong><p>调用大模型生成新的专项练习题</p></div></li><li><span>3</span><div><strong>掌握度更新</strong><p>完成作答后更新该知识点掌握证据</p></div></li>`;
+  }
   const runner = createRunner("self-test", {
     mode: "self_test",
     onIndexChange(index) {
@@ -1062,7 +1075,9 @@ async function initSelfTestPage() {
     const choiceCount = count - analysisCount;
     const selectedScope = scopeSelect.value;
     const weak = visibleWeakKnowledge();
-    const coverage = weak.length
+    const coverage = knowledgeFocus
+      ? [{ name: knowledgeFocus, detail: "AI 知识点专项", weight: 1 }]
+      : weak.length
       ? weak.map((item) => ({ name: item.name, detail: `${item.wrongCount} 次待巩固`, weight: item.wrongCount }))
       : scopeFallbacks[selectedScope].map((name, index) => ({ name, detail: "基础巩固覆盖", weight: 3 - index }));
     const totalWeight = coverage.reduce((sum, item) => sum + item.weight, 0) || 1;
@@ -1093,6 +1108,13 @@ async function initSelfTestPage() {
     const list = document.querySelector("#selfTestWeakList");
     const summary = document.querySelector("#selfTestWeakSummary");
     const note = document.querySelector("#selfTestSourceNote");
+    if (knowledgeFocus) {
+      summary.textContent = `专项：${knowledgeFocus}`;
+      note.hidden = false;
+      note.textContent = "不使用错题优先级，只针对当前知识点生成";
+      list.innerHTML = `<div class="self-test-weak-item"><span>${escapeHtml(knowledgeFocus)}</span><strong>专项</strong><div class="self-test-weak-track"><i style="width:100%"></i></div></div>`;
+      return;
+    }
     if (!weak.length) {
       summary.textContent = "暂无薄弱点记录";
       note.hidden = true;
@@ -1130,8 +1152,8 @@ async function initSelfTestPage() {
   }
   try {
     await loadSavedTasks();
-    const requestedTaskId = new URLSearchParams(location.search).get("task");
-    const task = requestedTaskId ? savedTasks.find((item) => item.id === requestedTaskId) : savedTasks.find((item) => !item.completedAt);
+    const requestedTaskId = pageParams.get("task");
+    const task = requestedTaskId ? savedTasks.find((item) => item.id === requestedTaskId) : knowledgeFocus ? null : savedTasks.find((item) => !item.completedAt);
     if (task) openTask(task);
   } catch (error) {
     savedTaskList.innerHTML = `<div class="saved-task-empty">任务列表加载失败：${escapeHtml(error.message)}</div>`;
@@ -1141,20 +1163,25 @@ async function initSelfTestPage() {
   document.querySelector("#generateSelfTestButton").addEventListener("click", async () => {
     const button = document.querySelector("#generateSelfTestButton");
     button.disabled = true;
-    button.innerHTML = "<span>正在生成学习任务…</span><small>优先从本地题库匹配薄弱知识点</small>";
-    setPlatformNotice(status, "正在根据错题记录、掌握程度和薄弱知识点组合针对性学习任务；仅在题库不足时由 AI 补充。请稍候...");
+    button.innerHTML = knowledgeFocus
+      ? `<span>正在生成${escapeHtml(knowledgeFocus)}专项题…</span><small>由大模型动态生成</small>`
+      : "<span>正在生成学习任务…</span><small>优先从本地题库匹配薄弱知识点</small>";
+    setPlatformNotice(status, knowledgeFocus
+      ? `正在调用大模型生成“${knowledgeFocus}”专项练习，请稍候...`
+      : "正在根据错题记录、掌握程度和薄弱知识点组合针对性学习任务；仅在题库不足时由 AI 补充。请稍候...");
     try {
       const task = await platformApi("/api/personalized-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scope: document.querySelector("#selfTestScope").value,
-          count: document.querySelector("#selfTestCount").value
+          count: document.querySelector("#selfTestCount").value,
+          knowledge: knowledgeFocus || undefined
         })
       });
       await loadSavedTasks();
       openTask(task, { scroll: true });
-      setPlatformNotice(status, `个性化学习任务已保存，共 ${(task.questions || []).length} 题，可随时继续。`);
+      setPlatformNotice(status, `${knowledgeFocus ? `“${knowledgeFocus}”专项` : "个性化学习"}任务已保存，共 ${(task.questions || []).length} 题，可随时继续。`);
     } catch (error) {
       const message = /AI Key|未配置|AI_SELF_TEST_UNAVAILABLE/i.test(error.message)
         ? "个性化学习服务尚未配置。请先返回“普通练习”，在右下角“AI 助教 → 设置”中完成配置，再回来生成学习任务。"

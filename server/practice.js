@@ -728,6 +728,46 @@ export class PracticeService {
       (personalizedTypeRank[left.type] ?? 9) - (personalizedTypeRank[right.type] ?? 9));
   }
 
+  knowledgeTestProfile(knowledge, scope, count, learnerId = "") {
+    const focus = String(knowledge || "").trim().slice(0, 80);
+    const selectedCount = Math.max(1, Math.min(Number(count) || 5, 10));
+    const matched = this.store.questions().filter((question) => question.knowledge?.includes(focus));
+    if (!focus || !matched.length) {
+      throw serviceError("未找到需要巩固的知识点。", 400, "KNOWLEDGE_PRACTICE_NOT_FOUND");
+    }
+    const selectedScope = String(scope || matched[0].scope || "all");
+    const mastery = this.knowledgeStats(learnerId).find((item) => item.knowledge === focus);
+    return {
+      scope: selectedScope,
+      count: selectedCount,
+      focusKnowledge: [focus],
+      targetKnowledgePlan: Array(selectedCount).fill(focus),
+      availableKnowledge: [focus],
+      weakKnowledge: [],
+      knowledgeMastery: mastery ? [{
+        name: focus,
+        rate: mastery.rate,
+        attempts: mastery.attempts,
+        status: mastery.status
+      }] : [],
+      wrongQuestions: [],
+      excludeQuestions: matched.slice(0, 8).map((question) => String(question.text || "").slice(0, 140)),
+      generationMode: "knowledge_practice"
+    };
+  }
+
+  async knowledgeTest(knowledge, scope, count, learnerId = "", preparedProfile = null) {
+    if (!this.ai?.generateSelfTest) {
+      throw serviceError("知识点专项题生成服务不可用，请稍后重试。", 503, "AI_SELF_TEST_UNAVAILABLE");
+    }
+    const profile = preparedProfile || this.knowledgeTestProfile(knowledge, scope, count, learnerId);
+    const generated = await this.ai.generateSelfTest(profile);
+    if (generated.length !== profile.count || generated.some((question) => !question.knowledge?.includes(profile.focusKnowledge[0]))) {
+      throw serviceError("AI 未能按指定知识点生成完整题目，请稍后重试。", 502, "AI_SELF_TEST_FAILED");
+    }
+    return this.store.addGeneratedSelfTestQuestions(generated);
+  }
+
   targeted(knowledge, count, learnerId = "") {
     const focus = String(knowledge || Object.entries(this.wrongKnowledgeCounts("all", learnerId))
       .sort((left, right) => right[1] - left[1])[0]?.[0] || "").trim();

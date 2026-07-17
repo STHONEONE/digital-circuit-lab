@@ -602,9 +602,14 @@ export class AiService {
         .map((item) => String(item || "").slice(0, 140))
     };
     const hasWrongHistory = compactProfile.weakKnowledge.length > 0;
+    const isKnowledgePractice = compactProfile.generationMode === "knowledge_practice";
     const prompt = [
-      `请生成一组包含 ${count} 道题的大学数字电路个性化学习任务。`,
-      hasWrongHistory
+      isKnowledgePractice
+        ? `请生成一组包含 ${count} 道题的大学数字电路知识点专项练习。`
+        : `请生成一组包含 ${count} 道题的大学数字电路个性化学习任务。`,
+      isKnowledgePractice
+        ? `全部题目必须只针对“${compactProfile.focusKnowledge[0]}”，不得根据其他错题或知识点改变主题。`
+        : hasWrongHistory
         ? "学习任务必须针对学生历史答错的知识点，不得改成泛泛的随机题。"
         : "当前没有历史错题，请依据当前学习范围生成一组基础巩固任务。",
       `练习范围：${compactProfile.scope || "all"}`,

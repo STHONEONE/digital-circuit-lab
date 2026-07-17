@@ -307,7 +307,8 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(routePage, /data-route-tab="example"/);
   assert.match(routePage, /data-route-tab="practice"/);
   assert.match(routePage, /id="routeLessonDuration"/);
-  assert.match(routePage, /开始巩固练习/);
+  assert.match(routePage, /生成本知识点练习/);
+  assert.match(routePage, /调用 AI 生成当前知识点的专项题/);
   assert.match(routePage, /<h2>知识复习<\/h2>/);
   assert.doesNotMatch(routePage, /<h2>学习路线<\/h2>|路线依据|阶段自测/);
   assert.doesNotMatch(routePage, /route-focus-console|复习指引|当前复习|预计阅读时长|相关知识点|复习顺序|复习依据/);
@@ -507,6 +508,17 @@ test("personalized tasks persist until deletion and wrong review requires manual
 
   const removed = await fetch(`${baseUrl}/api/personalized-tasks/${task.id}`, { method: "DELETE", headers }).then((response) => response.json());
   assert.equal(removed.removed, true);
+});
+
+test("knowledge review requests an AI-only task for the selected knowledge", async () => {
+  const response = await fetch(`${baseUrl}/api/personalized-tasks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Learner-Id": "knowledge-http-learner" },
+    body: JSON.stringify({ count: 5, scope: "basic-logic", knowledge: "二进制转换" })
+  });
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.code, "AI_NOT_CONFIGURED");
 });
 
 test("AI ghost planning reports unavailable AI so the browser can use its template fallback", async () => {

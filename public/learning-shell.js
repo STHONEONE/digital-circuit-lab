@@ -80,6 +80,11 @@ function installPageTransitions() {
       const item = learningItemForUrl(link.href);
       if (!item || typeof window.parent.learningPlatform?.switchPage !== "function") return;
       event.preventDefault();
+      const destination = new URL(link.href, location.href);
+      if (destination.search) {
+        window.parent.location.assign(destination.href);
+        return;
+      }
       window.parent.learningPlatform.switchPage(item.key);
     });
     return null;
@@ -188,7 +193,7 @@ function installPageTransitions() {
     const destination = new URL(link.href, location.href);
     if (destination.origin !== location.origin || destination.href === location.href) return;
     const learningItem = learningItemForUrl(destination);
-    if (learningItem) {
+    if (learningItem && !destination.search) {
       event.preventDefault();
       switchLearningPage(learningItem.key).catch(() => location.assign(destination.href));
       return;

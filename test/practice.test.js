@@ -651,6 +651,44 @@ test("mastery waits for three independent questions and reports confidence", asy
   }
 });
 
+test("knowledge practice always asks AI for questions from the selected knowledge", async () => {
+  const { store, cleanup } = fixture();
+  let receivedProfile;
+  const practice = new PracticeService(store, {
+    async generateSelfTest(profile) {
+      receivedProfile = profile;
+      return Array.from({ length: profile.count }, (_, index) => ({
+        id: `knowledge-ai-${index}`,
+        title: `二进制转换专项 ${index + 1}`,
+        type: "single_choice",
+        text: `二进制转换专项题 ${index + 1}`,
+        options: ["A", "B", "C", "D"],
+        answer: 0,
+        answerText: "A",
+        explanation: "专项解析",
+        knowledge: ["二进制转换"],
+        difficulty: 2,
+        scope: "basic-logic",
+        generatedSelfTest: true,
+        source: "AI 知识点专项"
+      }));
+    }
+  });
+
+  try {
+    const questions = await practice.knowledgeTest("二进制转换", "basic-logic", 5, "knowledge-learner");
+    assert.equal(questions.length, 5);
+    assert.deepEqual(receivedProfile.targetKnowledgePlan, Array(5).fill("二进制转换"));
+    assert.deepEqual(receivedProfile.focusKnowledge, ["二进制转换"]);
+    assert.deepEqual(receivedProfile.weakKnowledge, []);
+    assert.deepEqual(receivedProfile.wrongQuestions, []);
+    assert.ok(questions.every((question) => question.knowledge.includes("二进制转换")));
+    assert.ok(questions.every((question) => store.question(question.id)));
+  } finally {
+    cleanup();
+  }
+});
+
 test("progress records every answer and exposes the latest ten attempts", () => {
   const { store, practice, cleanup } = fixture();
   try {
