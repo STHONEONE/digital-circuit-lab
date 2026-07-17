@@ -1171,6 +1171,7 @@ async function initReviewPage() {
   const status = document.querySelector("#reviewMessage");
   let reportData = null;
   let trendRange = "all";
+  let loadPromise = null;
   const metricIcons = {
     answered: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg>',
     accuracy: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m14 10 5-5M16 5h3v3"/></svg>',
@@ -1277,11 +1278,31 @@ async function initReviewPage() {
     renderTrend();
   }
   async function load() {
-    const [stats, progress] = await Promise.all([
+    if (loadPromise) return loadPromise;
+    loadPromise = Promise.all([
       platformApi("/api/stats"), platformApi("/api/progress")
-    ]);
-    renderReport(stats, progress);
+    ]).then(([stats, progress]) => renderReport(stats, progress));
+    try {
+      return await loadPromise;
+    } finally {
+      loadPromise = null;
+    }
   }
+  const refreshReport = () => load().catch((error) => setReviewNotice(`自动更新失败：${error.message}`, true));
+  window.addEventListener("storage", (event) => {
+    if (event.key !== "digital-circuit-learning-data-version" || !event.newValue) return;
+    try {
+      const change = JSON.parse(event.newValue);
+      if (change.learnerId !== window.learningPlatform?.learnerId) return;
+    } catch {
+      return;
+    }
+    refreshReport();
+  });
+  window.addEventListener("focus", refreshReport);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshReport();
+  });
   document.querySelectorAll("[data-review-range]").forEach((button) => button.addEventListener("click", () => {
     trendRange = button.dataset.reviewRange;
     document.querySelectorAll("[data-review-range]").forEach((item) => item.classList.toggle("active", item === button));

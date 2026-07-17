@@ -12,6 +12,7 @@ const embeddedView = window.parent !== window
 if (embeddedView) document.documentElement.classList.add("learning-embedded");
 
 const learnerIdStorageKey = "digital-circuit-learner-id";
+const learningDataVersionKey = "digital-circuit-learning-data-version";
 
 function platformLearnerId() {
   try {
@@ -34,6 +35,13 @@ async function platformFetchJson(url, options = {}) {
   const response = await fetch(url, { ...options, headers });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "请求失败");
+  if (url === "/api/answers" && String(options.method || "GET").toUpperCase() === "POST") {
+    try {
+      localStorage.setItem(learningDataVersionKey, JSON.stringify({ learnerId: platformUserId, updatedAt: Date.now() }));
+    } catch {
+      // The report still refreshes when it becomes visible if storage is unavailable.
+    }
+  }
   return data;
 }
 
