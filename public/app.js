@@ -2111,6 +2111,13 @@ async function fetchJson(url, options) {
   if (!response.ok) {
     throw new Error(data.error || "请求失败");
   }
+  if (url === "/api/answers" && String(requestOptions.method || "GET").toUpperCase() === "POST") {
+    try {
+      localStorage.setItem("digital-circuit-learning-data-version", JSON.stringify({ learnerId, updatedAt: Date.now() }));
+    } catch {
+      // The learning report also refreshes when it becomes visible.
+    }
+  }
   return data;
 }
 
