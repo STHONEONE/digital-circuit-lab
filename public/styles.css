@@ -1532,7 +1532,7 @@ button:disabled { cursor: wait; opacity: .58; }
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 50;
+  z-index: 1180;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1543,9 +1543,23 @@ button:disabled { cursor: wait; opacity: .58; }
   color: #fff;
   padding: 7px 18px 7px 8px;
   box-shadow: 0 14px 34px rgba(56, 189, 248, .32);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .ai-chat-launcher:hover { background: var(--accent-dark); color: #fff; }
+.ai-chat-launcher:focus-visible {
+  outline: 3px solid rgba(165, 243, 252, .96);
+  outline-offset: 3px;
+}
+.ai-chat-launcher.is-dragging {
+  cursor: grabbing;
+  transform: none;
+  transition: none;
+  box-shadow: 0 18px 44px rgba(56, 189, 248, .42), 0 0 0 3px rgba(103, 232, 249, .18);
+}
 .ai-chat-launcher[hidden] { display: none; }
 
 .launcher-mark {
@@ -2359,7 +2373,7 @@ textarea::placeholder {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 50;
+  z-index: 1180;
 }
 
 @media (max-width: 780px) {
@@ -2379,7 +2393,9 @@ textarea::placeholder {
   #meta { min-height: 44px; }
 
   .ai-chat-launcher {
-    position: static;
+    position: fixed;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
     min-height: 44px;
     padding: 2px 12px 2px 4px;
     box-shadow: 0 8px 22px rgba(56, 189, 248, .24);

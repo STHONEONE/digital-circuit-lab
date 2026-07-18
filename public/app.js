@@ -1428,11 +1428,182 @@ function openChat() {
 function closeChat() {
   els.aiChatPanel.hidden = true;
   els.aiChatLauncher.hidden = false;
+  window.requestAnimationFrame(() => {
+    restoreChatLauncherPosition();
+    els.aiChatLauncher.focus({ preventScroll: true });
+  });
 }
 
 const chatPositionStorageKey = "digital-circuit-ai-chat-position";
+const chatLauncherPositionStorageKey = "digital-circuit-ai-chat-launcher-position";
 let chatDragState = null;
 let chatResizeState = null;
+let chatLauncherDragState = null;
+let suppressNextChatLauncherClick = false;
+let chatLauncherPositionFallback = null;
+let chatLauncherResizeObserver = null;
+
+function getSavedChatLauncherPosition() {
+  try {
+    const saved = localStorage.getItem(chatLauncherPositionStorageKey);
+    if (!saved) {
+      chatLauncherPositionFallback = null;
+      return null;
+    }
+    const position = JSON.parse(saved);
+    if (Number.isFinite(position?.left) && Number.isFinite(position?.top)) {
+      chatLauncherPositionFallback = position;
+      return position;
+    }
+    localStorage.removeItem(chatLauncherPositionStorageKey);
+  } catch {
+    try {
+      localStorage.removeItem(chatLauncherPositionStorageKey);
+    } catch {
+      // localStorage can be unavailable in restricted browser contexts.
+    }
+    return chatLauncherPositionFallback;
+  }
+  chatLauncherPositionFallback = null;
+  return null;
+}
+
+function saveChatLauncherPosition(left, top) {
+  const position = {
+    left: Math.round(left),
+    top: Math.round(top)
+  };
+  chatLauncherPositionFallback = position;
+  try {
+    localStorage.setItem(chatLauncherPositionStorageKey, JSON.stringify(position));
+  } catch {
+    // Dragging should still work when localStorage is unavailable.
+  }
+}
+
+function resetChatLauncherToDefault() {
+  els.aiChatLauncher.style.left = "";
+  els.aiChatLauncher.style.top = "";
+  els.aiChatLauncher.style.right = "";
+  els.aiChatLauncher.style.bottom = "";
+}
+
+function applyChatLauncherPosition(left, top, persist = true) {
+  if (!els.aiChatLauncher.isConnected) return;
+  const rect = els.aiChatLauncher.getBoundingClientRect();
+  const margin = 8;
+  const visualViewport = window.visualViewport;
+  const viewportLeft = visualViewport?.offsetLeft || 0;
+  const viewportTop = visualViewport?.offsetTop || 0;
+  const viewportWidth = visualViewport?.width || window.innerWidth;
+  const viewportHeight = visualViewport?.height || window.innerHeight;
+  const minLeft = viewportLeft + margin;
+  const minTop = viewportTop + margin;
+  const maxLeft = Math.max(minLeft, viewportLeft + viewportWidth - rect.width - margin);
+  const maxTop = Math.max(minTop, viewportTop + viewportHeight - rect.height - margin);
+  const nextLeft = Math.min(Math.max(minLeft, left), maxLeft);
+  const nextTop = Math.min(Math.max(minTop, top), maxTop);
+
+  els.aiChatLauncher.style.left = `${Math.round(nextLeft)}px`;
+  els.aiChatLauncher.style.top = `${Math.round(nextTop)}px`;
+  els.aiChatLauncher.style.right = "auto";
+  els.aiChatLauncher.style.bottom = "auto";
+
+  if (persist) saveChatLauncherPosition(nextLeft, nextTop);
+}
+
+function restoreChatLauncherPosition() {
+  if (!els.aiChatLauncher.isConnected || els.aiChatLauncher.hidden) return;
+  const position = getSavedChatLauncherPosition();
+  if (!position) {
+    resetChatLauncherToDefault();
+    const rect = els.aiChatLauncher.getBoundingClientRect();
+    applyChatLauncherPosition(rect.left, rect.top, false);
+    return;
+  }
+  applyChatLauncherPosition(position.left, position.top, true);
+}
+
+function setupChatLauncherDrag() {
+  if (!window.PointerEvent) return;
+
+  els.aiChatLauncher.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !event.isPrimary) return;
+    const rect = els.aiChatLauncher.getBoundingClientRect();
+    chatLauncherDragState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      moved: false
+    };
+    els.aiChatLauncher.setPointerCapture(event.pointerId);
+  });
+
+  els.aiChatLauncher.addEventListener("pointermove", (event) => {
+    if (!chatLauncherDragState || chatLauncherDragState.pointerId !== event.pointerId) return;
+    const distance = Math.hypot(
+      event.clientX - chatLauncherDragState.startX,
+      event.clientY - chatLauncherDragState.startY
+    );
+    if (!chatLauncherDragState.moved && distance < 8) return;
+    if (!chatLauncherDragState.moved) {
+      chatLauncherDragState.moved = true;
+      els.aiChatLauncher.classList.add("is-dragging");
+    }
+    applyChatLauncherPosition(
+      event.clientX - chatLauncherDragState.offsetX,
+      event.clientY - chatLauncherDragState.offsetY,
+      false
+    );
+    event.preventDefault();
+  });
+
+  function endLauncherDrag(event) {
+    if (!chatLauncherDragState || chatLauncherDragState.pointerId !== event.pointerId) return;
+    const wasDragged = chatLauncherDragState.moved;
+    chatLauncherDragState = null;
+    els.aiChatLauncher.classList.remove("is-dragging");
+    if (els.aiChatLauncher.hasPointerCapture(event.pointerId)) {
+      els.aiChatLauncher.releasePointerCapture(event.pointerId);
+    }
+    if (!wasDragged) return;
+    const rect = els.aiChatLauncher.getBoundingClientRect();
+    applyChatLauncherPosition(rect.left, rect.top, true);
+    if (event.type === "pointerup") {
+      suppressNextChatLauncherClick = true;
+      window.setTimeout(() => {
+        suppressNextChatLauncherClick = false;
+      }, 0);
+    }
+  }
+
+  els.aiChatLauncher.addEventListener("pointerup", endLauncherDrag);
+  els.aiChatLauncher.addEventListener("pointercancel", endLauncherDrag);
+  els.aiChatLauncher.addEventListener("lostpointercapture", endLauncherDrag);
+  let boundsFrame = 0;
+  const scheduleBoundsRestore = () => {
+    if (!els.aiChatLauncher.isConnected || els.aiChatLauncher.hidden) return;
+    window.cancelAnimationFrame(boundsFrame);
+    boundsFrame = window.requestAnimationFrame(restoreChatLauncherPosition);
+  };
+  window.addEventListener("resize", scheduleBoundsRestore);
+  window.visualViewport?.addEventListener("resize", scheduleBoundsRestore);
+  if (window.ResizeObserver) {
+    chatLauncherResizeObserver = new ResizeObserver(scheduleBoundsRestore);
+    chatLauncherResizeObserver.observe(els.aiChatLauncher);
+  }
+}
+
+function handleChatLauncherClick(event) {
+  if (suppressNextChatLauncherClick) {
+    suppressNextChatLauncherClick = false;
+    event.preventDefault();
+    return;
+  }
+  openChat();
+}
 
 function canDragChatPanel() {
   return window.matchMedia("(pointer: fine)").matches && !window.matchMedia("(max-width: 780px)").matches;
@@ -2192,7 +2363,7 @@ document.addEventListener("click", (event) => {
   els.questionPickerPanel.hidden = true;
   els.meta?.setAttribute("aria-expanded", "false");
 });
-els.aiChatLauncher.addEventListener("click", openChat);
+els.aiChatLauncher.addEventListener("click", handleChatLauncherClick);
 els.aiVariantLauncher?.addEventListener("click", () => {
   reopenAiVariantFloat();
 });
@@ -2202,6 +2373,8 @@ els.laterAiVariantButton?.addEventListener("click", hideAiVariantFloat);
 els.answerAiVariantButton?.addEventListener("click", focusGeneratedVariant);
 els.submitAiVariantButton?.addEventListener("click", submitAiVariantAnswer);
 document.querySelectorAll("[data-floating-window]").forEach(enableFloatingWindowDrag);
+setupChatLauncherDrag();
+restoreChatLauncherPosition();
 setupChatDrag();
 setupChatResize();
 els.toggleAiConfigButton.addEventListener("click", () => {

@@ -129,7 +129,7 @@ test("390px 实验中心完整显示电路且主要控件适合触摸", {
   await context.close();
 });
 
-test("390px 学习中心的 AI 入口不遮挡题号与答题内容", {
+test("390px 学习中心的 AI 入口默认右下并可拖动恢复", {
   skip: browserExecutable ? false : "未找到可用于响应式验证的 Chromium 浏览器"
 }, async () => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -155,40 +155,66 @@ test("390px 学习中心的 AI 入口不遮挡题号与答题内容", {
     };
 
     return {
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      },
       launcher: rectangle("#aiChatLauncher"),
-      questionNumber: rectangle("#meta"),
-      questionText: rectangle("#questionText"),
-      options: rectangle("#options"),
-      actions: rectangle(".actions")
+      questionNumber: rectangle("#meta")
     };
   });
-
-  const overlaps = (first, second) => first && second
-    && first.left < second.right
-    && first.right > second.left
-    && first.top < second.bottom
-    && first.bottom > second.top;
 
   assert.ok(placement.launcher, "AI 助教入口应可见");
   assert.ok(placement.launcher.width >= 44, "AI 助教入口宽度应至少为 44px");
   assert.ok(placement.launcher.height >= 44, "AI 助教入口高度应至少为 44px");
   assert.ok(placement.questionNumber.width >= 44, "题号入口宽度应至少为 44px");
   assert.ok(placement.questionNumber.height >= 44, "题号入口高度应至少为 44px");
-  assert.equal(overlaps(placement.launcher, placement.questionNumber), false, "AI 入口不应覆盖题号");
-  assert.equal(overlaps(placement.launcher, placement.questionText), false, "AI 入口不应覆盖题干");
-  assert.equal(overlaps(placement.launcher, placement.options), false, "AI 入口不应覆盖选项");
-  assert.equal(overlaps(placement.launcher, placement.actions), false, "AI 入口不应覆盖答题操作");
+  assert.ok(placement.viewport.width - placement.launcher.right >= 8, "AI 入口应留在视口右侧安全区内");
+  assert.ok(placement.viewport.width - placement.launcher.right <= 32, "AI 入口首次应位于右下角");
+  assert.ok(placement.viewport.height - placement.launcher.bottom >= 8, "AI 入口应留在视口底部安全区内");
+  assert.ok(placement.viewport.height - placement.launcher.bottom <= 32, "AI 入口首次应位于右下角");
+
+  const launcher = page.locator("#aiChatLauncher");
+  const initialBox = await launcher.boundingBox();
+  await page.mouse.move(initialBox.x + initialBox.width / 2, initialBox.y + initialBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(210, 330, { steps: 6 });
+  await page.mouse.up();
+  assert.equal(await page.locator("#aiChatPanel").isVisible(), false, "拖动入口不应误打开聊天");
+
+  const dragged = await launcher.boundingBox();
+  assert.ok(Math.abs(dragged.x - initialBox.x) > 20 || Math.abs(dragged.y - initialBox.y) > 20,
+    "AI 入口应跟随拖动改变位置");
+  const savedPosition = await page.evaluate(() => JSON.parse(
+    localStorage.getItem("digital-circuit-ai-chat-launcher-position") || "null"
+  ));
+  assert.ok(Number.isFinite(savedPosition?.left) && Number.isFinite(savedPosition?.top),
+    "AI 入口拖动位置应持久化");
+  await launcher.click();
+  assert.equal(await page.locator("#aiChatPanel").isVisible(), true, "拖动后的下一次真实点击不应被延迟吞掉");
+  await page.locator("#closeChatButton").click();
 
   await page.getByRole("link", { name: /学习报告/ }).click();
   await page.waitForFunction(() => document.body.dataset.learningPage === "review");
   await page.getByRole("link", { name: /普通练习/ }).click();
   await page.waitForFunction(() => document.body.dataset.learningPage === "center");
   const restoredLauncher = await page.locator("#aiChatLauncher").evaluate((element) => ({
-    parentClass: element.parentElement?.className || "",
-    visible: Boolean(element.offsetWidth && element.offsetHeight)
+    parentTag: element.parentElement?.tagName || "",
+    visible: Boolean(element.offsetWidth && element.offsetHeight),
+    left: element.getBoundingClientRect().left,
+    top: element.getBoundingClientRect().top
   }));
-  assert.match(restoredLauncher.parentClass, /question-picker/);
+  assert.equal(restoredLauncher.parentTag, "BODY", "AI 入口应是相对视口定位的页面级浮层");
   assert.equal(restoredLauncher.visible, true);
+  assert.ok(Math.abs(restoredLauncher.left - savedPosition.left) <= 2);
+  assert.ok(Math.abs(restoredLauncher.top - savedPosition.top) <= 2);
+
+  await page.reload({ waitUntil: "networkidle" });
+  const reloadedBox = await page.locator("#aiChatLauncher").boundingBox();
+  assert.ok(Math.abs(reloadedBox.x - savedPosition.left) <= 2, "刷新后应恢复 AI 入口横向位置");
+  assert.ok(Math.abs(reloadedBox.y - savedPosition.top) <= 2, "刷新后应恢复 AI 入口纵向位置");
+  await page.locator("#aiChatLauncher").click();
+  assert.equal(await page.locator("#aiChatPanel").isVisible(), true, "拖动后下一次点击仍应打开 AI 聊天");
 
   await context.close();
 });

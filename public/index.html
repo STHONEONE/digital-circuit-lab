@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>数字电路智能练习系统</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=20260718-1">
+  <link rel="stylesheet" href="./styles.css?v=20260719-1">
   <link rel="stylesheet" href="./learning-pages.css?v=20260714-1">
   <link rel="stylesheet" href="./answer-feedback.css?v=20260712-1">
   <link rel="stylesheet" href="./site-nav.css?v=20260718-2">
@@ -167,10 +167,6 @@
                 <div class="question-picker">
                   <button id="meta" class="question-picker-toggle" type="button" aria-expanded="false" aria-controls="questionPickerPanel">1 / 1</button>
                   <div id="questionPickerPanel" class="question-picker-panel" hidden></div>
-                  <button id="aiChatLauncher" class="ai-chat-launcher" type="button" aria-label="打开 AI 助教">
-                    <span class="launcher-mark">AI</span>
-                    <span>助教</span>
-                  </button>
                 </div>
               </div>
               <div id="knowledge" class="tags"></div>
@@ -276,6 +272,11 @@
     </main>
   </div>
 
+  <button id="aiChatLauncher" class="ai-chat-launcher" type="button" aria-label="打开 AI 助教，可拖动调整位置" title="拖动调整位置，点击打开 AI 助教">
+    <span class="launcher-mark">AI</span>
+    <span>助教</span>
+  </button>
+
   <button id="aiVariantLauncher" class="ai-variant-launcher" type="button" aria-label="重新打开 AI 变式题" hidden>
     <span class="ai-variant-launcher__mark">题</span>
     <span>AI 变式题</span>
@@ -356,8 +357,8 @@
   </section>
 
   <script src="./circuit-background.js?v=20260620-1"></script>
-  <script src="./learning-shell.js?v=20260718-1"></script>
+  <script src="./learning-shell.js?v=20260719-1"></script>
   <script src="./answer-feedback.js?v=20260712-1"></script>
-  <script src="./app.js?v=20260718-1"></script>
+  <script src="./app.js?v=20260719-1"></script>
 </body>
 </html>

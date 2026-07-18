@@ -52,6 +52,27 @@
 
 final result: passed
 
+## AI 助教胶囊拖动 — 2026-07-19
+
+- 交互参考：`C:\Users\STONEO~1\AppData\Local\Temp\codex-clipboard-17e7c48e-6825-4960-af93-cd283fe8d4c5.png`
+- 桌面默认状态：`D:\AICodeing\codex\数字电路项目\ai-launcher-qa\01-desktop-default-bottom-right.png`
+- 桌面缩放校正：`D:\AICodeing\codex\数字电路项目\ai-launcher-qa\02-desktop-dragged-and-clamped.png`
+- 移动端触摸拖动：`D:\AICodeing\codex\数字电路项目\ai-launcher-qa\03-mobile-touch-dragged.png`
+- 验证视口：1440 × 900、720 × 500、390 × 844、844 × 390；Microsoft Edge / Playwright。
+- 当前环境没有 Browser plugin；Playwright CLI 未能在 30 秒内启动，改用项目已有的 `playwright-core` 与本机 Edge 完成等价真实浏览器检查。
+
+### 行为与边界
+
+- 首次访问时桌面距右下各 24px，移动端距右下各 14px；入口已提升为 `body` 下的页面级浮层，不再受题卡 `backdrop-filter` 定位容器影响。
+- 鼠标和真实触摸事件均可拖动；8px 阈值区分点击与拖动，松手不会误开聊天，下一次点击/触摸仍正常打开。
+- 位置使用独立 localStorage 键保存；刷新、学习报告页往返、关闭聊天后均恢复原坐标。
+- 视口缩小、移动端旋转及媒体查询改变胶囊尺寸后会重新夹取边界，四边至少保留 8px 安全间距。
+- 原生按钮语义、键盘点击和可见焦点保留；关闭聊天后焦点返回胶囊。
+- 桌面和触屏检查均无 console warning、console error、pageerror 或失败请求。
+- 全量自动化回归：144/144 通过。
+
+final result: passed
+
 ## Learning route workbench — 2026-07-13
 
 - Source visual truth: `C:\Users\Stone One\.codex\generated_images\019f4ec8-3801-7f32-85ac-4f284f0cf20f\exec-b54a6a63-f251-4a98-9453-7ec4f6709665.png`
