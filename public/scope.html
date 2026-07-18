@@ -8,26 +8,24 @@
   <script>window.location.replace("./index.html");</script>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./styles.css?v=20260718-1">
-  <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
   <link rel="stylesheet" href="./learning-pages.css?v=20260712-2">
   <link rel="stylesheet" href="./answer-feedback.css?v=20260712-1">
+  <link rel="stylesheet" href="./site-nav.css?v=20260718-2">
 </head>
-<body class="inner-page platform-page-body" data-learning-page="scope">
+<body class="inner-page platform-page-body has-platform-topbar" data-learning-page="scope">
   <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>
   <div class="circuit-bg-overlay" aria-hidden="true"></div>
   <div class="app">
     <div class="desktop-rail-logo" aria-hidden="true"><img src="./assets/icons/circuit-board.svg" alt=""></div>
-    <header class="topbar">
-      <div><p>数字电路课程设计 · Node.js 智能学习平台</p><h1>数字电路个性化学习中心</h1></div>
-      <div class="top-actions">
-        <a class="home-return-link" href="./home.html">回到首页</a>
-        <nav class="site-nav" aria-label="页面导航">
-          <a class="site-nav__link active" href="./index.html" aria-current="page">学习中心</a>
-          <a class="site-nav__link" href="./gate-builder-demo.html">电路搭建</a>
-          <a class="site-nav__link" href="./labs.html">实验中心</a>
-          <a class="site-nav__link" href="./extensions.html">专题仿真</a>
-        </nav>
-      </div>
+    <header class="topbar platform-topbar">
+      <a class="platform-brand" href="./home.html" aria-label="返回系统首页"><img src="./assets/icons/circuit-board.svg" alt="" aria-hidden="true"><span>数字电路实验中心</span></a>
+      <div class="platform-page-context"><p>数字电路课程设计 · Node.js 智能学习平台</p><h1>数字电路个性化学习中心</h1></div>
+      <nav class="site-nav" aria-label="页面导航">
+        <a class="site-nav__link active" href="./index.html" aria-current="page">学习中心</a>
+        <a class="site-nav__link" href="./gate-builder-demo.html">电路搭建</a>
+        <a class="site-nav__link" href="./labs.html">实验中心</a>
+        <a class="site-nav__link" href="./extensions.html">专题仿真</a>
+      </nav>
     </header>
     <main class="platform-layout">
       <aside class="platform-sidebar" data-learning-nav aria-label="学习中心模块导航"></aside>

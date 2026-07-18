@@ -7,7 +7,7 @@
   display: block;
   width: 100%;
   min-width: 0;
-  height: calc(100vh - 94px);
+  height: calc(100vh - 60px);
   min-height: 620px;
   border: 0;
   background: transparent;
@@ -225,7 +225,7 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
 }
 
 .platform-page-body .topbar {
-  min-height: 94px;
+  min-height: 60px;
   margin-bottom: 0;
   border-bottom: 1px solid rgba(125, 211, 252, .16);
 }
@@ -235,14 +235,14 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
   z-index: 2;
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr);
-  min-height: calc(100vh - 94px);
+  min-height: calc(100vh - 60px);
 }
 
 .platform-sidebar {
   position: sticky;
   top: 0;
   align-self: start;
-  min-height: calc(100vh - 94px);
+  min-height: calc(100vh - 60px);
   border-right: 1px solid rgba(125, 211, 252, .16);
   background: rgba(3, 10, 24, .42);
   backdrop-filter: blur(8px);

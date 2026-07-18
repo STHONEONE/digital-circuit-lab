@@ -6,9 +6,9 @@
   <title>数字电路交互仿真实验</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./labs.css?v=20260718-3">
-  <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
+  <link rel="stylesheet" href="./site-nav.css?v=20260718-2">
 </head>
-<body class="inner-page lab-page experiment-page experiment-center">
+<body class="inner-page lab-page experiment-page experiment-center has-platform-topbar">
   <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>
   <div class="circuit-bg-overlay" aria-hidden="true"></div>
   <div class="lab-background" aria-hidden="true">
@@ -43,13 +43,14 @@
       <text x="452" y="102">Q2</text>
     </svg>
   </div>
-  <header class="lab-topbar">
-    <div class="lab-brand">
+  <header class="lab-topbar platform-topbar">
+    <a class="platform-brand lab-brand" href="./home.html" aria-label="返回系统首页">
       <img src="./assets/icons/circuit-board.svg" alt="" aria-hidden="true">
-      <div>
-        <p>state → calculate → render → describe</p>
-        <h1>数字电路实验中心</h1>
-      </div>
+      <span>数字电路实验中心</span>
+    </a>
+    <div class="platform-page-context">
+      <p>state → calculate → render → describe</p>
+      <h1>数字电路实验中心</h1>
     </div>
     <nav class="site-nav" aria-label="页面导航">
       <a class="site-nav__link" href="./index.html">学习中心</a>

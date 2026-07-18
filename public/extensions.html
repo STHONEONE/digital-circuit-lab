@@ -6,7 +6,6 @@
   <title>专题仿真中心</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./styles.css?v=20260718-1">
-  <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
   <style>
     .extensions-shell {
       width: min(1180px, calc(100vw - 48px));
@@ -172,26 +171,28 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="./site-nav.css?v=20260718-2">
 </head>
-<body class="inner-page extensions-page">
+<body class="inner-page extensions-page has-platform-topbar">
   <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>
   <div class="circuit-bg-overlay" aria-hidden="true"></div>
 
   <div class="app">
-    <header class="topbar">
-      <div>
+    <header class="topbar platform-topbar">
+      <a class="platform-brand" href="./home.html" aria-label="返回系统首页">
+        <img src="./assets/icons/circuit-board.svg" alt="" aria-hidden="true">
+        <span>数字电路实验中心</span>
+      </a>
+      <div class="platform-page-context">
         <p>Digital Circuit Topic Simulations</p>
         <h1>专题仿真中心</h1>
       </div>
-      <div class="top-actions">
-        <a class="home-return-link" href="./home.html">回到首页</a>
-        <nav class="site-nav" aria-label="页面导航">
-          <a class="site-nav__link" href="./index.html">学习中心</a>
-          <a class="site-nav__link" href="./gate-builder-demo.html">电路搭建</a>
-          <a class="site-nav__link" href="./labs.html">实验中心</a>
-          <a class="site-nav__link active" href="./extensions.html" aria-current="page">专题仿真</a>
-        </nav>
-      </div>
+      <nav class="site-nav" aria-label="页面导航">
+        <a class="site-nav__link" href="./index.html">学习中心</a>
+        <a class="site-nav__link" href="./gate-builder-demo.html">电路搭建</a>
+        <a class="site-nav__link" href="./labs.html">实验中心</a>
+        <a class="site-nav__link active" href="./extensions.html" aria-current="page">专题仿真</a>
+      </nav>
     </header>
 
     <main class="extensions-shell">

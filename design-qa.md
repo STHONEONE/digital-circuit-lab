@@ -216,3 +216,44 @@ final result: passed
 - 390px 主要交互控件达到 44px 触控高度；禁用态、选中态和预测状态不仅依赖文字说明。
 
 Final result: passed
+
+## 全站统一顶部导航 — 2026-07-18
+
+- 设计来源：`C:\Users\STONEO~1\AppData\Local\Temp\codex-clipboard-92d1d2e4-6a57-45e4-82e3-e63bd696beaa.png`
+- 实现范围：`index.html`、`scope.html`、`learning-route.html`、`wrong-review.html`、`self-test.html`、`learning-review.html`、`gate-builder-demo.html`、`labs.html`、`extensions.html`
+- 明确例外：沉浸式入口 `home.html`、遗留独立页 `labs-standalone.html`、当前含用户未提交修改的专题子工具 `extensions/encoder-decoder-simulator.html`
+- 桌面视口：1440 × 900，Microsoft Edge（Playwright 自动化）
+- 移动视口：390 × 844，Microsoft Edge（Playwright 自动化）
+- 核心流程：从学习中心依次进入电路搭建、实验中心和专题仿真；每次跳转后目标页面渲染完成，且只有对应入口拥有 `active` 与 `aria-current="page"`。
+- 浏览器插件：当前环境没有 Browser plugin，使用项目已有的 Playwright 与本机 Edge 完成真实浏览器检查。
+
+### Pass 1：参考样式对照
+
+对照图：`D:\AICodeing\codex\数字电路项目\.nav-qa\nav-reference-comparison.png`
+
+- 参考图和实现截图在同一画布内对照；深蓝通栏、左侧电路图标品牌、四项透明文字导航、青色活动文字和 2px 底线保持一致。
+- 统一栏高度为 60px、无圆角和胶囊背景；品牌图标使用项目已有 `circuit-board.svg`，没有重绘或伪造资产。
+- 学习中心本地运行时右侧保留“退出系统”，Railway 托管环境会按既有逻辑隐藏；电路搭建保留状态提示，四项主导航仍保持几何居中。
+
+### Pass 2：跨页面与响应式复核
+
+桌面证据：
+
+- `D:\AICodeing\codex\数字电路项目\.nav-qa\nav-index-desktop.png`
+- `D:\AICodeing\codex\数字电路项目\.nav-qa\nav-gate-builder-demo-desktop.png`
+- `D:\AICodeing\codex\数字电路项目\.nav-qa\nav-labs-desktop.png`
+- `D:\AICodeing\codex\数字电路项目\.nav-qa\nav-extensions-desktop.png`
+
+移动证据：
+
+- `D:\AICodeing\codex\数字电路项目\.nav-qa\nav-index-mobile.png`
+- `D:\AICodeing\codex\数字电路项目\.nav-qa\nav-labs-mobile.png`
+- `D:\AICodeing\codex\数字电路项目\.nav-qa\nav-extensions-mobile.png`
+
+- 四个主区域的计算样式一致：顶部位置 0、宽度 1440px、高度 60px、`position: sticky`、圆角 0、活动色 `rgb(57, 223, 244)`。
+- 390px 下品牌收敛为真实图标，四个入口保持单行、至少 59px 触控高度；活动入口完整可见，页面与视口同宽，无页面级横向溢出。
+- 直接访问五个学习子页仍显示统一导航；嵌入学习中心时继续由既有 `learning-embedded` 契约隐藏内层重复导航。
+- 实验专注模式继续隐藏 `.lab-topbar`，按 Esc 后恢复；原有截图、指南、全屏、预测与报告功能未受影响。
+- 桌面、平板和移动真实浏览器检查均无 `pageerror`；全量自动化回归 144/144 通过。
+
+final result: passed

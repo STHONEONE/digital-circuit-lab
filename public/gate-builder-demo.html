@@ -1879,22 +1879,26 @@
       text-shadow: 0 1px 5px rgba(0, 0, 0, .58);
     }
   </style>
-  <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
+  <link rel="stylesheet" href="./site-nav.css?v=20260718-2">
 </head>
-<body class="inner-page practice-page practice-center">
+<body class="inner-page practice-page practice-center has-platform-topbar">
   <div class="page">
-    <header class="topbar">
-      <div>
+    <header class="topbar platform-topbar">
+      <a class="platform-brand" href="./home.html" aria-label="返回系统首页">
+        <img src="./assets/icons/circuit-board.svg" alt="" aria-hidden="true">
+        <span>数字电路实验中心</span>
+      </a>
+      <div class="platform-page-context">
         <p>DIGITAL CIRCUIT PRACTICE CENTER</p>
         <h1>门级电路自由搭建与智能分析</h1>
       </div>
-      <div class="top-actions">
-        <nav class="site-nav" aria-label="页面导航">
-          <a class="site-nav__link" href="./index.html">学习中心</a>
-          <a class="site-nav__link active" href="./gate-builder-demo.html" aria-current="page">电路搭建</a>
-          <a class="site-nav__link" href="./labs.html">实验中心</a>
-          <a class="site-nav__link" href="./extensions.html">专题仿真</a>
-        </nav>
+      <nav class="site-nav" aria-label="页面导航">
+        <a class="site-nav__link" href="./index.html">学习中心</a>
+        <a class="site-nav__link active" href="./gate-builder-demo.html" aria-current="page">电路搭建</a>
+        <a class="site-nav__link" href="./labs.html">实验中心</a>
+        <a class="site-nav__link" href="./extensions.html">专题仿真</a>
+      </nav>
+      <div class="platform-header-tools">
         <div class="status-pill"><i></i><span id="statusText">拖动左侧元件到画布开始搭建</span></div>
       </div>
     </header>
