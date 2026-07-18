@@ -1,7 +1,7 @@
 import "dotenv/config";
 import path from "node:path";
 import process from "node:process";
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import express from "express";
@@ -10,6 +10,13 @@ import { Store } from "./server/store.js";
 import { PracticeService } from "./server/practice.js";
 import { AiService } from "./server/ai.js";
 import { ImportService } from "./server/importer.js";
+import { ExperimentLearningService } from "./server/experiment-learning.js";
+import {
+  createExperimentContext,
+  getExperimentDefinition,
+  listExperimentGroups
+} from "./public/core/experiment-catalog.js";
+import { createExperimentRuntime } from "./public/core/experiment-runtime.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const host = process.env.HOST || "0.0.0.0";
@@ -19,9 +26,54 @@ const dataDir = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : path.join(root, "data");
 const store = new Store(dataDir);
+const railwayEnvironmentKeys = [
+  "RAILWAY_ENVIRONMENT",
+  "RAILWAY_ENVIRONMENT_ID",
+  "RAILWAY_ENVIRONMENT_NAME",
+  "RAILWAY_PROJECT_ID",
+  "RAILWAY_PROJECT_NAME",
+  "RAILWAY_SERVICE_ID",
+  "RAILWAY_SERVICE_NAME",
+  "RAILWAY_PUBLIC_DOMAIN",
+  "RAILWAY_PRIVATE_DOMAIN",
+  "RAILWAY_STATIC_URL",
+  "RAILWAY_REPLICA_ID"
+];
+
+export function detectsHostedDeployment(environment = process.env) {
+  return environment.NODE_ENV === "production"
+    || railwayEnvironmentKeys.some((key) => Boolean(String(environment[key] || "").trim()));
+}
+
+const hostedDeployment = detectsHostedDeployment();
 const ai = new AiService(store);
 const practice = new PracticeService(store, ai);
 const importer = new ImportService(store, ai);
+const evidenceEnabledExperiments = new Set(["fullAdder"]);
+const experimentDefinitions = {
+  get(experimentId) {
+    if (!evidenceEnabledExperiments.has(experimentId)) return null;
+    const definition = getExperimentDefinition(experimentId);
+    if (!definition) return null;
+    return {
+      id: definition.id,
+      version: definition.version,
+      title: definition.title,
+      knowledge: definition.knowledge,
+      controls: definition.controls.filter((control) => control.kind !== "action").map((control) => control.key),
+      totalCases: Number(definition.completion?.requiredCases) || 1,
+      evaluate(state) {
+        const runtime = createExperimentRuntime(definition.id, { state });
+        try {
+          return runtime.snapshot().outputs;
+        } finally {
+          runtime.dispose();
+        }
+      }
+    };
+  }
+};
+const experimentLearning = new ExperimentLearningService(store, experimentDefinitions);
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 }
@@ -37,7 +89,13 @@ const expectedErrorCodes = new Set([
   "AI_GHOST_FAILED", "GHOST_REQUIREMENT_REQUIRED",
   "AI_SELF_TEST_FAILED", "AI_SELF_TEST_UNAVAILABLE",
   "KNOWLEDGE_PRACTICE_NOT_FOUND",
-  "IMPORT_ANALYSIS_MISSING_ANSWER"
+  "IMPORT_ANALYSIS_MISSING_ANSWER",
+  "EXPERIMENT_NOT_FOUND", "EXPERIMENT_SESSION_NOT_FOUND", "EXPERIMENT_SESSION_COMPLETED",
+  "EXPERIMENT_INPUT_REQUIRED", "EXPERIMENT_INPUT_INVALID", "EXPERIMENT_EVENT_INVALID", "EXPERIMENT_EVENT_CONFLICT",
+  "EXPERIMENT_PREDICTION_INVALID", "EXPERIMENT_PREDICTION_REQUIRED", "EXPERIMENT_PREDICTION_LOCKED",
+  "EXPERIMENT_CASE_LOCKED", "EXPERIMENT_DEFINITION_VERSION_MISMATCH", "EXPERIMENT_COVERAGE_INCOMPLETE",
+  "AI_CONFIG_FORBIDDEN", "AI_CONFIG_INVALID",
+  "SHUTDOWN_FORBIDDEN"
 ]);
 
 function clientFingerprint(request) {
@@ -49,6 +107,76 @@ function learnerId(request) {
   const supplied = String(request.get("X-Learner-Id") || "").trim();
   if (/^[a-zA-Z0-9_-]{1,100}$/.test(supplied)) return supplied;
   return `client-${clientFingerprint(request)}`;
+}
+
+function isLoopbackSocket(request) {
+  const address = String(request.socket?.remoteAddress || "").replace(/^::ffff:/, "");
+  return address === "127.0.0.1" || address === "::1";
+}
+
+function adminTokenMatches(request) {
+  const expected = String(process.env.AI_CONFIG_ADMIN_TOKEN || "").trim();
+  if (!expected) return false;
+  const authorization = String(request.get("Authorization") || "");
+  const supplied = String(request.get("X-Admin-Token") || authorization.replace(/^Bearer\s+/i, "")).trim();
+  const expectedDigest = createHash("sha256").update(expected).digest();
+  const suppliedDigest = createHash("sha256").update(supplied).digest();
+  return timingSafeEqual(expectedDigest, suppliedDigest);
+}
+
+function configurationAuthorized(request) {
+  return adminTokenMatches(request) || (!hostedDeployment && isLoopbackSocket(request));
+}
+
+function apiError(message, code, status) {
+  const error = new Error(message);
+  error.code = code;
+  error.status = status;
+  return error;
+}
+
+function validatedAiConfig(body = {}) {
+  const next = {};
+  if (Object.hasOwn(body, "apiKey")) {
+    const apiKey = String(body.apiKey || "").trim();
+    if (apiKey.length > 500) throw apiError("API Key 格式无效。", "AI_CONFIG_INVALID", 400);
+    next.apiKey = apiKey;
+  }
+  if (Object.hasOwn(body, "model")) {
+    const model = String(body.model || "").trim();
+    if (!/^[a-zA-Z0-9._:/-]{1,120}$/.test(model)) {
+      throw apiError("模型名称格式无效。", "AI_CONFIG_INVALID", 400);
+    }
+    next.model = model;
+  }
+  if (Object.hasOwn(body, "baseUrl")) {
+    let url;
+    try {
+      url = new URL(String(body.baseUrl || ""));
+    } catch {
+      throw apiError("AI 服务地址无效。", "AI_CONFIG_INVALID", 400);
+    }
+    const localHttp = !hostedDeployment && url.protocol === "http:"
+      && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+    if ((url.protocol !== "https:" && !localHttp) || url.username || url.password) {
+      throw apiError("AI 服务地址必须使用 HTTPS，且不能包含账号信息。", "AI_CONFIG_INVALID", 400);
+    }
+    if (hostedDeployment) {
+      const allowedOrigins = new Set([
+        "https://dashscope.aliyuncs.com",
+        "https://api.openai.com",
+        process.env.AI_BASE_URL,
+        ...String(process.env.AI_ALLOWED_BASE_URLS || "").split(",")
+      ].filter(Boolean).map((value) => {
+        try { return new URL(String(value).trim()).origin; } catch { return ""; }
+      }).filter(Boolean));
+      if (!allowedOrigins.has(url.origin)) {
+        throw apiError("该 AI 服务地址未列入部署允许列表。", "AI_CONFIG_INVALID", 400);
+      }
+    }
+    next.baseUrl = url.href.replace(/\/$/, "");
+  }
+  return next;
 }
 
 async function generateSelfTestQuestions(body, currentLearnerId) {
@@ -94,6 +222,42 @@ app.use(express.static(path.join(root, "public")));
 
 app.get("/api/health", (_request, response) => {
   response.json({ ok: true, service: "digital-circuit-smart-learning-platform" });
+});
+
+app.get("/api/experiment-catalog", (_request, response) => response.json(listExperimentGroups()));
+app.post("/api/experiment-sessions", (request, response, next) => {
+  try {
+    response.status(201).json(experimentLearning.start(learnerId(request), request.body?.experimentId));
+  } catch (error) {
+    next(error);
+  }
+});
+app.get("/api/experiment-sessions/active", (request, response) => {
+  const session = experimentLearning.active(learnerId(request), String(request.query.experimentId || ""));
+  response.status(session ? 200 : 404).json(session || { error: "没有进行中的实验。", code: "EXPERIMENT_SESSION_NOT_FOUND" });
+});
+app.get("/api/experiment-sessions/:sessionId", (request, response) => {
+  const session = experimentLearning.session(learnerId(request), request.params.sessionId);
+  response.status(session ? 200 : 404).json(session || { error: "实验记录不存在。", code: "EXPERIMENT_SESSION_NOT_FOUND" });
+});
+app.post("/api/experiment-sessions/:sessionId/events", (request, response, next) => {
+  try {
+    response.json(experimentLearning.record(learnerId(request), request.params.sessionId, request.body || {}));
+  } catch (error) {
+    next(error);
+  }
+});
+app.post("/api/experiment-sessions/:sessionId/complete", (request, response, next) => {
+  try {
+    response.json(experimentLearning.complete(
+      learnerId(request), request.params.sessionId, request.body || {}
+    ));
+  } catch (error) {
+    next(error);
+  }
+});
+app.get("/api/experiment-reports", (request, response) => {
+  response.json(experimentLearning.reports(learnerId(request)));
 });
 
 app.get("/api/questions", (request, response) => {
@@ -226,13 +390,24 @@ app.get("/api/ai-config", (_request, response) => {
   const config = store.aiConfig();
   response.json({ configured: Boolean(config.apiKey), baseUrl: config.baseUrl, model: config.model });
 });
-app.post("/api/ai-config", (request, response) => {
-  const config = store.saveAiConfig(request.body);
-  response.json({ configured: Boolean(config.apiKey), baseUrl: config.baseUrl, model: config.model });
+app.post("/api/ai-config", (request, response, next) => {
+  try {
+    if (!configurationAuthorized(request)) {
+      throw apiError("公开部署不允许匿名修改 AI 配置。", "AI_CONFIG_FORBIDDEN", 403);
+    }
+    const config = store.saveAiConfig(validatedAiConfig(request.body));
+    response.json({ configured: Boolean(config.apiKey), baseUrl: config.baseUrl, model: config.model });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post("/api/tutor/stream", async (request, response) => {
   const startedAt = Date.now();
+  const controller = new AbortController();
+  response.once("close", () => {
+    if (!response.writableEnded) controller.abort();
+  });
   const question = store.question(request.body.questionId);
   if (!question) return response.status(404).json({ error: "题目不存在" });
   response.status(200);
@@ -243,14 +418,17 @@ app.post("/api/tutor/stream", async (request, response) => {
     "X-Accel-Buffering": "no"
   });
   response.flushHeaders();
-  const send = (event) => response.write(`data: ${JSON.stringify(event)}\n\n`);
+  const send = (event) => !controller.signal.aborted && !response.writableEnded
+    && response.write(`data: ${JSON.stringify(event)}\n\n`);
   try {
-    const usedAi = await ai.streamTutor(question, request.body, (text) => send({ type: "delta", text }));
+    const usedAi = await ai.streamTutor(question, request.body, (text) => send({ type: "delta", text }), {
+      signal: controller.signal
+    });
     send({ type: "done", ai: usedAi, elapsedMs: Date.now() - startedAt });
   } catch (error) {
-    send({ type: "error", error: error.message });
+    if (error.name !== "AbortError") send({ type: "error", error: error.message });
   } finally {
-    response.end();
+    if (!response.writableEnded) response.end();
   }
 });
 
@@ -265,6 +443,10 @@ app.post("/api/wrong-remediation", async (request, response, next) => {
 
 app.post("/api/lab/stream", async (request, response) => {
   const startedAt = Date.now();
+  const controller = new AbortController();
+  response.once("close", () => {
+    if (!response.writableEnded) controller.abort();
+  });
   response.status(200);
   response.set({
     "Content-Type": "text/event-stream; charset=utf-8",
@@ -273,14 +455,46 @@ app.post("/api/lab/stream", async (request, response) => {
     "X-Accel-Buffering": "no"
   });
   response.flushHeaders();
-  const send = (event) => response.write(`data: ${JSON.stringify(event)}\n\n`);
+  const send = (event) => !controller.signal.aborted && !response.writableEnded
+    && response.write(`data: ${JSON.stringify(event)}\n\n`);
   try {
-    const usedAi = await ai.streamExperiment(request.body, (text) => send({ type: "delta", text }));
+    let tutorRequest = request.body || {};
+    if (tutorRequest.experimentId) {
+      const clientContext = createExperimentContext(tutorRequest.experimentId, {
+        inputs: tutorRequest.state || tutorRequest.inputs || {},
+        revision: tutorRequest.revision
+      });
+      const runtime = createExperimentRuntime(clientContext.experimentId, {
+        state: clientContext.inputs,
+        revision: clientContext.revision
+      });
+      const snapshot = runtime.snapshot();
+      runtime.dispose();
+      tutorRequest = {
+        question: tutorRequest.question,
+        history: tutorRequest.history,
+        experimentName: clientContext.title,
+        experimentState: {
+          ...clientContext,
+          simulation: {
+            inputs: snapshot.inputs,
+            outputs: snapshot.outputs,
+            signals: snapshot.signals,
+            activeTruthRow: snapshot.activeTruthRow,
+            explanation: snapshot.explanation,
+            status: snapshot.status
+          }
+        }
+      };
+    }
+    const usedAi = await ai.streamExperiment(tutorRequest, (text) => send({ type: "delta", text }), {
+      signal: controller.signal
+    });
     send({ type: "done", ai: usedAi, elapsedMs: Date.now() - startedAt });
   } catch (error) {
-    send({ type: "error", error: error.message });
+    if (error.name !== "AbortError") send({ type: "error", error: error.message });
   } finally {
-    response.end();
+    if (!response.writableEnded) response.end();
   }
 });
 
@@ -337,7 +551,10 @@ app.post("/api/import-questions", upload.single("file"), async (request, respons
 });
 
 export let server;
-app.post("/api/shutdown", (_request, response) => {
+app.post("/api/shutdown", (request, response) => {
+  if (hostedDeployment || !isLoopbackSocket(request)) {
+    return response.status(403).json({ error: "公开部署不允许远程关闭服务。", code: "SHUTDOWN_FORBIDDEN" });
+  }
   response.json({ ok: true });
   setTimeout(() => server.close(() => process.exit(0)), 250);
 });
@@ -357,7 +574,7 @@ server = app.listen(port, host, () => {
   console.log(`数字电路智能学习平台已启动：${url} (${host})`);
   const shouldAutoOpenBrowser = String(
     process.env.AUTO_OPEN_BROWSER
-      ?? (process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT ? "false" : "true"),
+      ?? (hostedDeployment ? "false" : "true"),
   ).toLowerCase() === "true";
   if (shouldAutoOpenBrowser) {
     const command = process.platform === "win32"

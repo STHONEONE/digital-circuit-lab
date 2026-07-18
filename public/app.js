@@ -2170,7 +2170,11 @@ document.querySelectorAll(".segments button").forEach((button) => {
 });
 
 els.refreshButton?.addEventListener("click", () => runAction(els.refreshButton, loadAll, "刷新中…"));
-els.shutdownButton.addEventListener("click", shutdownSystem);
+const localServiceHost = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+if (els.shutdownButton) {
+  els.shutdownButton.hidden = !localServiceHost;
+  els.shutdownButton.addEventListener("click", shutdownSystem);
+}
 els.saveAiButton.addEventListener("click", () => runAction(els.saveAiButton, saveAiConfig, "保存中…"));
 els.submitButton.addEventListener("click", () => runAction(els.submitButton, submitAnswer, "判题中…"));
 els.prevButton?.addEventListener("click", () => moveQuestion(-1));

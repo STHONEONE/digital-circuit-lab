@@ -324,12 +324,15 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(selfTestPage, /任务生成依据/);
   assert.match(selfTestPage, /生成并开始学习/);
   assert.doesNotMatch(selfTestPage, /阶段自测|组卷参数|自测卷预览|AI 组卷依据|试卷目录/);
-  assert.match(reviewPage, /全部作答趋势/);
+  assert.match(reviewPage, /近 5 题滚动正确率/);
+  assert.match(reviewPage, /横轴是作答顺序；纵轴是本次及之前最多 5 题的正确率/);
   assert.match(reviewPage, /最近 10 次作答/);
   assert.match(reviewPage, /data-review-range="recent">最近 10 次/);
   assert.doesNotMatch(reviewPage, /学习任务完成趋势|近 5 个任务/);
   assert.match(controller, /progress\.attempts/);
   assert.match(controller, /progress\.recentAttempts/);
+  assert.match(controller, /正确率\(%\)/);
+  assert.match(controller, /第\$\{point\.attempt\.sequence\}次/);
   assert.doesNotMatch(controller, /progress\.rounds/);
   assert.match(controller, /总体正确率/);
   assert.match(controller, /最近 10 次正确率/);

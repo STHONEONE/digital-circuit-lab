@@ -1254,9 +1254,9 @@ async function initReviewPage() {
       const showValue = points.length <= 10 || index === points.length - 1 || index % labelStep === 0;
       const outcome = point.attempt.correct ? "正确" : "错误";
       const title = `第 ${point.attempt.sequence} 次 · ${outcome} · 近 5 题正确率 ${point.rate}%`;
-      return `<circle class="review-chart-dot ${point.attempt.correct ? "correct" : "wrong"}" cx="${point.x}" cy="${point.y}" r="4.5"><title>${escapeHtml(title)}</title></circle>${showValue ? `<text class="review-chart-value" x="${point.x}" y="${Math.max(12, point.y - 10)}">${point.rate}%</text>` : ""}${showAxis ? `<text class="review-chart-axis" x="${point.x}" y="${height - 15}" text-anchor="middle">#${point.attempt.sequence}</text>` : ""}`;
+      return `<circle class="review-chart-dot ${point.attempt.correct ? "correct" : "wrong"}" cx="${point.x}" cy="${point.y}" r="4.5"><title>${escapeHtml(title)}</title></circle>${showValue ? `<text class="review-chart-value" x="${point.x}" y="${Math.max(12, point.y - 10)}">${point.rate}%</text>` : ""}${showAxis ? `<text class="review-chart-axis" x="${point.x}" y="${height - 15}" text-anchor="middle">第${point.attempt.sequence}次</text>` : ""}`;
     }).join("");
-    chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="全部作答的近五题滚动正确率趋势图"><defs><linearGradient id="reviewLineGradient" x1="0" x2="1"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#6366f1"/></linearGradient><linearGradient id="reviewAreaGradient" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#22d3ee" stop-opacity=".2"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>${grid}<path class="review-chart-area" d="${area}"/><polyline class="review-chart-line" points="${line}"/>${labels}</svg>`;
+    chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="全部作答的近五题滚动正确率趋势图"><defs><linearGradient id="reviewLineGradient" x1="0" x2="1"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#6366f1"/></linearGradient><linearGradient id="reviewAreaGradient" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#22d3ee" stop-opacity=".2"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs><text class="review-chart-axis" x="2" y="12">正确率(%)</text>${grid}<path class="review-chart-area" d="${area}"/><polyline class="review-chart-line" points="${line}"/>${labels}<text class="review-chart-axis" x="${width - right}" y="${height - 2}" text-anchor="end">作答顺序</text></svg>`;
   }
   function renderRecentAttempts(progress) {
     const attempts = progress.recentAttempts || [];
@@ -1271,8 +1271,18 @@ async function initReviewPage() {
       }).join("")
       : '<div class="review-recent-empty"><strong>还没有作答记录</strong><span>完成任何一道练习后，本次结果都会出现在这里。</span></div>';
   }
-  function renderReport(stats, progress) {
-    reportData = { stats, progress };
+  function renderExperimentReports(reports = []) {
+    document.querySelector("#reviewExperimentCount").textContent = `${reports.length} 份`;
+    document.querySelector("#reviewExperimentList").innerHTML = reports.length
+      ? reports.slice(0, 6).map((report) => {
+        const evidence = report.evidenceSummary || {};
+        const conclusion = report.conclusion || "已完成实验，尚未填写结论。";
+        return `<article class="review-experiment-item"><div class="review-experiment-head"><div><strong>${escapeHtml(report.title || "数字电路实验")}</strong><span>${escapeHtml(formatAttemptTime(report.completedAt))}</span></div><b>${clampPercent(report.coverage)}%</b></div><div class="review-experiment-metrics"><span>覆盖 ${(report.testedCases || []).length} 组</span><span>${Math.max(0, Number(evidence.independent) || 0)} 条独立证据</span><span>预测 ${clampPercent(evidence.score)}%</span><span>${escapeHtml(evidence.confidence || "数据不足")}</span></div><p>${escapeHtml(conclusion)}</p></article>`;
+      }).join("")
+      : '<div class="review-experiment-empty"><strong>还没有实验报告</strong><span>在实验中心完成预测、仿真和结论后，这里会显示可追溯的学习证据。</span><a href="./labs.html">前往实验中心</a></div>';
+  }
+  function renderReport(stats, progress, experimentReports = []) {
+    reportData = { stats, progress, experimentReports };
     const knowledge = [...(progress.knowledge || [])].sort((left, right) => (left.rate ?? -1) - (right.rate ?? -1));
     const weak = knowledge.filter((item) => item.rate === null || clampPercent(item.rate) < 80);
     const activeTask = progress.tasks?.nextTask || null;
@@ -1280,7 +1290,9 @@ async function initReviewPage() {
     document.querySelector("#reviewPeriod").textContent = `数据更新于 ${new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} · 记录全部作答`;
     document.querySelector("#reviewHeadline").innerHTML = stats.answered
       ? `已记录 <em>${stats.answered}</em> 次作答，最近 ${recent.answered} 次正确率为 ${recent.accuracy}%`
-      : "完成任何一道练习后，这里都会立即记录并反馈答题结果。";
+      : experimentReports.length
+        ? `已完成 <em>${experimentReports.length}</em> 份实验报告，预测与检查点已计入掌握度证据。`
+        : "完成任何一道练习或实验后，这里都会立即记录并反馈学习结果。";
     document.querySelector("#reviewSummary").innerHTML = [
       renderMetric("answered", "作答次数", `${stats.answered || 0} 次`, "包含重复练习与订正"),
       renderMetric("streak", "独立题数", `${stats.uniqueQuestions || 0} 道`, "重复作答不重复计数"),
@@ -1288,6 +1300,7 @@ async function initReviewPage() {
       renderMetric("review", "最近 10 次正确率", recent.answered ? `${recent.accuracy || 0}%` : "暂无数据", recent.answered ? `${recent.correct || 0} / ${recent.answered} 次回答正确` : "完成作答后显示")
     ].join("");
     renderRecentAttempts(progress);
+    renderExperimentReports(experimentReports);
     document.querySelector("#reviewWeakCount").textContent = `${weak.length} 项`;
     document.querySelector("#reviewKnowledgeList").innerHTML = weak.length
       ? weak.slice(0, 4).map((item, index) => {
@@ -1307,8 +1320,8 @@ async function initReviewPage() {
   async function load() {
     if (loadPromise) return loadPromise;
     loadPromise = Promise.all([
-      platformApi("/api/stats"), platformApi("/api/progress")
-    ]).then(([stats, progress]) => renderReport(stats, progress));
+      platformApi("/api/stats"), platformApi("/api/progress"), platformApi("/api/experiment-reports")
+    ]).then(([stats, progress, experimentReports]) => renderReport(stats, progress, experimentReports));
     try {
       return await loadPromise;
     } finally {

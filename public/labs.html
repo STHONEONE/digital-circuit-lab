@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>数字电路交互仿真实验</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./labs.css?v=20260621-2">
+  <link rel="stylesheet" href="./labs.css?v=20260718-1">
   <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
 </head>
 <body class="inner-page lab-page experiment-page experiment-center">
@@ -57,10 +57,31 @@
   </header>
 
   <main class="lab-shell">
-    <nav id="experimentTabs" class="experiment-tabs" aria-label="实验选择"></nav>
+    <section class="experiment-browser" aria-labelledby="experimentBrowserTitle">
+      <div class="experiment-browser-heading">
+        <div>
+          <span>课程实验目录</span>
+          <h2 id="experimentBrowserTitle">按主题选择实验</h2>
+        </div>
+        <label class="experiment-search">
+          <span class="sr-only">搜索实验</span>
+          <input id="experimentSearch" type="search" placeholder="搜索实验、器件或知识点" autocomplete="off">
+        </label>
+      </div>
+      <nav id="experimentTabs" class="experiment-tabs" aria-label="实验选择"></nav>
+    </section>
+
+    <div class="lab-toolstrip" aria-label="实验工具">
+      <button id="guideButton" type="button" aria-expanded="true">实验指南</button>
+      <button id="focusButton" type="button" aria-pressed="false">专注模式</button>
+      <button id="fullscreenButton" type="button">电路全屏</button>
+      <button id="screenshotButton" type="button">保存截图</button>
+      <button id="exportReportButton" type="button" disabled>导出报告</button>
+      <span id="toolStatus" role="status" aria-live="polite"></span>
+    </div>
 
     <section class="lab-grid">
-      <article class="circuit-panel">
+      <article id="circuitPanel" class="circuit-panel">
         <div class="section-heading">
           <div>
             <span id="experimentChapter">实验</span>
@@ -71,7 +92,54 @@
 
         <div id="controls" class="controls"></div>
 
+        <section id="experimentGuide" class="experiment-guide">
+          <div>
+            <span>实验目标</span>
+            <strong id="guideObjective">观察输入变化如何决定输出。</strong>
+          </div>
+          <ol id="guideSteps">
+            <li>设置输入或器件参数。</li>
+            <li>先预测，再运行仿真。</li>
+            <li>对照电路、真值表和讲解验证结论。</li>
+          </ol>
+        </section>
+
         <div id="circuitDiagram" class="circuit-stage" aria-live="polite"></div>
+
+        <section id="fullAdderChallenge" class="prediction-panel" hidden>
+          <div class="prediction-heading">
+            <div>
+              <span>预测 → 验证 → 形成证据</span>
+              <h3>全加器预测挑战</h3>
+              <p>先预测当前输入的 S 与 Cout，提交后才能运行仿真。</p>
+            </div>
+            <div class="coverage-badge"><strong id="coverageText">0 / 8</strong><span>真值组合</span></div>
+          </div>
+          <div class="coverage-track" aria-hidden="true"><i id="coverageBar"></i></div>
+          <div class="prediction-controls">
+            <fieldset>
+              <legend>预测和位 S</legend>
+              <button type="button" data-prediction-output="S" data-value="0">0</button>
+              <button type="button" data-prediction-output="S" data-value="1">1</button>
+            </fieldset>
+            <fieldset>
+              <legend>预测进位 Cout</legend>
+              <button type="button" data-prediction-output="Cout" data-value="0">0</button>
+              <button type="button" data-prediction-output="Cout" data-value="1">1</button>
+            </fieldset>
+          </div>
+          <div class="prediction-actions">
+            <button id="submitPredictionButton" type="button">提交预测</button>
+            <button id="runVerificationButton" type="button" disabled>运行验证</button>
+          </div>
+          <p id="predictionFeedback" class="prediction-feedback" role="status" aria-live="polite">请选择 S 和 Cout 的预测值。</p>
+          <div id="experimentRunLog" class="experiment-run-log" aria-label="实验记录"></div>
+          <div class="experiment-conclusion">
+            <label for="experimentConclusion">实验结论</label>
+            <textarea id="experimentConclusion" rows="3" placeholder="完成 8 组验证后，用自己的话总结和位与进位规律。"></textarea>
+            <button id="completeExperimentButton" type="button" disabled>完成实验并生成报告</button>
+          </div>
+        </section>
 
         <section id="timingPanel" class="timing-panel" hidden>
           <div class="timing-heading">
@@ -130,6 +198,6 @@
   </main>
 
   <script src="./circuit-background.js?v=20260620-1"></script>
-  <script src="./labs.js?v=20260620-3"></script>
+  <script type="module" src="./labs.js?v=20260718-1"></script>
 </body>
 </html>

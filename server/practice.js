@@ -459,26 +459,55 @@ export class PracticeService {
     const groups = new Map();
     this.recordsForLearner(learnerId).forEach((record) => {
       (record.knowledge || []).forEach((item) => {
-        if (!groups.has(item)) groups.set(item, []);
-        groups.get(item).push(record);
+        if (!groups.has(item)) groups.set(item, { records: [], experiment: [] });
+        groups.get(item).records.push(record);
       });
     });
-    return [...groups.entries()].map(([knowledge, records]) => {
+    (this.store.experimentEvidenceForLearner?.(learnerId) || []).forEach((evidence) => {
+      (evidence.knowledge || []).forEach((item) => {
+        if (!groups.has(item)) groups.set(item, { records: [], experiment: [] });
+        groups.get(item).experiment.push(evidence);
+      });
+    });
+    return [...groups.entries()].map(([knowledge, group]) => {
+      const records = group.records;
       const firstByQuestion = new Map();
       records.forEach((record) => {
         if (!firstByQuestion.has(record.questionId)) firstByQuestion.set(record.questionId, record);
       });
       const uniqueRecords = [...firstByQuestion.values()];
       const uniqueQuestions = uniqueRecords.length;
-      const hasSufficientEvidence = uniqueQuestions >= 3;
-      const rate = hasSufficientEvidence ? accuracy(uniqueRecords) : null;
+      const firstExperimentEvidence = new Map();
+      group.experiment.forEach((evidence) => {
+        const key = `${evidence.sessionId}:${evidence.caseKey}`;
+        if (!firstExperimentEvidence.has(key)) firstExperimentEvidence.set(key, evidence);
+      });
+      const experimentEvidence = [...firstExperimentEvidence.values()];
+      const evidenceCount = uniqueQuestions + experimentEvidence.length;
+      const independentExperimentPredictions = experimentEvidence
+        .filter((evidence) => Number(evidence.hintLevel) === 0).length;
+      const independentEvidenceCount = uniqueQuestions + independentExperimentPredictions;
+      const hasSufficientEvidence = independentEvidenceCount >= 3;
+      const weightedTotal = uniqueRecords.length
+        + experimentEvidence.reduce((sum, evidence) => sum + Math.max(0, Number(evidence.weight) || 0), 0);
+      const weightedCorrect = uniqueRecords.filter((record) => record.correct).length
+        + experimentEvidence.reduce((sum, evidence) => (
+          sum + (evidence.correct ? Math.max(0, Number(evidence.weight) || 0) : 0)
+        ), 0);
+      const rate = hasSufficientEvidence && weightedTotal
+        ? Math.round(weightedCorrect * 100 / weightedTotal)
+        : null;
       return {
         knowledge,
-        attempts: records.length,
-        correct: records.filter((record) => record.correct).length,
+        attempts: records.length + group.experiment.length,
+        correct: records.filter((record) => record.correct).length
+          + group.experiment.filter((evidence) => evidence.correct).length,
         uniqueQuestions,
+        experimentPredictions: experimentEvidence.length,
+        independentExperimentPredictions,
+        evidenceCount,
         rate,
-        confidence: masteryConfidence(uniqueQuestions),
+        confidence: masteryConfidence(independentEvidenceCount),
         status: !hasSufficientEvidence ? "数据不足" : rate >= 80 ? "已掌握" : rate >= 60 ? "提升中" : "需巩固"
       };
     }).sort((left, right) => (left.rate ?? -1) - (right.rate ?? -1) || left.knowledge.localeCompare(right.knowledge));

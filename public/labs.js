@@ -1,3 +1,12 @@
+import { getExperimentDefinition, listExperimentGroups } from "./core/experiment-catalog.js";
+import {
+  applyExperimentCommand,
+  deriveExperiment,
+  enumerateExperimentCases,
+  initialExperimentState,
+  listExperimentModelIds
+} from "./core/experiment-model-library.js";
+
 const experiments = {
   gates: {
     name: "基本逻辑门",
@@ -163,6 +172,103 @@ const experiments = {
   }
 };
 
+const chapterNames = {
+  "basic-logic": "基础逻辑",
+  "combinational-logic": "组合逻辑",
+  "sequential-logic": "时序逻辑",
+  "advanced-topics": "进阶主题"
+};
+
+function compactModelCases(experimentId, state) {
+  const definition = getExperimentDefinition(experimentId);
+  const inputKeys = definition.controls.filter((control) => control.kind !== "action").map((control) => control.key);
+  const allCases = enumerateExperimentCases(experimentId);
+  const currentResult = deriveExperiment(experimentId, state);
+  const currentCase = { state, ...currentResult };
+  const candidates = allCases.length > 32
+    ? [...Array.from({ length: 15 }, (_, index) => allCases[Math.round(index * (allCases.length - 1) / 14)]), currentCase]
+    : allCases.length ? allCases : [currentCase];
+  const seen = new Set();
+  const cases = candidates.filter((item) => {
+    const key = inputKeys.map((input) => item.state[input]).join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (!cases.some((item) => inputKeys.every((key) => Object.is(item.state[key], state[key])))) cases.push(currentCase);
+  return { inputKeys, outputKeys: Object.keys(currentResult.outputs), cases };
+}
+
+function createModelExperiment(experimentId) {
+  const definition = getExperimentDefinition(experimentId);
+  const table = compactModelCases(experimentId, initialExperimentState(experimentId));
+  return {
+    name: definition.title,
+    chapter: chapterNames[definition.groupId] || "扩展实验",
+    state: initialExperimentState(experimentId),
+    controls: definition.controls.map((control) => ({ ...control })),
+    apply(state, key, value) {
+      const control = definition.controls.find((item) => item.key === key);
+      const command = control?.kind === "action"
+        ? { type: key === "pulse" ? "clock.pulse" : key }
+        : { type: "input.set", input: key, value };
+      return applyExperimentCommand(experimentId, state, command);
+    },
+    calculate(state) {
+      return deriveExperiment(experimentId, state).outputs;
+    },
+    rows(state) {
+      const { inputKeys, outputKeys, cases } = compactModelCases(experimentId, state);
+      return cases.map((item) => ({
+        values: [...inputKeys.map((key) => item.state[key]), ...outputKeys.map((key) => item.outputs[key])],
+        active: inputKeys.every((key) => Object.is(item.state[key], state[key]))
+      }));
+    },
+    headers: [...table.inputKeys, ...table.outputKeys],
+    describe(state) {
+      return deriveExperiment(experimentId, state).explanation;
+    },
+    summary(state) {
+      return definition.controls.filter((control) => control.kind !== "action")
+        .map((control) => `${control.key}=${state[control.key]}`).join("，");
+    },
+    symbol() { return definition.title.replace(/（.*?）/g, "").slice(0, 8); },
+    output(output) { return Object.entries(output).map(([key, value]) => `${key}=${value}`).join(" "); },
+    isOn(output) { return Object.values(output).some((value) => value === 1 || /1/.test(String(value))); },
+    demoSteps() {
+      const inputControls = definition.controls.filter((control) => control.kind !== "action");
+      const valuesFor = (control) => control.kind === "number"
+        ? [...new Set([control.min, control.defaultValue, control.max])]
+        : [...(control.values || [control.defaultValue])];
+      const action = definition.controls.find((control) => control.kind === "action" && control.key === "pulse")
+        || definition.controls.find((control) => control.kind === "action" && control.key !== "reset");
+      if (action) {
+        const count = Math.min(8, Number(definition.completion?.requiredCycles || definition.completion?.requiredCheckpoints) || 6);
+        return Array.from({ length: count }, (_, index) => {
+          const step = {};
+          inputControls.forEach((control, controlIndex) => {
+            const values = valuesFor(control);
+            step[control.key] = values[(index + controlIndex) % values.length];
+          });
+          step[action.key] = null;
+          return step;
+        });
+      }
+      let steps = [{}];
+      inputControls.forEach((control) => {
+        steps = steps.flatMap((step) => valuesFor(control).map((value) => ({ ...step, [control.key]: value }))).slice(0, 16);
+      });
+      return steps;
+    }
+  };
+}
+
+listExperimentModelIds().forEach((experimentId) => {
+  if (!experiments[experimentId]) experiments[experimentId] = createModelExperiment(experimentId);
+});
+
+const experimentGroups = listExperimentGroups();
+
 function svgDefs() {
   return `
     <defs>
@@ -249,13 +355,16 @@ function renderGateDiagram(state, output) {
     </svg>`;
 }
 
-function renderFullAdderDiagram(state, output) {
+function renderFullAdderDiagram(state, output, revealOutputs = true) {
   const xorValue = state.A !== state.B ? 1 : 0;
   const carry1 = state.A && state.B ? 1 : 0;
   const carry2 = xorValue && state.Cin ? 1 : 0;
+  const accessibleLabel = revealOutputs
+    ? `全加器，A 等于 ${state.A}，B 等于 ${state.B}，Cin 等于 ${state.Cin}，S 等于 ${output.S}，Cout 等于 ${output.Cout}`
+    : `全加器，A 等于 ${state.A}，B 等于 ${state.B}，Cin 等于 ${state.Cin}，输出尚未验证`;
   return `
     <svg class="circuit-svg" viewBox="0 0 980 410" role="img"
-         aria-label="全加器，A 等于 ${state.A}，B 等于 ${state.B}，Cin 等于 ${state.Cin}，S 等于 ${output.S}，Cout 等于 ${output.Cout}">
+         aria-label="${accessibleLabel}">
       <title>全加器两级半加器矢量电路图</title>
       ${svgDefs()}
       <text class="diagram-caption" x="490" y="25" text-anchor="middle">两级半加器级联结构</text>
@@ -405,11 +514,66 @@ function renderJkDiagram(state, output) {
     </svg>`;
 }
 
-function renderCircuitDiagram(key, state, output) {
+function escapeSvgText(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;"
+  }[character]));
+}
+
+function renderModelDiagram(key, state) {
+  const definition = getExperimentDefinition(key);
+  const result = deriveExperiment(key, state);
+  const inputs = definition.controls.filter((control) => control.kind !== "action")
+    .map((control) => [control.key, state[control.key]]);
+  const outputs = Object.entries(result.outputs);
+  const positions = (count) => {
+    if (count <= 1) return [170];
+    const step = Math.min(52, 250 / (count - 1));
+    const start = 170 - step * (count - 1) / 2;
+    return Array.from({ length: count }, (_, index) => start + index * step);
+  };
+  const inputY = positions(inputs.length);
+  const outputY = positions(outputs.length);
+  const high = (value) => value === 1 || (typeof value === "string" && value.includes("1"));
+  const inputNodes = inputs.map(([label, value], index) => `
+    <path class="${signalClass(high(value))}" d="M170 ${inputY[index]} H350"/>
+    ${valueBox(35, inputY[index] - 25, escapeSvgText(label), escapeSvgText(value), high(value), 130, 50)}`
+  ).join("");
+  const outputNodes = outputs.map(([label, value], index) => `
+    <path class="${signalClass(high(value), true)}" d="M550 ${outputY[index]} H730"/>
+    ${valueBox(735, outputY[index] - 25, escapeSvgText(label), escapeSvgText(value), high(value), 130, 50)}`
+  ).join("");
+  const statusLabel = {
+    settled: "稳定",
+    invalid: "禁用状态",
+    hazard: "检测到毛刺",
+    violation: "时序违例"
+  }[result.status] || result.status;
+  const signalSummary = Object.entries(result.signals || {}).slice(0, 4)
+    .map(([name, value]) => `${name}=${typeof value === "object" ? "动态数据" : value}`).join(" · ");
+  return `
+    <svg class="circuit-svg model-circuit-svg" viewBox="0 0 900 340" role="img"
+         aria-label="${escapeSvgText(definition.title)} 当前输入输出模型">
+      <title>${escapeSvgText(definition.title)} 当前输入输出模型</title>
+      ${svgDefs()}
+      ${inputNodes}
+      <g filter="url(#componentShadow)">
+        <rect class="chip-body" x="350" y="74" width="200" height="192" rx="22"/>
+        <text class="chip-label" x="450" y="145" text-anchor="middle">${escapeSvgText(definition.title.replace(/（.*?）/g, ""))}</text>
+        <text class="chip-subtext" x="450" y="177" text-anchor="middle">统一教学模型</text>
+        <text class="chip-subtext" x="450" y="209" text-anchor="middle">${escapeSvgText(statusLabel)}</text>
+      </g>
+      ${outputNodes}
+      <text class="small-label" x="450" y="310" text-anchor="middle">${escapeSvgText(signalSummary || definition.summary)}</text>
+    </svg>`;
+}
+
+function renderCircuitDiagram(key, state, output, options = {}) {
   if (key === "gates") return renderGateDiagram(state, output);
-  if (key === "fullAdder") return renderFullAdderDiagram(state, output);
+  if (key === "fullAdder") return renderFullAdderDiagram(state, output, options.revealOutputs !== false);
   if (key === "decoder") return renderDecoderDiagram(state, output);
-  return renderJkDiagram(state, output);
+  if (key === "jkff") return renderJkDiagram(state, output);
+  return renderModelDiagram(key, state);
 }
 
 const maxTimingCycles = 10;
@@ -563,12 +727,206 @@ let demoRunId = 0;
 let demoActive = false;
 let demoPauseResolve = null;
 let activeSpeech = null;
+let activeTutorController = null;
+let tutorConversation = [];
+let fullAdderSession = null;
+let fullAdderSessionPromise = null;
+let latestExperimentReport = null;
+let predictionDraft = { S: null, Cout: null };
+let predictionSubmittedCase = "";
+let predictionSubmissionPendingCase = "";
+const pendingExperimentEventIds = new Map();
+let catalogSearch = "";
+const expandedGroups = new Set(experimentGroups.filter((group) => group.defaultExpanded).map((group) => group.id));
+const learnerIdStorageKey = "digital-circuit-learner-id";
+const labStateStorageKey = "digital-circuit-lab-state-v1";
+
+function sanitizeExperimentState(experimentId, candidate) {
+  const current = experiments[experimentId];
+  if (!current || !candidate || typeof candidate !== "object" || Array.isArray(candidate)) return null;
+  const restored = { ...current.state };
+  Object.entries(current.state).forEach(([key, defaultValue]) => {
+    const value = candidate[key];
+    const control = current.controls.find((item) => item.key === key);
+    if (Array.isArray(control?.values)) {
+      if (control.values.includes(value)) restored[key] = value;
+      return;
+    }
+    if (control?.kind === "number") {
+      const min = Number(control.min);
+      const max = Number(control.max);
+      const step = Number(control.step) || 1;
+      const stepOffset = (value - min) / step;
+      if (Number.isFinite(value) && value >= min && value <= max
+          && Math.abs(stepOffset - Math.round(stepOffset)) < 1e-9) restored[key] = value;
+      return;
+    }
+    if (typeof defaultValue === "number" && Number.isFinite(value) && Number.isInteger(value)) {
+      if (["count", "previousCount"].includes(key) && value >= 0 && value <= 15) restored[key] = value;
+      else if (key === "clockCount" && value >= 0 && value <= 1_000_000) restored[key] = value;
+      else if (key === "stageDelayNs" && value >= 1 && value <= 20) restored[key] = value;
+      else if (!["count", "previousCount", "clockCount", "stageDelayNs"].includes(key)
+          && [0, 1].includes(defaultValue) && [0, 1].includes(value)) restored[key] = value;
+      return;
+    }
+    if (typeof defaultValue === "string" && typeof value === "string") {
+      if (/^[01]+$/.test(defaultValue) && value.length === defaultValue.length && /^[01]+$/.test(value)) {
+        restored[key] = value;
+      } else if (["currentState", "previousState"].includes(key)
+          && ["IDLE", "SEEN_1", "SEEN_10"].includes(value)) {
+        restored[key] = value;
+      }
+      return;
+    }
+    if (typeof defaultValue === "boolean" && typeof value === "boolean") restored[key] = value;
+  });
+  return restored;
+}
+
+function persistLabState() {
+  try {
+    localStorage.setItem(labStateStorageKey, JSON.stringify({
+      version: 1,
+      experimentKey,
+      experimentStates: Object.fromEntries(Object.entries(experiments).map(([id, value]) => [id, value.state])),
+      expandedGroups: [...expandedGroups],
+      jkTimingHistory,
+      jkCycleNumber
+    }));
+  } catch {
+    // The lab remains fully usable when storage is unavailable or full.
+  }
+}
+
+function restoreLabState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(labStateStorageKey) || "null");
+    if (!saved || saved.version !== 1) return;
+    Object.keys(experiments).forEach((id) => {
+      const state = sanitizeExperimentState(id, saved.experimentStates?.[id]);
+      if (state) experiments[id].state = state;
+    });
+    if (experiments[saved.experimentKey]) experimentKey = saved.experimentKey;
+
+    const validGroupIds = new Set(experimentGroups.map((group) => group.id));
+    if (Array.isArray(saved.expandedGroups)) {
+      expandedGroups.clear();
+      saved.expandedGroups.filter((id) => validGroupIds.has(id)).forEach((id) => expandedGroups.add(id));
+    }
+
+    if (Array.isArray(saved.jkTimingHistory)) {
+      jkTimingHistory = saved.jkTimingHistory.filter((sample) => sample
+        && Number.isInteger(sample.cycle)
+        && ["J", "K", "previousQ", "Q", "notQ"].every((key) => sample[key] === 0 || sample[key] === 1)
+        && typeof sample.action === "string").slice(-maxTimingCycles);
+    }
+    jkCycleNumber = Number.isInteger(saved.jkCycleNumber) && saved.jkCycleNumber >= 0
+      ? saved.jkCycleNumber
+      : (jkTimingHistory.at(-1)?.cycle || 0);
+  } catch {
+    // Ignore corrupt or incompatible snapshots and start from safe defaults.
+  }
+}
+
+function getLearnerId() {
+  try {
+    const existing = localStorage.getItem(learnerIdStorageKey);
+    if (/^[a-zA-Z0-9_-]{1,100}$/.test(existing || "")) return existing;
+    const created = globalThis.crypto?.randomUUID?.()
+      || `learner-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(learnerIdStorageKey, created);
+    return created;
+  } catch {
+    return `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}
+
+const learnerId = getLearnerId();
+
+async function labApi(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  headers.set("X-Learner-Id", learnerId);
+  if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const response = await fetch(url, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "实验数据请求失败");
+  return data;
+}
+
+function markLearningDataUpdated() {
+  try {
+    localStorage.setItem("digital-circuit-learning-data-version", JSON.stringify({ learnerId, updatedAt: Date.now() }));
+  } catch {
+    // The learning report refreshes again when it receives focus.
+  }
+}
+
+function fullAdderCaseKey(state = experiment().state) {
+  return `${state.A}${state.B}${state.Cin}`;
+}
+
+function isCurrentFullAdderCaseVerified() {
+  return experimentKey !== "fullAdder"
+    || Boolean(fullAdderSession?.testedCases?.includes(fullAdderCaseKey()));
+}
+
+function pendingFullAdderPrediction(session = fullAdderSession, state = experiments.fullAdder.state) {
+  if (experimentKey !== "fullAdder" || session?.status !== "active") return null;
+  const key = fullAdderCaseKey(state);
+  if (session.testedCases?.includes(key)) return null;
+  return [...(session.predictions || [])].reverse().find((item) => (
+    item.caseKey === key
+    && !(session.runs || []).some((run) => run.caseKey === key && run.revision > item.revision)
+  )) || null;
+}
+
+function restoreFullAdderPendingPrediction(session = fullAdderSession) {
+  if (experimentKey !== "fullAdder" || !session) return null;
+  const key = fullAdderCaseKey();
+  const pending = pendingFullAdderPrediction(session);
+  if (pending) {
+    predictionDraft = { ...pending.prediction };
+    predictionSubmittedCase = key;
+  } else if (session.testedCases?.includes(key) && predictionSubmittedCase === key) {
+    predictionSubmittedCase = "";
+  }
+  return pending;
+}
+
+function isFullAdderPredictionLocked() {
+  if (experimentKey !== "fullAdder") return false;
+  return Boolean(pendingFullAdderPrediction()) || predictionSubmissionPendingCase === fullAdderCaseKey();
+}
+
+async function ensureFullAdderSession() {
+  if (fullAdderSession?.status === "active") {
+    restoreFullAdderPendingPrediction(fullAdderSession);
+    return fullAdderSession;
+  }
+  if (fullAdderSessionPromise) return fullAdderSessionPromise;
+  fullAdderSessionPromise = labApi("/api/experiment-sessions", {
+    method: "POST",
+    body: JSON.stringify({ experimentId: "fullAdder" })
+  }).then((session) => {
+    fullAdderSession = session;
+    restoreFullAdderPendingPrediction(session);
+    return session;
+  }).finally(() => {
+    fullAdderSessionPromise = null;
+  });
+  return fullAdderSessionPromise;
+}
+
 const ids = [
-  "experimentTabs", "experimentChapter", "experimentTitle", "controls", "circuitDiagram",
+  "experimentTabs", "experimentSearch", "experimentChapter", "experimentTitle", "controls", "circuitDiagram", "circuitPanel",
   "timingPanel", "timingSummary", "timingDiagram", "clearTimingButton",
   "stateExplanation", "truthTable",
   "demoButton", "speakButton", "tutorFace", "voiceStatus", "labMessages",
-  "stateQuestionButton", "voiceButton", "labQuestion", "askButton"
+  "stateQuestionButton", "voiceButton", "labQuestion", "askButton",
+  "guideButton", "focusButton", "fullscreenButton", "screenshotButton", "exportReportButton", "toolStatus",
+  "experimentGuide", "guideObjective", "guideSteps", "fullAdderChallenge", "coverageText", "coverageBar",
+  "submitPredictionButton", "runVerificationButton", "predictionFeedback", "experimentRunLog",
+  "experimentConclusion", "completeExperimentButton"
 ];
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 
@@ -578,22 +936,77 @@ function experiment() {
 
 function renderTabs() {
   elements.experimentTabs.innerHTML = "";
-  Object.entries(experiments).forEach(([key, item]) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = item.name;
-    button.classList.toggle("active", key === experimentKey);
-    button.addEventListener("click", () => {
-      stopDemo();
-      experimentKey = key;
-      render();
+  const query = catalogSearch.trim().toLowerCase();
+  let visibleCount = 0;
+  experimentGroups.forEach((group) => {
+    const matches = group.experiments.filter((definition) => {
+      if (!query) return true;
+      return [definition.title, definition.summary, ...(definition.knowledge || [])]
+        .join(" ").toLowerCase().includes(query);
     });
-    elements.experimentTabs.append(button);
+    if (!matches.length) return;
+    visibleCount += matches.length;
+    const section = document.createElement("section");
+    section.className = "experiment-group";
+    section.dataset.experimentGroup = group.id;
+    const open = query ? true : expandedGroups.has(group.id);
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "experiment-group-toggle";
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.innerHTML = `<span><strong>${group.title}</strong><small>${group.description}</small></span><b>${matches.length}</b><i aria-hidden="true">⌄</i>`;
+    const items = document.createElement("div");
+    items.className = "experiment-group-items";
+    items.hidden = !open;
+    toggle.addEventListener("click", () => {
+      if (expandedGroups.has(group.id)) expandedGroups.delete(group.id);
+      else expandedGroups.add(group.id);
+      persistLabState();
+      renderTabs();
+    });
+    matches.forEach((definition) => {
+      if (definition.availability === "available" && experiments[definition.id]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "experiment-item";
+        button.classList.toggle("active", definition.id === experimentKey);
+        button.setAttribute("aria-pressed", String(definition.id === experimentKey));
+        button.innerHTML = `<span><strong>${definition.title}</strong><small>${definition.summary}</small></span><b>进入</b>`;
+        button.addEventListener("click", async () => {
+          stopDemo();
+          activeTutorController?.abort();
+          experimentKey = definition.id;
+          expandedGroups.add(group.id);
+          predictionDraft = { S: null, Cout: null };
+          predictionSubmittedCase = "";
+          persistLabState();
+          render();
+          if (definition.id === "fullAdder") {
+            try {
+              await ensureFullAdderSession();
+              if (experimentKey === "fullAdder") render();
+            } catch (error) {
+              elements.predictionFeedback.textContent = `实验记录暂时不可用：${error.message}`;
+            }
+          }
+        });
+        items.append(button);
+      } else {
+        const planned = document.createElement("div");
+        planned.className = "experiment-item planned";
+        planned.innerHTML = `<span><strong>${definition.title}</strong><small>${definition.summary}</small></span><b>规划中</b>`;
+        items.append(planned);
+      }
+    });
+    section.append(toggle, items);
+    elements.experimentTabs.append(section);
   });
+  if (!visibleCount) elements.experimentTabs.innerHTML = '<p class="experiment-search-empty">没有匹配的实验，请换一个关键词。</p>';
 }
 
 function renderControls() {
   const current = experiment();
+  const controlsLocked = isFullAdderPredictionLocked();
   elements.controls.innerHTML = "";
   current.controls.forEach((control) => {
     const group = document.createElement("div");
@@ -601,11 +1014,49 @@ function renderControls() {
     const label = document.createElement("span");
     label.textContent = control.label;
     group.append(label);
-    control.values.forEach((value) => {
+    if (control.kind === "number") {
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = control.min;
+      input.max = control.max;
+      input.step = control.step;
+      input.value = current.state[control.key];
+      input.disabled = controlsLocked;
+      input.setAttribute("aria-label", control.label);
+      const valueLabel = document.createElement("output");
+      valueLabel.textContent = current.state[control.key];
+      input.addEventListener("input", () => {
+        valueLabel.textContent = input.value;
+      });
+      input.addEventListener("change", () => {
+        applyExperimentInput(current, control.key, Number(input.value));
+        render();
+      });
+      group.classList.add("number-control");
+      group.append(input, valueLabel);
+      elements.controls.append(group);
+      return;
+    }
+    if (control.kind === "action") {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = control.label;
+      button.className = "action-control";
+      button.disabled = controlsLocked;
+      button.addEventListener("click", () => {
+        applyExperimentInput(current, control.key, null);
+        render();
+      });
+      group.append(button);
+      elements.controls.append(group);
+      return;
+    }
+    (control.values || []).forEach((value) => {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = value;
       button.classList.toggle("active", current.state[control.key] === value);
+      button.disabled = controlsLocked;
       button.addEventListener("click", () => {
         applyExperimentInput(current, control.key, value);
         render();
@@ -617,6 +1068,8 @@ function renderControls() {
 }
 
 function applyExperimentInput(current, key, value) {
+  if (experimentKey === "fullAdder" && isFullAdderPredictionLocked()) return;
+  activeTutorController?.abort();
   const previous = { ...current.state };
   const next = current.apply
     ? current.apply(current.state, key, value)
@@ -625,6 +1078,11 @@ function applyExperimentInput(current, key, value) {
     recordJkPulse(previous, next);
   }
   current.state = next;
+  if (experimentKey === "fullAdder") {
+    predictionDraft = { S: null, Cout: null };
+    predictionSubmittedCase = "";
+  }
+  persistLabState();
 }
 
 function renderTruthTable() {
@@ -635,14 +1093,86 @@ function renderTruthTable() {
     const row = document.createElement("div");
     row.className = `truth-row${index === 0 ? " header" : ""}`;
     row.style.setProperty("--columns", values.length);
-    if (index > 0 && rows[index - 1].active) row.classList.add("active");
-    values.forEach((value) => {
+    const dataRow = index > 0 ? rows[index - 1] : null;
+    const verified = experimentKey === "fullAdder" && dataRow
+      ? Boolean(fullAdderSession?.testedCases?.includes(dataRow.values.slice(0, 3).join("")))
+      : false;
+    if (dataRow?.active) row.classList.add("active");
+    if (verified) row.classList.add("verified");
+    values.forEach((value, cellIndex) => {
       const cell = document.createElement("span");
-      cell.textContent = value;
+      const masked = experimentKey === "fullAdder" && index > 0 && cellIndex >= 3 && !verified;
+      cell.textContent = masked ? "?" : value;
+      if (masked) cell.className = "masked-output";
       row.append(cell);
     });
     elements.truthTable.append(row);
   });
+}
+
+function renderExperimentGuide() {
+  const definition = getExperimentDefinition(experimentKey);
+  if (!definition) return;
+  elements.guideObjective.textContent = definition.summary;
+  const completion = definition.completion || {};
+  const completionText = completion.type === "truth-table-coverage"
+    ? `覆盖 ${completion.requiredCases} 组真值组合并总结规律。`
+    : completion.type === "clock-cycle-coverage"
+      ? `完成至少 ${completion.requiredCycles} 个关键时钟周期。`
+      : `完成 ${completion.requiredCheckpoints || 1} 个实验检查点。`;
+  elements.guideSteps.innerHTML = [
+    "设置输入或器件参数，观察电路中的信号路径。",
+    experimentKey === "fullAdder" ? "在查看输出前先预测 S 与 Cout。" : "对照真值表或状态表验证当前结果。",
+    completionText
+  ].map((step) => `<li>${step}</li>`).join("");
+}
+
+function renderFullAdderLearningPanel() {
+  const active = experimentKey === "fullAdder";
+  elements.fullAdderChallenge.hidden = !active;
+  elements.circuitDiagram.classList.toggle("awaiting-prediction", active && !isCurrentFullAdderCaseVerified());
+  if (!active) return;
+  const testedCases = fullAdderSession?.testedCases || [];
+  const coverage = Number(fullAdderSession?.coverage) || 0;
+  const currentKey = fullAdderCaseKey();
+  const verified = testedCases.includes(currentKey);
+  const pendingPrediction = restoreFullAdderPendingPrediction();
+  const submissionPending = predictionSubmissionPendingCase === currentKey;
+  const predictionLocked = Boolean(pendingPrediction) || submissionPending;
+  elements.coverageText.textContent = `${testedCases.length} / 8`;
+  elements.coverageBar.style.width = `${coverage}%`;
+  document.querySelectorAll("[data-prediction-output]").forEach((button) => {
+    const key = button.dataset.predictionOutput;
+    button.classList.toggle("active", Number(button.dataset.value) === predictionDraft[key]);
+    button.disabled = verified || predictionLocked;
+  });
+  const draftReady = [predictionDraft.S, predictionDraft.Cout].every((value) => value === 0 || value === 1);
+  elements.submitPredictionButton.disabled = !draftReady || verified || !fullAdderSession || predictionLocked;
+  elements.runVerificationButton.disabled = verified || !pendingPrediction;
+  elements.completeExperimentButton.disabled = coverage < 100;
+  elements.exportReportButton.disabled = !latestExperimentReport;
+
+  const lastRun = [...(fullAdderSession?.runs || [])].reverse().find((run) => run.caseKey === currentKey);
+  if (!fullAdderSession) {
+    elements.predictionFeedback.textContent = "正在恢复你的实验记录…";
+  } else if (verified && lastRun) {
+    elements.predictionFeedback.textContent = lastRun.predictionCorrect
+      ? `预测正确：S=${lastRun.outputs.S}，Cout=${lastRun.outputs.Cout}。已形成一条独立实验学习证据。`
+      : `本组预测需要订正：实际 S=${lastRun.outputs.S}，Cout=${lastRun.outputs.Cout}。请结合内部信号重新分析。`;
+  } else if (submissionPending) {
+    elements.predictionFeedback.textContent = "正在提交预测，请稍候…";
+  } else if (pendingPrediction) {
+    elements.predictionFeedback.textContent = "预测已提交。现在运行仿真，验证你的判断。";
+  } else if (draftReady) {
+    elements.predictionFeedback.textContent = `当前预测：S=${predictionDraft.S}，Cout=${predictionDraft.Cout}。确认后提交。`;
+  } else {
+    elements.predictionFeedback.textContent = "请选择 S 和 Cout 的预测值。";
+  }
+
+  const runs = [...(fullAdderSession?.runs || [])].slice(-8).reverse();
+  elements.experimentRunLog.innerHTML = runs.length
+    ? `<table><thead><tr><th>输入</th><th>预测结果</th><th>实际输出</th></tr></thead><tbody>${runs.map((run) => `<tr><td>${run.caseKey}</td><td class="${run.predictionCorrect ? "correct" : "wrong"}">${run.predictionCorrect ? "正确" : "需订正"}</td><td>S=${run.outputs.S} · Cout=${run.outputs.Cout}</td></tr>`).join("")}</tbody></table>`
+    : '<p>还没有验证记录。完成第一组预测后，这里会保留实验数据。</p>';
 }
 
 function render() {
@@ -650,12 +1180,26 @@ function render() {
   renderControls();
   const current = experiment();
   const output = current.calculate(current.state);
+  const predictionPending = experimentKey === "fullAdder" && !isCurrentFullAdderCaseVerified();
   elements.experimentChapter.textContent = current.chapter;
   elements.experimentTitle.textContent = current.name;
-  elements.circuitDiagram.innerHTML = renderCircuitDiagram(experimentKey, current.state, output);
+  elements.circuitDiagram.innerHTML = renderCircuitDiagram(experimentKey, current.state, output, {
+    revealOutputs: !predictionPending
+  });
   renderTimingPanel();
-  elements.stateExplanation.textContent = current.describe(current.state, output);
+  const fullAdderDemoLocked = experimentKey === "fullAdder" && (fullAdderSession?.testedCases?.length || 0) < 8;
+  elements.stateExplanation.textContent = predictionPending
+    ? `当前输入为 A=${current.state.A}、B=${current.state.B}、Cin=${current.state.Cin}。输出暂时隐藏，请先预测 S 与 Cout，再运行仿真验证。`
+    : current.describe(current.state, output);
+  elements.demoButton.disabled = fullAdderDemoLocked;
+  elements.stateQuestionButton.disabled = predictionPending;
+  elements.screenshotButton.disabled = predictionPending;
+  elements.screenshotButton.title = predictionPending
+    ? "请先运行仿真验证当前预测，再保存截图"
+    : "保存当前电路截图";
   renderTruthTable();
+  renderExperimentGuide();
+  renderFullAdderLearningPanel();
 }
 
 function stopDemo() {
@@ -687,6 +1231,8 @@ function getDemoNarration(current, step) {
     return `输入 ${state.A2}${state.A1}${state.A0}，选中 Y${output.active}。`;
   }
 
+  if (experimentKey !== "jkff") return current.describe(state, output);
+
   const action = state.J === 0 && state.K === 0 ? "保持"
     : state.J === 0 && state.K === 1 ? "复位"
       : state.J === 1 && state.K === 0 ? "置位"
@@ -702,6 +1248,7 @@ async function startDemo() {
     stopDemo();
     return;
   }
+  if (experimentKey === "fullAdder" && (fullAdderSession?.testedCases?.length || 0) < 8) return;
   const current = experiment();
   const currentExperimentKey = experimentKey;
   const runId = ++demoRunId;
@@ -831,24 +1378,44 @@ async function askLab(question) {
   const text = String(question || "").trim();
   if (!text) return;
   appendMessage("user", text);
+  if (experimentKey === "fullAdder" && !isCurrentFullAdderCaseVerified()) {
+    appendMessage("assistant", "为了保留这次预测的独立性，请先完成当前输入的预测并运行仿真。验证后我会结合内部信号为你讲解。");
+    return;
+  }
   const answer = appendMessage("assistant", "");
   elements.askButton.disabled = true;
+  activeTutorController?.abort();
+  const controller = new AbortController();
+  activeTutorController = controller;
+  const requestRevision = fullAdderSession?.revision || 0;
   try {
     const current = experiment();
+    const history = tutorConversation.slice(-6)
+      .map((item) => `${item.role === "user" ? "学生" : "助教"}：${item.text}`)
+      .join("\n");
+    const requestBody = experimentKey === "fullAdder"
+      ? {
+          question: text,
+          experimentId: experimentKey,
+          revision: requestRevision,
+          state: { ...current.state },
+          history
+        }
+      : {
+          question: text,
+          experimentName: current.name,
+          history,
+          experimentState: {
+            ...current.state,
+            ...current.calculate(current.state),
+            ...(experimentKey === "jkff" ? { recentTiming: jkTimingHistory.slice(-5) } : {})
+          }
+        };
     const response = await fetch("/api/lab/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: text,
-        experimentName: current.name,
-        experimentState: {
-          ...current.state,
-          ...current.calculate(current.state),
-          ...(experimentKey === "jkff"
-            ? { recentTiming: jkTimingHistory.slice(-5) }
-            : {})
-        }
-      })
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
     if (!response.ok || !response.body) throw new Error("实验助教暂时不可用");
     const reader = response.body.getReader();
@@ -871,10 +1438,20 @@ async function askLab(question) {
       }
       if (done) break;
     }
+    tutorConversation.push({ role: "user", text }, { role: "assistant", text: answer.textContent });
+    tutorConversation = tutorConversation.slice(-12);
+    if (experimentKey === "fullAdder" && (fullAdderSession?.revision || 0) !== requestRevision) {
+      answer.classList.add("stale");
+      answer.textContent += "\n（这段讲解基于上一版实验状态。）";
+    }
   } catch (error) {
-    answer.textContent = `暂时无法回复：${error.message}`;
+    if (error.name === "AbortError") answer.remove();
+    else answer.textContent = `暂时无法回复：${error.message}`;
   } finally {
-    elements.askButton.disabled = false;
+    if (activeTutorController === controller) {
+      activeTutorController = null;
+      elements.askButton.disabled = false;
+    }
   }
 }
 
@@ -898,10 +1475,188 @@ function startRecognition() {
   recognition.start();
 }
 
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function saveCircuitScreenshot() {
+  if (experimentKey === "fullAdder" && !isCurrentFullAdderCaseVerified()) {
+    elements.screenshotButton.disabled = true;
+    elements.toolStatus.textContent = "请先运行仿真验证当前预测，再保存全加器截图。";
+    return;
+  }
+  const svg = elements.circuitDiagram.querySelector("svg");
+  if (!svg) {
+    elements.toolStatus.textContent = "当前实验没有可保存的电路图。";
+    return;
+  }
+  elements.screenshotButton.disabled = true;
+  try {
+    const cloneSvg = svg.cloneNode(true);
+    const viewBox = svg.viewBox.baseVal;
+    const width = Math.max(900, Math.round(viewBox.width || svg.clientWidth || 900));
+    const height = Math.max(400, Math.round(viewBox.height || svg.clientHeight || 400));
+    cloneSvg.setAttribute("width", width);
+    cloneSvg.setAttribute("height", height);
+    const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    style.textContent = `text{font-family:system-ui,sans-serif;fill:#eaf8ff}.gate-body,.module-body,.chip-body,.value-box{fill:#10284b;stroke:#38bdf8;stroke-width:2.5}.signal-line{fill:none;stroke:#64748b;stroke-width:4}.signal-line.high,.signal-line.logic-high{stroke:#34d399}.port{fill:#64748b}.port.high,.port.logic-high{fill:#34d399}.value-box.high,.active-output{fill:#064e3b;stroke:#34d399}`;
+    cloneSvg.prepend(style);
+    const source = new XMLSerializer().serializeToString(cloneSvg);
+    const imageUrl = URL.createObjectURL(new Blob([source], { type: "image/svg+xml;charset=utf-8" }));
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = imageUrl;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height + 72;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#06152d";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#eaf8ff";
+    context.font = "600 24px system-ui";
+    context.fillText(`${experiment().name} · ${experiment().summary(experiment().state)}`, 24, 38);
+    context.font = "16px system-ui";
+    context.fillStyle = "#93c5fd";
+    context.fillText(new Date().toLocaleString("zh-CN"), 24, 62);
+    context.drawImage(image, 0, 72, width, height);
+    URL.revokeObjectURL(imageUrl);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("浏览器未能生成 PNG");
+    downloadBlob(blob, `${experimentKey}-${Date.now()}.png`);
+    elements.toolStatus.textContent = "电路截图已保存。";
+  } catch (error) {
+    elements.toolStatus.textContent = `截图失败：${error.message}`;
+  } finally {
+    elements.screenshotButton.disabled = experimentKey === "fullAdder" && !isCurrentFullAdderCaseVerified();
+  }
+}
+
+function exportExperimentReport() {
+  const report = latestExperimentReport;
+  if (!report) return;
+  const rows = (report.runs || []).map((run, index) => (
+    `| ${index + 1} | ${run.caseKey} | S=${run.outputs.S}, Cout=${run.outputs.Cout} | ${run.predictionCorrect ? "正确" : "需订正"} |`
+  )).join("\n");
+  const markdown = [
+    `# ${report.title}实验报告`,
+    "",
+    `- 完成时间：${new Date(report.completedAt).toLocaleString("zh-CN")}`,
+    `- 真值表覆盖率：${report.coverage}%`,
+    `- 独立实验证据：${report.evidenceSummary.independent} 条`,
+    `- 预测正确率：${report.evidenceSummary.score}%（${report.evidenceSummary.confidence}）`,
+    "",
+    "## 实验记录",
+    "",
+    "| 序号 | 输入 ABCin | 实际输出 | 预测 |",
+    "|---:|---|---|---|",
+    rows,
+    "",
+    "## 实验结论",
+    "",
+    report.conclusion || "未填写"
+  ].join("\n");
+  downloadBlob(new Blob([markdown], { type: "text/markdown;charset=utf-8" }), `全加器实验报告-${Date.now()}.md`);
+  elements.toolStatus.textContent = "实验报告已导出。";
+}
+
+async function submitFullAdderPrediction() {
+  if ([predictionDraft.S, predictionDraft.Cout].some((value) => value !== 0 && value !== 1)) return;
+  if (pendingFullAdderPrediction()) return;
+  const key = fullAdderCaseKey();
+  predictionSubmissionPendingCase = key;
+  render();
+  try {
+    const session = await ensureFullAdderSession();
+    const pendingKey = `${session.id}:prediction.submitted:${key}`;
+    const eventId = pendingExperimentEventIds.get(pendingKey)
+      || globalThis.crypto?.randomUUID?.()
+      || `prediction-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    pendingExperimentEventIds.set(pendingKey, eventId);
+    fullAdderSession = await labApi(`/api/experiment-sessions/${session.id}/events`, {
+      method: "POST",
+      body: JSON.stringify({
+        eventId,
+        type: "prediction.submitted",
+        state: { ...experiment().state },
+        prediction: { ...predictionDraft },
+        hintLevel: 0
+      })
+    });
+    pendingExperimentEventIds.delete(pendingKey);
+    restoreFullAdderPendingPrediction(fullAdderSession);
+  } catch (error) {
+    elements.predictionFeedback.textContent = `预测提交失败：${error.message}`;
+  } finally {
+    predictionSubmissionPendingCase = "";
+    render();
+  }
+}
+
+async function runFullAdderVerification() {
+  if (!fullAdderSession || !pendingFullAdderPrediction()) return;
+  elements.runVerificationButton.disabled = true;
+  const key = fullAdderCaseKey();
+  const pendingKey = `${fullAdderSession.id}:simulation.run:${key}`;
+  const eventId = pendingExperimentEventIds.get(pendingKey)
+    || globalThis.crypto?.randomUUID?.()
+    || `simulation-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  pendingExperimentEventIds.set(pendingKey, eventId);
+  try {
+    fullAdderSession = await labApi(`/api/experiment-sessions/${fullAdderSession.id}/events`, {
+      method: "POST",
+      body: JSON.stringify({ eventId, type: "simulation.run", state: { ...experiment().state } })
+    });
+    pendingExperimentEventIds.delete(pendingKey);
+    predictionSubmittedCase = "";
+    markLearningDataUpdated();
+    render();
+  } catch (error) {
+    elements.predictionFeedback.textContent = `仿真运行失败：${error.message}`;
+  } finally {
+    renderFullAdderLearningPanel();
+  }
+}
+
+async function completeFullAdderExperiment() {
+  const conclusion = elements.experimentConclusion.value.trim();
+  if (!conclusion) {
+    elements.predictionFeedback.textContent = "请先用自己的话填写实验结论。";
+    elements.experimentConclusion.focus();
+    return;
+  }
+  elements.completeExperimentButton.disabled = true;
+  try {
+    const result = await labApi(`/api/experiment-sessions/${fullAdderSession.id}/complete`, {
+      method: "POST",
+      body: JSON.stringify({ conclusion })
+    });
+    fullAdderSession = result.session;
+    latestExperimentReport = result.report;
+    markLearningDataUpdated();
+    elements.predictionFeedback.textContent = "实验已完成，报告和掌握度证据已经更新。";
+    elements.exportReportButton.disabled = false;
+  } catch (error) {
+    elements.predictionFeedback.textContent = `完成实验失败：${error.message}`;
+  } finally {
+    elements.completeExperimentButton.disabled = Number(fullAdderSession?.coverage) < 100;
+  }
+}
+
 elements.demoButton.addEventListener("click", startDemo);
 elements.clearTimingButton.addEventListener("click", () => {
   jkTimingHistory = [];
   jkCycleNumber = 0;
+  persistLabState();
   renderTimingPanel();
 });
 elements.speakButton.addEventListener("click", () => speak(elements.stateExplanation.textContent));
@@ -915,5 +1670,59 @@ elements.askButton.addEventListener("click", () => {
 elements.labQuestion.addEventListener("keydown", (event) => {
   if (event.key === "Enter") elements.askButton.click();
 });
+elements.experimentSearch.addEventListener("input", () => {
+  catalogSearch = elements.experimentSearch.value;
+  renderTabs();
+});
+document.querySelectorAll("[data-prediction-output]").forEach((button) => button.addEventListener("click", () => {
+  if (isFullAdderPredictionLocked()) return;
+  predictionDraft[button.dataset.predictionOutput] = Number(button.dataset.value);
+  renderFullAdderLearningPanel();
+}));
+elements.submitPredictionButton.addEventListener("click", submitFullAdderPrediction);
+elements.runVerificationButton.addEventListener("click", runFullAdderVerification);
+elements.completeExperimentButton.addEventListener("click", completeFullAdderExperiment);
+elements.guideButton.addEventListener("click", () => {
+  elements.experimentGuide.hidden = !elements.experimentGuide.hidden;
+  elements.guideButton.setAttribute("aria-expanded", String(!elements.experimentGuide.hidden));
+});
+elements.focusButton.addEventListener("click", () => {
+  const active = document.body.classList.toggle("lab-focus-mode");
+  elements.focusButton.setAttribute("aria-pressed", String(active));
+  elements.focusButton.textContent = active ? "退出专注" : "专注模式";
+});
+elements.fullscreenButton.addEventListener("click", async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else if (elements.circuitPanel.requestFullscreen) await elements.circuitPanel.requestFullscreen();
+    else throw new Error("当前浏览器不支持全屏 API");
+  } catch (error) {
+    elements.toolStatus.textContent = `无法进入全屏：${error.message}`;
+  }
+});
+document.addEventListener("fullscreenchange", () => {
+  elements.fullscreenButton.textContent = document.fullscreenElement ? "退出全屏" : "电路全屏";
+});
+elements.screenshotButton.addEventListener("click", saveCircuitScreenshot);
+elements.exportReportButton.addEventListener("click", exportExperimentReport);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && document.body.classList.contains("lab-focus-mode")) {
+    document.body.classList.remove("lab-focus-mode");
+    elements.focusButton.setAttribute("aria-pressed", "false");
+    elements.focusButton.textContent = "专注模式";
+  }
+});
 
+restoreLabState();
 render();
+if (experimentKey === "fullAdder") {
+  ensureFullAdderSession()
+    .then(() => {
+      if (experimentKey === "fullAdder") render();
+    })
+    .catch((error) => {
+      if (experimentKey === "fullAdder") {
+        elements.predictionFeedback.textContent = `实验记录暂时不可用：${error.message}`;
+      }
+    });
+}

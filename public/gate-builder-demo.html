@@ -623,6 +623,40 @@
       background: rgba(76, 29, 39, .35);
     }
 
+    .toolbar button:disabled {
+      cursor: not-allowed;
+      opacity: .42;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .toolbar button[hidden] {
+      display: none;
+    }
+
+    .toolbar .cancel-wire {
+      border-color: rgba(251, 191, 36, .52);
+      color: #fef3c7;
+      background: rgba(120, 53, 15, .42);
+    }
+
+    .history-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid rgba(125, 211, 252, .22);
+      border-radius: 12px;
+      background: rgba(8, 20, 38, .56);
+      padding: 3px;
+    }
+
+    .history-controls button {
+      min-width: 42px;
+      min-height: 30px;
+      padding: 0 9px;
+      border-radius: 9px;
+    }
+
     .simulation-summary {
       position: absolute;
       left: 18px;
@@ -1505,6 +1539,29 @@
       box-shadow: 0 0 18px rgba(52, 211, 153, .92);
     }
 
+    .port.tap-connect-target {
+      border-color: rgba(52, 211, 153, .78);
+      box-shadow: 0 0 15px rgba(52, 211, 153, .52);
+    }
+
+    @media (pointer: coarse) {
+      .toolbar button,
+      .toolbar .tool-link,
+      .analysis-actions button,
+      .zoom-controls button,
+      .history-controls button {
+        min-width: 44px;
+        min-height: 44px;
+      }
+
+      .port {
+        width: 44px;
+        height: 44px;
+        border-width: 3px;
+        transform: translate(-50%, -50%) scale(var(--port-scale-compensation, 1));
+      }
+    }
+
     .analysis-panel {
       min-width: 0;
     }
@@ -1640,15 +1697,60 @@
     }
 
     @media (max-width: 760px) {
-      .page { padding: 14px; }
+      html,
+      body {
+        height: auto;
+        min-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+      .page {
+        display: grid;
+        grid-template-rows: auto auto;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+        padding: 14px;
+      }
       .topbar { align-items: flex-start; flex-direction: column; }
       .top-actions { justify-content: flex-start; }
       .workspace {
-        grid-template-columns: var(--library-width) 8px minmax(420px, 1fr) 8px var(--analysis-width);
-        grid-template-rows: minmax(0, 1fr);
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+      .library-resizer,
+      .analysis-resizer { display: none; }
+      .library-panel {
+        width: 100%;
+        height: 430px;
+        min-height: 430px;
+        max-height: 430px;
+        contain: none;
+      }
+      .canvas-panel {
+        width: 100%;
+        height: 690px;
+        min-height: 690px;
+      }
+      .analysis-panel {
+        width: 100%;
+        height: 620px;
+        min-height: 620px;
       }
       .canvas-heading { align-items: flex-start; flex-direction: column; }
-      .toolbar { justify-content: flex-start; }
+      .toolbar {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .board { min-height: 500px; }
+      .simulation-summary {
+        max-width: calc(100% - 36px);
+        bottom: 14px;
+      }
+      .recycle-bin { display: none; }
     }
 
     /* Unified inner-page background: visible homepage WebP + translucent floating modules. */
@@ -1829,6 +1931,11 @@
             <small>支持组合逻辑演示：移动元件、端口连线、输入切换、信号高亮。</small>
           </div>
           <div class="toolbar">
+            <div class="history-controls" aria-label="编辑历史">
+              <button id="undoButton" type="button" title="撤销（Ctrl/Cmd+Z）" aria-label="撤销" disabled>↶</button>
+              <button id="redoButton" type="button" title="重做（Ctrl/Cmd+Shift+Z）" aria-label="重做" disabled>↷</button>
+            </div>
+            <button class="cancel-wire" id="cancelWireButton" type="button" hidden>取消连线</button>
             <div class="zoom-controls" aria-label="画布缩放">
               <button id="zoomOutButton" type="button" title="缩小画布">-</button>
               <span class="zoom-level" id="zoomLevel">100%</span>
@@ -1869,7 +1976,9 @@
 
   <div class="toast" id="toast"></div>
 
-  <script>
+  <script type="module">
+    import { evaluateCircuitComponent } from "./core/circuit-catalog.js";
+
     const workspace = document.querySelector(".workspace");
     const board = document.querySelector("#board");
     const ghostLayer = document.querySelector("#ghostLayer");
@@ -1895,6 +2004,9 @@
     const zoomInButton = document.querySelector("#zoomInButton");
     const zoomResetButton = document.querySelector("#zoomResetButton");
     const zoomLevel = document.querySelector("#zoomLevel");
+    const undoButton = document.querySelector("#undoButton");
+    const redoButton = document.querySelector("#redoButton");
+    const cancelWireButton = document.querySelector("#cancelWireButton");
     const toast = document.querySelector("#toast");
 
     const componentDefs = {
@@ -2024,9 +2136,14 @@
     let components = [];
     let wires = [];
     let connectionDrag = null;
+    let tapConnection = null;
+    let suppressNextPortClick = false;
     let dragState = null;
     let componentResizeState = null;
     let nextId = 1;
+    const historyLimit = 50;
+    let historyPast = [];
+    let historyFuture = [];
     let toastTimer = 0;
     let quickAddOffset = 0;
     let simulationAnimating = false;
@@ -2036,6 +2153,9 @@
     let boardPanY = 0;
     let panState = null;
     let circuitConversation = [];
+    let circuitRevision = 0;
+    let assistantRequestController = null;
+    let assistantRequestSequence = 0;
     let libraryResizeState = null;
     let analysisResizeState = null;
     let activeGhost = null;
@@ -2054,6 +2174,100 @@
       toast.textContent = message;
       toast.classList.add("show");
       toastTimer = window.setTimeout(() => toast.classList.remove("show"), 1700);
+    }
+
+    function cloneCircuitData(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function createHistorySnapshot() {
+      return cloneCircuitData({ components, wires, nextId, quickAddOffset });
+    }
+
+    function markCircuitChanged() {
+      circuitRevision += 1;
+      assistantRequestController?.abort();
+    }
+
+    function historySnapshotKey(snapshot) {
+      return JSON.stringify(snapshot);
+    }
+
+    function updateHistoryControls() {
+      undoButton.disabled = historyPast.length === 0;
+      redoButton.disabled = historyFuture.length === 0;
+      undoButton.title = historyPast.length
+        ? `撤销（Ctrl/Cmd+Z，剩余 ${historyPast.length} 步）`
+        : "没有可撤销的操作";
+      redoButton.title = historyFuture.length
+        ? `重做（Ctrl/Cmd+Shift+Z，剩余 ${historyFuture.length} 步）`
+        : "没有可重做的操作";
+    }
+
+    function recordCircuitChange(beforeSnapshot) {
+      const current = createHistorySnapshot();
+      if (historySnapshotKey(beforeSnapshot) === historySnapshotKey(current)) return false;
+      historyPast.push(cloneCircuitData(beforeSnapshot));
+      if (historyPast.length > historyLimit) historyPast.shift();
+      historyFuture = [];
+      updateHistoryControls();
+      markCircuitChanged();
+      return true;
+    }
+
+    function performCircuitEdit(edit, beforeSnapshot = createHistorySnapshot()) {
+      const result = edit();
+      recordCircuitChange(beforeSnapshot);
+      return result;
+    }
+
+    function restoreHistorySnapshot(snapshot) {
+      const restored = cloneCircuitData(snapshot);
+      components = restored.components;
+      wires = restored.wires;
+      nextId = restored.nextId;
+      quickAddOffset = restored.quickAddOffset;
+      connectionDrag = null;
+      tapConnection = null;
+      dragState = null;
+      componentResizeState = null;
+      clearConnectionHighlights();
+      render();
+      markCircuitChanged();
+    }
+
+    function undoCircuitChange() {
+      if (!historyPast.length) return;
+      const current = createHistorySnapshot();
+      const previous = historyPast.pop();
+      historyFuture.push(current);
+      restoreHistorySnapshot(previous);
+      updateHistoryControls();
+      statusText.textContent = "已撤销上一步搭建操作";
+      showToast("已撤销");
+    }
+
+    function redoCircuitChange() {
+      if (!historyFuture.length) return;
+      const current = createHistorySnapshot();
+      const next = historyFuture.pop();
+      historyPast.push(current);
+      restoreHistorySnapshot(next);
+      updateHistoryControls();
+      statusText.textContent = "已重做上一步搭建操作";
+      showToast("已重做");
+    }
+
+    function handleHistoryShortcut(event) {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key.toLowerCase() !== "z") return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.matches("input, textarea, select"))) return;
+      event.preventDefault();
+      if (event.shiftKey) {
+        redoCircuitChange();
+      } else {
+        undoCircuitChange();
+      }
     }
 
     function appendAnalysisMessage(role, text, temporary = false) {
@@ -2082,11 +2296,12 @@
         .join("\n");
     }
 
-    async function streamCircuitAssistant(payload, onDelta) {
+    async function streamCircuitAssistant(payload, onDelta, signal) {
       const response = await fetch("/api/lab/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal
       });
       if (!response.ok || !response.body) {
         const data = await response.json().catch(() => ({}));
@@ -2304,6 +2519,7 @@
     }
 
     function applyBoardPanStyle() {
+      board.style.setProperty("--port-scale-compensation", String(1 / boardZoom));
       board.style.backgroundPosition = [
         `${boardPanX}px ${boardPanY}px`,
         `${boardPanX}px ${boardPanY}px`,
@@ -2337,7 +2553,7 @@
     function setBoardZoom(nextZoom) {
       const rect = boardRect();
       const center = screenToLogical(rect.left + rect.width / 2, rect.top + rect.height / 2);
-      boardZoom = clamp(Math.round(nextZoom * 100) / 100, 0.7, 1.25);
+      boardZoom = clamp(Math.round(nextZoom * 100) / 100, 0.5, 1.25);
       boardPanX = rect.width / 2 - center.x * boardZoom;
       boardPanY = rect.height / 2 - center.y * boardZoom;
       clampBoardPan();
@@ -2354,6 +2570,15 @@
       applyBoardPanStyle();
       zoomLevel.textContent = "100%";
       render();
+    }
+
+    function prepareExampleBoardView() {
+      boardZoom = window.matchMedia("(max-width: 760px)").matches ? 0.5 : 1;
+      boardPanX = 0;
+      boardPanY = 0;
+      clampBoardPan();
+      applyBoardPanStyle();
+      zoomLevel.textContent = `${Math.round(boardZoom * 100)}%`;
     }
 
     function setLibraryWidth(width) {
@@ -2866,16 +3091,18 @@
     }
 
     function quickAddComponent(type) {
-      const visible = visibleLogicalBounds();
-      const size = componentDefaultSize(type);
-      const placement = clampComponentPosition(
-        visible.x + 80 + quickAddOffset * 30,
-        visible.y + 80 + quickAddOffset * 24,
-        size
-      );
-      quickAddOffset = (quickAddOffset + 1) % 8;
-      makeComponent(type, placement.x, placement.y);
-      render();
+      performCircuitEdit(() => {
+        const visible = visibleLogicalBounds();
+        const size = componentDefaultSize(type);
+        const placement = clampComponentPosition(
+          visible.x + 80 + quickAddOffset * 30,
+          visible.y + 80 + quickAddOffset * 24,
+          size
+        );
+        quickAddOffset = (quickAddOffset + 1) % 8;
+        makeComponent(type, placement.x, placement.y);
+        render();
+      });
       showToast(`已添加 ${type}，也可以拖动调整位置`);
       statusText.textContent = "按住输出端口拖到输入端口完成连线，或继续添加元件";
     }
@@ -2948,6 +3175,7 @@
       renderWires();
       updateGhostEvaluation();
       emptyTip.hidden = components.length > 0 || Boolean(activeGhost);
+      syncTapConnectionUi();
     }
 
     function componentValueText(component) {
@@ -3020,7 +3248,7 @@
         const top = portTop(inputCount(def), index, def.group === "modules" ? "module" : "gate");
         const label = inputLabel(def, index);
         return `
-          <button class="port in ${inputCount(def) === 1 ? "only" : `in${index}`}" data-port-type="in" data-port-index="${index}" style="top:${top}%" title="输入 ${label}"></button>
+          <button class="port in ${inputCount(def) === 1 ? "only" : `in${index}`}" data-port-type="in" data-port-index="${index}" style="top:${top}%" title="输入 ${label}" aria-label="${component.id} 输入 ${label}"></button>
           <span class="port-label in-label" style="top:${top}%">${label}</span>
         `;
       }).join("");
@@ -3029,7 +3257,7 @@
         const top = portTop(outputCount(def), index, def.group === "modules" ? "module" : "gate");
         const label = outputLabel(def, index);
         return `
-          <button class="port out ${outputCount(def) === 1 ? "only" : `out${index}`}" data-port-type="out" data-port-index="${index}" style="top:${top}%" title="输出 ${label}"></button>
+          <button class="port out ${outputCount(def) === 1 ? "only" : `out${index}`}" data-port-type="out" data-port-index="${index}" style="top:${top}%" title="输出 ${label}" aria-label="${component.id} 输出 ${label}" aria-pressed="false"></button>
           <span class="port-label out-label" style="top:${top}%">${label}</span>
         `;
       }).join("");
@@ -3100,8 +3328,10 @@
         });
         inputToggle.addEventListener("click", (event) => {
           event.stopPropagation();
-          component.value = component.value ? 0 : 1;
-          runSimulation();
+          performCircuitEdit(() => {
+            component.value = component.value ? 0 : 1;
+            runSimulation();
+          });
           showToast(`${component.id} 输入切换为 ${component.value}`);
         });
       }
@@ -3109,6 +3339,7 @@
       node.querySelectorAll(".port").forEach((port) => {
         port.addEventListener("pointerdown", (event) => {
           event.stopPropagation();
+          if (event.pointerType === "touch" || event.pointerType === "pen") return;
           if (port.dataset.portType === "out") {
             startConnectionDrag(event, component, port);
           } else {
@@ -3117,6 +3348,14 @@
         });
         port.addEventListener("click", (event) => {
           event.stopPropagation();
+          if (suppressNextPortClick) return;
+          if (port.dataset.portType === "out") {
+            selectOutputForTap(component, port);
+          } else if (tapConnection) {
+            finishTapConnection(component, Number(port.dataset.portIndex || 0));
+          } else {
+            showToast("请先点选一个输出端口");
+          }
         });
       });
 
@@ -3128,6 +3367,7 @@
       componentResizeState = {
         id: component.id,
         pointerId: event.pointerId,
+        beforeSnapshot: createHistorySnapshot(),
         direction,
         startClientX: event.clientX,
         startClientY: event.clientY,
@@ -3193,7 +3433,8 @@
 
     function finishComponentResize(event) {
       if (!componentResizeState || event.pointerId !== componentResizeState.pointerId) return;
-      const node = board.querySelector(`[data-id="${componentResizeState.id}"]`);
+      const completedResize = componentResizeState;
+      const node = board.querySelector(`[data-id="${completedResize.id}"]`);
       if (node) {
         node.classList.remove("selected", "resizing");
         delete node.dataset.resizeDirection;
@@ -3204,6 +3445,7 @@
       }
       document.body.style.cursor = "";
       componentResizeState = null;
+      recordCircuitChange(completedResize.beforeSnapshot);
       updateGhostEvaluation();
     }
 
@@ -3213,7 +3455,8 @@
         id: component.id,
         offsetX: point.x - component.x,
         offsetY: point.y - component.y,
-        pointerId: event.pointerId
+        pointerId: event.pointerId,
+        beforeSnapshot: createHistorySnapshot()
       };
       event.currentTarget.setPointerCapture(event.pointerId);
       event.currentTarget.classList.add("selected");
@@ -3246,13 +3489,17 @@
 
     function finishMove() {
       if (!dragState) return;
-      if (recycleBin.classList.contains("active")) {
-        deleteComponent(dragState.id);
-      }
+      const completedMove = dragState;
+      const shouldDelete = recycleBin.classList.contains("active");
       board.querySelectorAll(".component.selected").forEach((node) => node.classList.remove("selected"));
       board.querySelectorAll(".component.to-delete").forEach((node) => node.classList.remove("to-delete"));
       recycleBin.classList.remove("active");
       dragState = null;
+      if (shouldDelete) {
+        deleteComponent(completedMove.id, completedMove.beforeSnapshot);
+      } else {
+        recordCircuitChange(completedMove.beforeSnapshot);
+      }
       updateGhostEvaluation();
     }
 
@@ -3290,12 +3537,36 @@
       statusText.textContent = "画布视图已移动，按“重置”可回到初始视图";
     }
 
+    function cancelPointerInteractions(event) {
+      const pointerId = event?.pointerId;
+      if (componentResizeState && (pointerId == null || pointerId === componentResizeState.pointerId)) {
+        const snapshot = componentResizeState.beforeSnapshot;
+        componentResizeState = null;
+        document.body.style.cursor = "";
+        restoreHistorySnapshot(snapshot);
+      }
+      if (dragState && (pointerId == null || pointerId === dragState.pointerId)) {
+        const snapshot = dragState.beforeSnapshot;
+        dragState = null;
+        restoreHistorySnapshot(snapshot);
+      }
+      if (panState && (pointerId == null || pointerId === panState.pointerId)) {
+        setBoardPan(panState.startPanX, panState.startPanY);
+        panState = null;
+        board.classList.remove("panning");
+      }
+      if (connectionDrag && (pointerId == null || pointerId === connectionDrag.pointerId)) {
+        cancelConnectionInteraction("连线手势已取消");
+      }
+    }
+
     board.addEventListener("pointerdown", startBoardPan);
     window.addEventListener("pointermove", resizeComponent);
     window.addEventListener("pointermove", moveDraggedComponent);
     window.addEventListener("pointermove", updateBoardPan);
     window.addEventListener("pointerup", finishComponentResize);
-    window.addEventListener("pointercancel", finishComponentResize);
+    window.addEventListener("pointercancel", cancelPointerInteractions);
+    window.addEventListener("lostpointercapture", cancelPointerInteractions);
     window.addEventListener("pointerup", finishBoardPan);
     board.addEventListener("pointerup", finishMove);
     window.addEventListener("pointerup", finishMove);
@@ -3314,18 +3585,76 @@
       board.classList.remove("drag-over");
       const type = event.dataTransfer.getData("text/plain");
       if (!componentDefs[type]) return;
-      const point = screenToLogical(event.clientX, event.clientY);
-      const placement = clampComponentPosition(point.x - 50, point.y - 36, componentDefaultSize(type));
-      makeComponent(type, placement.x, placement.y);
-      render();
+      performCircuitEdit(() => {
+        const point = screenToLogical(event.clientX, event.clientY);
+        const placement = clampComponentPosition(point.x - 50, point.y - 36, componentDefaultSize(type));
+        makeComponent(type, placement.x, placement.y);
+        render();
+      });
       showToast(`已放置 ${type}`);
     });
 
     function clearConnectionHighlights() {
-      board.querySelectorAll(".port.active, .port.connect-target").forEach((node) => {
-        node.classList.remove("active", "connect-target");
+      board.querySelectorAll(".port.active, .port.connect-target, .port.tap-connect-target").forEach((node) => {
+        node.classList.remove("active", "connect-target", "tap-connect-target");
       });
+      board.querySelectorAll(".port.out").forEach((node) => node.setAttribute("aria-pressed", "false"));
       board.classList.remove("wiring");
+    }
+
+    function syncTapConnectionUi() {
+      cancelWireButton.hidden = !tapConnection;
+      clearConnectionHighlights();
+      if (!tapConnection) return;
+      const source = board.querySelector(`.component[data-id="${tapConnection.id}"] .port.out[data-port-index="${tapConnection.port}"]`);
+      if (!source) {
+        tapConnection = null;
+        cancelWireButton.hidden = true;
+        return;
+      }
+      source.classList.add("active");
+      source.setAttribute("aria-pressed", "true");
+      board.querySelectorAll(".port.in").forEach((port) => {
+        if (port.closest(".component")?.dataset.id !== tapConnection.id) port.classList.add("tap-connect-target");
+      });
+      board.classList.add("wiring");
+    }
+
+    function selectOutputForTap(component, port) {
+      const outputIndex = Number(port.dataset.portIndex || 0);
+      if (tapConnection?.id === component.id && tapConnection.port === outputIndex) {
+        cancelConnectionInteraction("连线已取消");
+        return;
+      }
+      tapConnection = { id: component.id, port: outputIndex };
+      syncTapConnectionUi();
+      statusText.textContent = `已选择 ${component.id}.${outputLabel(componentDefs[component.type], outputIndex)}，请点选目标输入端口`;
+      showToast("输出端已选中，请点输入端完成连线");
+    }
+
+    function finishTapConnection(component, portIndex) {
+      if (!tapConnection) return;
+      const from = tapConnection;
+      tapConnection = null;
+      syncTapConnectionUi();
+      if (component.id === from.id) {
+        statusText.textContent = "连线已取消：不能连接到自身输入端";
+        showToast("不能把元件输出接回自身输入");
+        return;
+      }
+      connectWire(from.id, from.port, component.id, portIndex);
+    }
+
+    function cancelConnectionInteraction(message = "连线已取消") {
+      if (!connectionDrag && !tapConnection) return false;
+      connectionDrag = null;
+      tapConnection = null;
+      clearConnectionHighlights();
+      cancelWireButton.hidden = true;
+      renderWires();
+      statusText.textContent = message;
+      showToast(message);
+      return true;
     }
 
     function targetInputAt(clientX, clientY) {
@@ -3366,6 +3695,8 @@
     }
 
     function startConnectionDrag(event, component, port) {
+      tapConnection = null;
+      syncTapConnectionUi();
       const outputIndex = Number(port.dataset.portIndex || 0);
       const start = portPosition(component.id, "out", outputIndex);
       if (!start) return;
@@ -3395,6 +3726,8 @@
       const from = connectionDrag.from;
       const target = targetInputAt(event.clientX, event.clientY);
       connectionDrag = null;
+      suppressNextPortClick = true;
+      window.setTimeout(() => { suppressNextPortClick = false; }, 0);
       clearConnectionHighlights();
 
       if (!target) {
@@ -3415,15 +3748,17 @@
     }
 
     function connectWire(fromId, fromPort, toId, portIndex) {
-      wires = wires.filter((wire) => !(wire.to.id === toId && wire.to.port === portIndex));
-      wires.push({
-        id: `W${Date.now()}${Math.random().toString(16).slice(2)}`,
-        from: { id: fromId, port: fromPort || 0 },
-        to: { id: toId, port: portIndex },
-        value: null
+      performCircuitEdit(() => {
+        wires = wires.filter((wire) => !(wire.to.id === toId && wire.to.port === portIndex));
+        wires.push({
+          id: `W${Date.now()}${Math.random().toString(16).slice(2)}`,
+          from: { id: fromId, port: fromPort || 0 },
+          to: { id: toId, port: portIndex },
+          value: null
+        });
+        statusText.textContent = "连线完成，可以继续搭建或运行仿真";
+        runSimulation();
       });
-      statusText.textContent = "连线完成，可以继续搭建或运行仿真";
-      runSimulation();
     }
 
     function pointerInsideRecycle(clientX, clientY) {
@@ -3442,16 +3777,19 @@
       statusText.textContent = active ? "释放鼠标即可删除该模块" : "正在移动模块，拖入右下角回收站可删除";
     }
 
-    function deleteComponent(id) {
+    function deleteComponent(id, beforeSnapshot = createHistorySnapshot()) {
       const component = components.find((item) => item.id === id);
       if (!component) return;
-      components = components.filter((item) => item.id !== id);
-      wires = wires.filter((wire) => wire.from.id !== id && wire.to.id !== id);
-      if (connectionDrag?.from.id === id) {
-        connectionDrag = null;
-        clearConnectionHighlights();
-      }
-      render();
+      performCircuitEdit(() => {
+        components = components.filter((item) => item.id !== id);
+        wires = wires.filter((wire) => wire.from.id !== id && wire.to.id !== id);
+        if (connectionDrag?.from.id === id || tapConnection?.id === id) {
+          connectionDrag = null;
+          tapConnection = null;
+          clearConnectionHighlights();
+        }
+        render();
+      }, beforeSnapshot);
       setSimulationSummary(`已删除 ${id}(${component.type})，相关连线也已自动移除。`);
       appendAnalysisMessage("system", `已删除 ${id}(${component.type})。如果电路结构发生变化，请重新运行仿真或点击“分析当前电路”。`);
       statusText.textContent = "模块已删除";
@@ -3512,66 +3850,17 @@
       return source.outputs?.[portIndex] ?? (portIndex === 0 ? source.output : null);
     }
 
-    function gateOutput(type, inputs) {
-      if (inputs.some((value) => value == null)) return null;
-      if (type === "AND") return inputs.every(Boolean) ? 1 : 0;
-      if (type === "OR") return inputs.some(Boolean) ? 1 : 0;
-      if (type === "NOT") return inputs[0] ? 0 : 1;
-      if (type === "XOR") return inputs.filter(Boolean).length % 2 ? 1 : 0;
-      if (type === "NAND") return inputs.every(Boolean) ? 0 : 1;
-      if (type === "NOR") return inputs.some(Boolean) ? 0 : 1;
-      if (type === "XNOR") return inputs.filter(Boolean).length % 2 ? 0 : 1;
-      return null;
-    }
-
     function evaluateComponentOutputs(component) {
       const def = componentDefs[component.type];
       const unknown = Array(outputCount(def)).fill(null);
       const inputs = component.inputs;
       if (!outputCount(def)) return [];
       if (inputs.some((value) => value == null)) return unknown;
-
-      if (["AND", "OR", "NOT", "XOR", "NAND", "NOR", "XNOR"].includes(component.type)) {
-        return [gateOutput(component.type, inputs)];
+      try {
+        return evaluateCircuitComponent(component.type, inputs);
+      } catch {
+        return unknown;
       }
-
-      if (component.type === "HALF_ADDER") {
-        const [A, B] = inputs;
-        return [A ^ B, A & B];
-      }
-
-      if (component.type === "FULL_ADDER") {
-        const [A, B, Cin] = inputs;
-        const sum = A + B + Cin;
-        return [sum % 2, sum >= 2 ? 1 : 0];
-      }
-
-      if (component.type === "MUX2") {
-        const [D0, D1, S] = inputs;
-        return [S ? D1 : D0];
-      }
-
-      if (component.type === "MUX4") {
-        const [D0, D1, D2, D3, S1, S0] = inputs;
-        return [[D0, D1, D2, D3][S1 * 2 + S0]];
-      }
-
-      if (component.type === "DECODER24") {
-        const [A1, A0] = inputs;
-        const selected = A1 * 2 + A0;
-        return [0, 1, 2, 3].map((index) => index === selected ? 1 : 0);
-      }
-
-      if (component.type === "COMPARATOR") {
-        const [A, B] = inputs;
-        return [A > B ? 1 : 0, A === B ? 1 : 0, A < B ? 1 : 0];
-      }
-
-      if (component.type === "PARITY") {
-        return [inputs.filter(Boolean).length % 2];
-      }
-
-      return unknown;
     }
 
     function componentStateKey(component) {
@@ -3653,13 +3942,21 @@
       }, 940);
     }
 
-    function clearBoard() {
+    function resetCircuitState() {
       components = [];
       wires = [];
       connectionDrag = null;
+      tapConnection = null;
       clearConnectionHighlights();
       nextId = 1;
-      render();
+      quickAddOffset = 0;
+    }
+
+    function clearBoard() {
+      performCircuitEdit(() => {
+        resetCircuitState();
+        render();
+      });
       circuitConversation = [];
       analysisOutput.replaceChildren();
       appendAnalysisMessage("system", "画布已清空。可以从左侧重新拖入元件，或加载示例电路。");
@@ -3668,18 +3965,20 @@
     }
 
     function loadExample() {
-      clearBoard();
-      setBoardPan(0, 0, false);
-      const inputA = makeComponent("INPUT", 70, 130, 1);
-      const inputB = makeComponent("INPUT", 70, 270, 0);
-      const andGate = makeComponent("AND", 310, 200);
-      const output = makeComponent("OUTPUT", 560, 210);
-      wires.push(
-        { id: "W1", from: { id: inputA.id, port: 0 }, to: { id: andGate.id, port: 0 }, value: null },
-        { id: "W2", from: { id: inputB.id, port: 0 }, to: { id: andGate.id, port: 1 }, value: null },
-        { id: "W3", from: { id: andGate.id, port: 0 }, to: { id: output.id, port: 0 }, value: null }
-      );
-      runSimulation();
+      prepareExampleBoardView();
+      performCircuitEdit(() => {
+        resetCircuitState();
+        const inputA = makeComponent("INPUT", 70, 130, 1);
+        const inputB = makeComponent("INPUT", 70, 270, 0);
+        const andGate = makeComponent("AND", 310, 200);
+        const output = makeComponent("OUTPUT", 560, 210);
+        wires.push(
+          { id: "W1", from: { id: inputA.id, port: 0 }, to: { id: andGate.id, port: 0 }, value: null },
+          { id: "W2", from: { id: inputB.id, port: 0 }, to: { id: andGate.id, port: 1 }, value: null },
+          { id: "W3", from: { id: andGate.id, port: 0 }, to: { id: output.id, port: 0 }, value: null }
+        );
+        runSimulation();
+      });
       appendAnalysisMessage("system", "已加载示例：两个输入经过 AND 门连接到输出灯。当前 A=1、B=0，所以输出为 0。可以点击“分析当前电路”让 AI 解释。");
       showToast("示例电路已加载");
     }
@@ -3789,7 +4088,11 @@
 
       runSimulation();
       appendAnalysisMessage("user", text);
-      circuitConversation.push({ role: "user", text });
+      assistantRequestController?.abort();
+      const controller = new AbortController();
+      const requestSequence = ++assistantRequestSequence;
+      const requestRevision = circuitRevision;
+      assistantRequestController = controller;
       const thinking = appendAnalysisMessage("assistant", "正在连接本项目 AI 助教大模型…", true);
       const bubble = thinking.querySelector(".chat-bubble");
       let replyText = "";
@@ -3799,14 +4102,19 @@
           experimentName: "门级电路自由搭建与智能分析",
           question: text,
           experimentState: circuitSnapshot(),
-          history: analysisHistory()
+          history: analysisHistory(),
+          revision: requestRevision
         }, (chunk) => {
-          if (!chunk) return;
+          if (!chunk || requestSequence !== assistantRequestSequence || requestRevision !== circuitRevision) return;
           replyText += chunk;
           bubble.classList.remove("thinking");
           bubble.textContent = replyText;
           analysisOutput.scrollTop = analysisOutput.scrollHeight;
-        });
+        }, controller.signal);
+
+        if (requestSequence !== assistantRequestSequence || requestRevision !== circuitRevision) {
+          throw new DOMException("电路状态已经变化", "AbortError");
+        }
 
         if (!replyText) {
           replyText = "AI 没有返回有效内容，请稍后重试。";
@@ -3815,12 +4123,20 @@
           thinking.removeAttribute("data-temporary");
           bubble.classList.remove("thinking");
         }
-        circuitConversation.push({ role: "assistant", text: replyText });
+        circuitConversation.push({ role: "user", text }, { role: "assistant", text: replyText });
+        circuitConversation = circuitConversation.slice(-12);
         const elapsed = result.elapsedMs > 0 ? `，耗时 ${(result.elapsedMs / 1000).toFixed(1)} 秒` : "";
         statusText.textContent = result.ai ? `AI 已完成电路分析${elapsed}` : "当前使用本地兜底分析，配置 AI Key 后可调用大模型";
       } catch (error) {
-        updateTemporaryMessage(thinking, replyText ? `${replyText}\n\n回复中断：${error.message}` : `暂时无法连接 AI：${error.message}`);
-        statusText.textContent = "AI 分析失败，请检查 AI 配置或网络";
+        if (error.name === "AbortError") {
+          updateTemporaryMessage(thinking, "本次回答已取消：电路状态发生变化，或你发起了新的问题。");
+          if (requestSequence === assistantRequestSequence) statusText.textContent = "电路已变化，请基于当前状态重新提问";
+        } else {
+          updateTemporaryMessage(thinking, replyText ? `${replyText}\n\n回复中断：${error.message}` : `暂时无法连接 AI：${error.message}`);
+          if (requestSequence === assistantRequestSequence) statusText.textContent = "AI 分析失败，请检查 AI 配置或网络";
+        }
+      } finally {
+        if (assistantRequestController === controller) assistantRequestController = null;
       }
     }
 
@@ -3855,6 +4171,13 @@
     zoomOutButton.addEventListener("click", () => setBoardZoom(boardZoom - 0.1));
     zoomInButton.addEventListener("click", () => setBoardZoom(boardZoom + 0.1));
     zoomResetButton.addEventListener("click", resetBoardView);
+    undoButton.addEventListener("click", undoCircuitChange);
+    redoButton.addEventListener("click", redoCircuitChange);
+    cancelWireButton.addEventListener("click", () => cancelConnectionInteraction());
+    document.addEventListener("keydown", handleHistoryShortcut);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && cancelConnectionInteraction()) event.preventDefault();
+    });
     window.addEventListener("resize", () => {
       clampBoardPan();
       applyBoardPanStyle();
@@ -3868,6 +4191,7 @@
     setupGhostHelperToggle();
     createLibrary();
     render();
+    updateHistoryControls();
     appendAnalysisMessage("assistant", "我是 AI 电路助教。搭好电路后点击“分析当前电路”，也可以直接问我“为什么输出灯不亮”。");
   </script>
 </body>

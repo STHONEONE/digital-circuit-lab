@@ -2363,9 +2363,31 @@ textarea::placeholder {
 }
 
 @media (max-width: 780px) {
+  .question-head {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .question-picker {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  #meta { min-height: 44px; }
+
   .ai-chat-launcher {
-    right: 14px;
-    bottom: 14px;
+    position: static;
+    min-height: 44px;
+    padding: 2px 12px 2px 4px;
+    box-shadow: 0 8px 22px rgba(56, 189, 248, .24);
+  }
+
+  .ai-chat-launcher .launcher-mark {
+    width: 38px;
+    height: 38px;
   }
 
   .ai-chat-panel {

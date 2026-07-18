@@ -25,6 +25,8 @@ export class Store {
     this.recordsFile = path.join(dataDir, "answer-records.json");
     this.wrongReviewFile = path.join(dataDir, "wrong-review-status.json");
     this.personalizedTasksFile = path.join(dataDir, "personalized-learning-tasks.json");
+    this.experimentSessionsFile = path.join(dataDir, "experiment-sessions.json");
+    this.experimentReportsFile = path.join(dataDir, "experiment-reports.json");
     this.configFile = path.join(dataDir, "ai-config.json");
     this.generatedSelfTestsFile = path.join(dataDir, "generated-self-test-questions.json");
     fs.mkdirSync(dataDir, { recursive: true });
@@ -32,11 +34,15 @@ export class Store {
     this.records = readJson(this.recordsFile, []);
     this.wrongReview = readJson(this.wrongReviewFile, {});
     this.personalizedTasks = readJson(this.personalizedTasksFile, []);
+    this.experimentSessions = readJson(this.experimentSessionsFile, []);
+    this.experimentReports = readJson(this.experimentReportsFile, []);
     this.config = readJson(this.configFile, {});
     const generatedSelfTests = readJson(this.generatedSelfTestsFile, []);
     this.generatedSelfTests = Array.isArray(generatedSelfTests) ? generatedSelfTests : [];
     if (!this.wrongReview || typeof this.wrongReview !== "object" || Array.isArray(this.wrongReview)) this.wrongReview = {};
     if (!Array.isArray(this.personalizedTasks)) this.personalizedTasks = [];
+    if (!Array.isArray(this.experimentSessions)) this.experimentSessions = [];
+    if (!Array.isArray(this.experimentReports)) this.experimentReports = [];
   }
 
   questions({ scope, source } = {}) {
@@ -111,19 +117,36 @@ export class Store {
 
   clearRecords(learnerId = "") {
     const before = this.records.length;
+    const tasksBefore = this.personalizedTasks.length;
+    const sessionsBefore = this.experimentSessions.length;
+    const reportsBefore = this.experimentReports.length;
+    const reviewBefore = Object.keys(this.wrongReview).length;
     this.records = learnerId
       ? this.records.filter((record) => record.learnerId !== learnerId)
       : [];
-    writeJson(this.recordsFile, this.records);
     if (learnerId) {
       Object.keys(this.wrongReview).forEach((key) => {
         if (key.startsWith(`${learnerId}\u0000`)) delete this.wrongReview[key];
       });
       this.personalizedTasks = this.personalizedTasks.filter((task) => task.learnerId !== learnerId);
-      writeJson(this.wrongReviewFile, this.wrongReview);
-      writeJson(this.personalizedTasksFile, this.personalizedTasks);
+      this.experimentSessions = this.experimentSessions.filter((session) => session.learnerId !== learnerId);
+      this.experimentReports = this.experimentReports.filter((report) => report.learnerId !== learnerId);
+    } else {
+      this.wrongReview = {};
+      this.personalizedTasks = [];
+      this.experimentSessions = [];
+      this.experimentReports = [];
     }
-    return before - this.records.length;
+    writeJson(this.recordsFile, this.records);
+    writeJson(this.wrongReviewFile, this.wrongReview);
+    writeJson(this.personalizedTasksFile, this.personalizedTasks);
+    writeJson(this.experimentSessionsFile, this.experimentSessions);
+    writeJson(this.experimentReportsFile, this.experimentReports);
+    return (before - this.records.length)
+      + (tasksBefore - this.personalizedTasks.length)
+      + (sessionsBefore - this.experimentSessions.length)
+      + (reportsBefore - this.experimentReports.length)
+      + (reviewBefore - Object.keys(this.wrongReview).length);
   }
 
   wrongReviewKey(learnerId, questionId) {
@@ -203,6 +226,57 @@ export class Store {
     this.personalizedTasks = this.personalizedTasks.filter((task) => !(task.id === taskId && task.learnerId === learnerId));
     if (before !== this.personalizedTasks.length) writeJson(this.personalizedTasksFile, this.personalizedTasks);
     return before !== this.personalizedTasks.length;
+  }
+
+  saveExperimentSession(session) {
+    const index = this.experimentSessions.findIndex((item) => item.id === session.id);
+    const saved = structuredClone(session);
+    if (index >= 0) this.experimentSessions[index] = saved;
+    else this.experimentSessions.unshift(saved);
+    writeJson(this.experimentSessionsFile, this.experimentSessions);
+    return structuredClone(saved);
+  }
+
+  experimentSession(learnerId, sessionId) {
+    const session = this.experimentSessions.find((item) => (
+      item.id === sessionId && item.learnerId === learnerId
+    ));
+    return session ? structuredClone(session) : null;
+  }
+
+  activeExperimentSession(learnerId, experimentId) {
+    const session = this.experimentSessions.find((item) => (
+      item.learnerId === learnerId
+      && item.experimentId === experimentId
+      && item.status === "active"
+    ));
+    return session ? structuredClone(session) : null;
+  }
+
+  saveExperimentReport(report) {
+    const index = this.experimentReports.findIndex((item) => item.id === report.id);
+    const saved = structuredClone(report);
+    if (index >= 0) this.experimentReports[index] = saved;
+    else this.experimentReports.unshift(saved);
+    writeJson(this.experimentReportsFile, this.experimentReports);
+    return structuredClone(saved);
+  }
+
+  experimentReportsForLearner(learnerId = "") {
+    return this.experimentReports
+      .filter((report) => !learnerId || report.learnerId === learnerId)
+      .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))
+      .map((report) => structuredClone(report));
+  }
+
+  experimentEvidenceForLearner(learnerId = "") {
+    return this.experimentSessions
+      .filter((session) => !learnerId || session.learnerId === learnerId)
+      .flatMap((session) => (session.evidence || []).map((evidence) => ({
+        ...structuredClone(evidence),
+        sessionId: session.id,
+        experimentId: session.experimentId
+      })));
   }
 
   aiConfig() {

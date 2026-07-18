@@ -749,12 +749,13 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
 .review-metric-copy strong { display: block; color: #f8fdff; font-size: 30px; line-height: 1.08; }
 .review-metric-copy span { display: block; margin-bottom: 7px; color: #9fb8d1; font-size: 12px; }
 .review-metric-copy small { display: block; margin-top: 5px; color: #6f8daa; font-size: 10px; }
-.review-workspace { display: grid; min-height: 370px; grid-template-areas: "trend action" "recent knowledge"; grid-template-columns: minmax(0, 1.8fr) minmax(285px, .8fr); gap: 12px; }
+.review-workspace { display: grid; min-height: 370px; grid-template-areas: "trend action" "recent knowledge" "experiment experiment"; grid-template-columns: minmax(0, 1.8fr) minmax(285px, .8fr); gap: 12px; }
 .review-workspace > .platform-surface { min-width: 0; padding: 19px 20px; }
 .review-trend-panel { grid-area: trend; }
 .review-recent-panel { grid-area: recent; }
 .review-knowledge-panel { grid-area: knowledge; }
 .review-action-panel { grid-area: action; }
+.review-experiment-panel { grid-area: experiment; }
 .report-panel-heading { min-height: 44px; margin-bottom: 16px; }
 .report-panel-heading h3 { font-size: 17px; }
 .report-panel-heading p { margin-top: 3px; font-size: 11px; }
@@ -831,6 +832,19 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
 .report-inline-notice.error { color: #fda4af; }
 .report-footer-actions { display: flex; flex: 0 0 auto; gap: 7px; }
 .report-footer-actions .platform-button { min-height: 34px; padding: 7px 11px; font-size: 11px; }
+.review-experiment-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.review-experiment-item { min-width: 0; border: 1px solid rgba(52, 211, 153, .22); border-radius: 11px; background: linear-gradient(135deg, rgba(5, 46, 53, .58), rgba(16, 25, 63, .62)); padding: 14px 15px; }
+.review-experiment-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.review-experiment-head > div { min-width: 0; }
+.review-experiment-head strong { display: block; color: #eaf6ff; font-size: 14px; }
+.review-experiment-head span { display: block; margin-top: 3px; color: #7894b0; font-size: 9px; }
+.review-experiment-head b { color: #6ee7b7; font-size: 21px; }
+.review-experiment-metrics { display: flex; flex-wrap: wrap; gap: 6px; margin: 11px 0; }
+.review-experiment-metrics span { border: 1px solid rgba(125, 211, 252, .13); border-radius: 999px; background: rgba(6, 21, 46, .55); color: #9fb8d1; padding: 4px 8px; font-size: 9px; }
+.review-experiment-item p { margin: 0; color: #a9bfd5; font-size: 11px; line-height: 1.6; }
+.review-experiment-empty { display: grid; min-height: 120px; grid-column: 1 / -1; align-content: center; justify-items: center; color: #7894b0; gap: 7px; text-align: center; }
+.review-experiment-empty strong { color: #dcecff; font-size: 14px; }
+.review-experiment-empty a { margin-top: 4px; color: #67e8f9; font-size: 11px; text-decoration: none; }
 
 /* Shared question runner. */
 .platform-question-card { min-height: 580px; padding: 26px 28px; }
@@ -1004,7 +1018,7 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
   .route-lesson-meta { justify-content: flex-start; }
   .review-summary { grid-template-columns: 1fr 1fr; }
   .review-metric:nth-child(2) { border-right: 0; }
-  .review-workspace { min-height: 0; grid-template-areas: "trend" "recent" "knowledge" "action"; }
+  .review-workspace { min-height: 0; grid-template-areas: "trend" "recent" "knowledge" "experiment" "action"; }
   .review-trend-chart { min-height: 250px; }
   .review-actions { grid-template-columns: 1fr; }
   .report-hero { min-height: 132px; }
@@ -1035,6 +1049,7 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
   .report-range-switch { flex: 0 0 auto; }
   .review-actions { grid-template-columns: 1fr; }
   .review-recent-list { grid-template-columns: 1fr; }
+  .review-experiment-list { grid-template-columns: 1fr; }
   .report-footer-actions { width: 100%; }
   .report-footer-actions .platform-button { flex: 1; }
   .platform-question-actions { grid-template-columns: 1fr; }

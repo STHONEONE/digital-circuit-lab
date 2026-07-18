@@ -102,7 +102,7 @@ function installPageTransitions() {
   const initialPage = document.body.dataset.learningPage || "center";
   const initialNodes = main ? [...main.children].filter((node) => node !== navigation) : [];
   const centerExtras = initialPage === "center" ? [...document.querySelectorAll([
-    "#systemNotice", "#aiChatLauncher", "#aiVariantLauncher", "#aiVariantFloat", "#aiChatPanel"
+    "#systemNotice", "#aiVariantLauncher", "#aiVariantFloat", "#aiChatPanel"
   ].join(","))] : [];
   const views = new Map([[initialPage, { nodes: initialNodes, extras: centerExtras, frame: null }]]);
   let activePage = initialPage;

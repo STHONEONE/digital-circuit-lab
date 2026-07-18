@@ -1,5 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { randomUUID } from "node:crypto";
+import { listCircuitDefinitions } from "../public/core/circuit-catalog.js";
 
 function contentText(content) {
   if (typeof content === "string") return content;
@@ -29,26 +30,12 @@ function answerIndex(value) {
   return Number.isInteger(numeric) ? numeric : null;
 }
 
-const ghostComponentCatalog = Object.freeze({
-  INPUT: { inputs: [], outputs: ["Q"] },
-  OUTPUT: { inputs: ["IN"], outputs: [] },
-  CONST0: { inputs: [], outputs: ["0"] },
-  CONST1: { inputs: [], outputs: ["1"] },
-  AND: { inputs: ["A", "B"], outputs: ["Y"] },
-  OR: { inputs: ["A", "B"], outputs: ["Y"] },
-  NOT: { inputs: ["A"], outputs: ["Y"] },
-  XOR: { inputs: ["A", "B"], outputs: ["Y"] },
-  NAND: { inputs: ["A", "B"], outputs: ["Y"] },
-  NOR: { inputs: ["A", "B"], outputs: ["Y"] },
-  XNOR: { inputs: ["A", "B"], outputs: ["Y"] },
-  HALF_ADDER: { inputs: ["A", "B"], outputs: ["S", "C"] },
-  FULL_ADDER: { inputs: ["A", "B", "Cin"], outputs: ["S", "Cout"] },
-  MUX2: { inputs: ["D0", "D1", "S"], outputs: ["Y"] },
-  MUX4: { inputs: ["D0", "D1", "D2", "D3", "S1", "S0"], outputs: ["Y"] },
-  DECODER24: { inputs: ["A1", "A0"], outputs: ["Y0", "Y1", "Y2", "Y3"] },
-  COMPARATOR: { inputs: ["A", "B"], outputs: ["A>B", "A=B", "A<B"] },
-  PARITY: { inputs: ["A", "B", "C", "D"], outputs: ["P"] }
-});
+const ghostComponentCatalog = Object.freeze(Object.fromEntries(
+  listCircuitDefinitions().map((definition) => [definition.type, Object.freeze({
+    inputs: definition.inputPorts,
+    outputs: definition.outputPorts
+  })])
+));
 
 function ghostPortIndex(value, labels, fallback = 0) {
   if (Number.isInteger(value)) return value;
@@ -661,16 +648,17 @@ export class AiService {
     }
   }
 
-  async streamTutor(question, request, onChunk) {
+  async streamTutor(question, request, onChunk, options = {}) {
     if (!this.configured()) {
       onChunk(this.localExplanation(question, request));
       return false;
     }
     const stream = await this.model({
       maxTokens: ["variant", "wrong_remediation"].includes(request.mode) ? 1000 : 700
-    }).stream(this.messages(question, request));
+    }).stream(this.messages(question, request), { signal: options.signal });
     let emitted = false;
     for await (const chunk of stream) {
+      if (options.signal?.aborted) throw new DOMException("请求已取消", "AbortError");
       const text = contentText(chunk.content);
       if (text) {
         emitted = true;
@@ -681,7 +669,7 @@ export class AiService {
     return true;
   }
 
-  async streamExperiment(request, onChunk) {
+  async streamExperiment(request, onChunk, options = {}) {
     const experimentName = String(request.experimentName || "数字电路实验");
     const state = request.experimentState || {};
     const question = String(request.question || "请解释当前实验状态");
@@ -717,9 +705,10 @@ export class AiService {
         role: "user",
         content: userPrompt
       }
-    ]);
+    ], { signal: options.signal });
     let emitted = false;
     for await (const chunk of stream) {
+      if (options.signal?.aborted) throw new DOMException("请求已取消", "AbortError");
       const text = contentText(chunk.content);
       if (text) {
         emitted = true;
