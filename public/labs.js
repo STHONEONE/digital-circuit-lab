@@ -737,7 +737,9 @@ let predictionSubmittedCase = "";
 let predictionSubmissionPendingCase = "";
 const pendingExperimentEventIds = new Map();
 let catalogSearch = "";
-const expandedGroups = new Set(experimentGroups.filter((group) => group.defaultExpanded).map((group) => group.id));
+const initialExperimentGroupId = getExperimentDefinition(experimentKey)?.groupId;
+const expandedGroups = new Set(initialExperimentGroupId ? [initialExperimentGroupId] : []);
+const fullyExpandedCatalogGroups = new Set();
 const learnerIdStorageKey = "digital-circuit-learner-id";
 const labStateStorageKey = "digital-circuit-lab-state-v1";
 
@@ -808,11 +810,9 @@ function restoreLabState() {
     });
     if (experiments[saved.experimentKey]) experimentKey = saved.experimentKey;
 
-    const validGroupIds = new Set(experimentGroups.map((group) => group.id));
-    if (Array.isArray(saved.expandedGroups)) {
-      expandedGroups.clear();
-      saved.expandedGroups.filter((id) => validGroupIds.has(id)).forEach((id) => expandedGroups.add(id));
-    }
+    const activeGroupId = getExperimentDefinition(experimentKey)?.groupId;
+    expandedGroups.clear();
+    if (activeGroupId) expandedGroups.add(activeGroupId);
 
     if (Array.isArray(saved.jkTimingHistory)) {
       jkTimingHistory = saved.jkTimingHistory.filter((sample) => sample
@@ -918,7 +918,9 @@ async function ensureFullAdderSession() {
 }
 
 const ids = [
-  "experimentTabs", "experimentSearch", "experimentChapter", "experimentTitle", "controls", "circuitDiagram", "circuitPanel",
+  "experimentTabs", "experimentSearch", "experimentBrowserTitle", "catalogResultSummary", "labWorkspace",
+  "experimentChapter", "experimentTitle", "experimentObjective", "workspaceStartButton", "controls", "circuitDiagram", "circuitPanel",
+  "experimentEvidencePanel",
   "timingPanel", "timingSummary", "timingDiagram", "clearTimingButton",
   "stateExplanation", "truthTable",
   "demoButton", "speakButton", "tutorFace", "voiceStatus", "labMessages",
@@ -934,9 +936,33 @@ function experiment() {
   return experiments[experimentKey];
 }
 
+function focusWorkspace() {
+  const reduceMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  elements.labWorkspace.focus({ preventScroll: true });
+  elements.labWorkspace.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+}
+
+function focusCurrentExperimentAction() {
+  let target = elements.controls.querySelector("button:not(:disabled), input:not(:disabled)");
+  if (experimentKey === "fullAdder") {
+    const pendingPrediction = restoreFullAdderPendingPrediction();
+    target = pendingPrediction
+      ? elements.runVerificationButton
+      : document.querySelector('[data-prediction-output="S"]:not(:disabled)');
+  }
+  if (!target) target = elements.circuitDiagram;
+  const reduceMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+  target.focus?.({ preventScroll: true });
+}
+
 function renderTabs() {
   elements.experimentTabs.innerHTML = "";
   const query = catalogSearch.trim().toLowerCase();
+  const availableCount = experimentGroups.reduce((count, group) => count + group.experiments.filter((definition) => (
+    definition.availability === "available" && experiments[definition.id]
+  )).length, 0);
+  elements.experimentBrowserTitle.textContent = `课程实验 ${availableCount}`;
   let visibleCount = 0;
   experimentGroups.forEach((group) => {
     const matches = group.experiments.filter((definition) => {
@@ -953,34 +979,57 @@ function renderTabs() {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "experiment-group-toggle";
+    const itemsId = `experiment-group-items-${group.id}`;
+    toggle.setAttribute("aria-controls", itemsId);
     toggle.setAttribute("aria-expanded", String(open));
-    toggle.innerHTML = `<span><strong>${group.title}</strong><small>${group.description}</small></span><b>${matches.length}</b><i aria-hidden="true">⌄</i>`;
+    toggle.innerHTML = `<span><strong>${group.title}</strong></span><b>${query ? matches.length : group.experimentCount}</b><i aria-hidden="true">⌄</i>`;
     const items = document.createElement("div");
     items.className = "experiment-group-items";
+    items.id = itemsId;
     items.hidden = !open;
     toggle.addEventListener("click", () => {
-      if (expandedGroups.has(group.id)) expandedGroups.delete(group.id);
-      else expandedGroups.add(group.id);
+      if (query) return;
+      if (expandedGroups.has(group.id)) {
+        expandedGroups.delete(group.id);
+      } else {
+        expandedGroups.clear();
+        expandedGroups.add(group.id);
+      }
       persistLabState();
       renderTabs();
     });
+    const limitCombinational = !query
+      && group.id === "combinational-logic"
+      && !fullyExpandedCatalogGroups.has(group.id);
+    items.classList.toggle("catalog-preview", limitCombinational);
+    let visibleAvailableItems = 0;
     matches.forEach((definition) => {
-      if (definition.availability === "available" && experiments[definition.id]) {
+      const isAvailable = definition.availability === "available" && experiments[definition.id];
+      const itemHiddenByLimit = limitCombinational
+        && definition.id !== experimentKey
+        && (!isAvailable || visibleAvailableItems >= 5);
+      if (limitCombinational && isAvailable && visibleAvailableItems < 5) visibleAvailableItems += 1;
+      if (isAvailable) {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "experiment-item";
+        button.dataset.experimentId = definition.id;
+        button.hidden = itemHiddenByLimit;
+        if (itemHiddenByLimit) button.style.display = "none";
         button.classList.toggle("active", definition.id === experimentKey);
         button.setAttribute("aria-pressed", String(definition.id === experimentKey));
-        button.innerHTML = `<span><strong>${definition.title}</strong><small>${definition.summary}</small></span><b>进入</b>`;
+        button.innerHTML = `<strong>${definition.title}</strong>`;
         button.addEventListener("click", async () => {
           stopDemo();
           activeTutorController?.abort();
           experimentKey = definition.id;
+          expandedGroups.clear();
           expandedGroups.add(group.id);
           predictionDraft = { S: null, Cout: null };
           predictionSubmittedCase = "";
           persistLabState();
           render();
+          focusWorkspace();
           if (definition.id === "fullAdder") {
             try {
               await ensureFullAdderSession();
@@ -994,13 +1043,34 @@ function renderTabs() {
       } else {
         const planned = document.createElement("div");
         planned.className = "experiment-item planned";
-        planned.innerHTML = `<span><strong>${definition.title}</strong><small>${definition.summary}</small></span><b>规划中</b>`;
+        planned.dataset.experimentId = definition.id;
+        planned.hidden = itemHiddenByLimit;
+        if (itemHiddenByLimit) planned.style.display = "none";
+        planned.innerHTML = `<strong>${definition.title}</strong><b>规划中</b>`;
         items.append(planned);
       }
     });
+    if (limitCombinational) {
+      const showMore = document.createElement("button");
+      showMore.type = "button";
+      showMore.className = "experiment-show-more";
+      showMore.textContent = `查看全部 ${group.experimentCount} 个`;
+      showMore.setAttribute("aria-controls", itemsId);
+      showMore.addEventListener("click", () => {
+        const firstHiddenExperimentId = items.querySelector("button.experiment-item[hidden]")?.dataset.experimentId;
+        fullyExpandedCatalogGroups.add(group.id);
+        renderTabs();
+        if (firstHiddenExperimentId) {
+          elements.experimentTabs.querySelector(`[data-experiment-id="${firstHiddenExperimentId}"]`)?.focus();
+        }
+      });
+      items.append(showMore);
+    }
     section.append(toggle, items);
     elements.experimentTabs.append(section);
   });
+  elements.catalogResultSummary.hidden = !query;
+  elements.catalogResultSummary.textContent = query ? `找到 ${visibleCount} 个实验` : "";
   if (!visibleCount) elements.experimentTabs.innerHTML = '<p class="experiment-search-empty">没有匹配的实验，请换一个关键词。</p>';
 }
 
@@ -1130,6 +1200,7 @@ function renderExperimentGuide() {
 function renderFullAdderLearningPanel() {
   const active = experimentKey === "fullAdder";
   elements.fullAdderChallenge.hidden = !active;
+  elements.experimentEvidencePanel.hidden = !active;
   elements.circuitDiagram.classList.toggle("awaiting-prediction", active && !isCurrentFullAdderCaseVerified());
   if (!active) return;
   const testedCases = fullAdderSession?.testedCases || [];
@@ -1179,10 +1250,17 @@ function render() {
   renderTabs();
   renderControls();
   const current = experiment();
+  const definition = getExperimentDefinition(experimentKey);
+  const currentGroup = experimentGroups.find((group) => group.id === definition?.groupId);
   const output = current.calculate(current.state);
   const predictionPending = experimentKey === "fullAdder" && !isCurrentFullAdderCaseVerified();
-  elements.experimentChapter.textContent = current.chapter;
+  document.body.dataset.currentExperiment = experimentKey;
+  document.body.dataset.currentExperimentGroup = definition?.groupId || "";
+  elements.experimentChapter.textContent = currentGroup && current.chapter !== currentGroup.title
+    ? `${currentGroup.title} / ${current.chapter}`
+    : (currentGroup?.title || current.chapter);
   elements.experimentTitle.textContent = current.name;
+  elements.experimentObjective.textContent = definition?.summary || current.describe(current.state, output);
   elements.circuitDiagram.innerHTML = renderCircuitDiagram(experimentKey, current.state, output, {
     revealOutputs: !predictionPending
   });
@@ -1192,6 +1270,9 @@ function render() {
     ? `当前输入为 A=${current.state.A}、B=${current.state.B}、Cin=${current.state.Cin}。输出暂时隐藏，请先预测 S 与 Cout，再运行仿真验证。`
     : current.describe(current.state, output);
   elements.demoButton.disabled = fullAdderDemoLocked;
+  elements.workspaceStartButton.textContent = experimentKey === "fullAdder"
+    ? (restoreFullAdderPendingPrediction() ? "继续验证" : "开始预测")
+    : "开始实验";
   elements.stateQuestionButton.disabled = predictionPending;
   elements.screenshotButton.disabled = predictionPending;
   elements.screenshotButton.title = predictionPending
@@ -1653,6 +1734,7 @@ async function completeFullAdderExperiment() {
 }
 
 elements.demoButton.addEventListener("click", startDemo);
+elements.workspaceStartButton.addEventListener("click", focusCurrentExperimentAction);
 elements.clearTimingButton.addEventListener("click", () => {
   jkTimingHistory = [];
   jkCycleNumber = 0;
@@ -1706,6 +1788,13 @@ document.addEventListener("fullscreenchange", () => {
 elements.screenshotButton.addEventListener("click", saveCircuitScreenshot);
 elements.exportReportButton.addEventListener("click", exportExperimentReport);
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && catalogSearch) {
+    catalogSearch = "";
+    elements.experimentSearch.value = "";
+    renderTabs();
+    elements.experimentSearch.focus();
+    return;
+  }
   if (event.key === "Escape" && document.body.classList.contains("lab-focus-mode")) {
     document.body.classList.remove("lab-focus-mode");
     elements.focusButton.setAttribute("aria-pressed", "false");

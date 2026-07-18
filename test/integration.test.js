@@ -86,7 +86,7 @@ test("health, pages and question APIs are available", async () => {
   assert.match(appScript, /generatedVariant/);
   assert.match(appScript, /orderLearningCenterQuestions/);
   assert.match(appScript, /method: "POST"/);
-  assert.match(labs, /交互仿真实验中心/);
+  assert.match(labs, /数字电路实验中心/);
   assert.match(labs, /site-nav\.css/);
   assert.match(labs, /href="\.\/index\.html">学习中心/);
   assert.match(labs, /href="\.\/gate-builder-demo\.html">电路搭建/);

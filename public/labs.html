@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>数字电路交互仿真实验</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./labs.css?v=20260718-1">
+  <link rel="stylesheet" href="./labs.css?v=20260718-3">
   <link rel="stylesheet" href="./site-nav.css?v=20260622-1">
 </head>
 <body class="inner-page lab-page experiment-page experiment-center">
@@ -44,9 +44,12 @@
     </svg>
   </div>
   <header class="lab-topbar">
-    <div>
-      <p>state → calculate → render → describe</p>
-      <h1>数字电路交互仿真实验中心</h1>
+    <div class="lab-brand">
+      <img src="./assets/icons/circuit-board.svg" alt="" aria-hidden="true">
+      <div>
+        <p>state → calculate → render → describe</p>
+        <h1>数字电路实验中心</h1>
+      </div>
     </div>
     <nav class="site-nav" aria-label="页面导航">
       <a class="site-nav__link" href="./index.html">学习中心</a>
@@ -57,56 +60,69 @@
   </header>
 
   <main class="lab-shell">
-    <section class="experiment-browser" aria-labelledby="experimentBrowserTitle">
+    <aside class="experiment-browser" aria-labelledby="experimentBrowserTitle">
       <div class="experiment-browser-heading">
-        <div>
-          <span>课程实验目录</span>
-          <h2 id="experimentBrowserTitle">按主题选择实验</h2>
-        </div>
+        <h2 id="experimentBrowserTitle">课程实验 22</h2>
         <label class="experiment-search">
           <span class="sr-only">搜索实验</span>
-          <input id="experimentSearch" type="search" placeholder="搜索实验、器件或知识点" autocomplete="off">
+          <input id="experimentSearch" type="search" placeholder="搜索实验" autocomplete="off">
         </label>
       </div>
+      <p id="catalogResultSummary" class="experiment-results-summary" role="status" aria-live="polite" hidden></p>
       <nav id="experimentTabs" class="experiment-tabs" aria-label="实验选择"></nav>
-    </section>
+    </aside>
 
-    <div class="lab-toolstrip" aria-label="实验工具">
-      <button id="guideButton" type="button" aria-expanded="true">实验指南</button>
-      <button id="focusButton" type="button" aria-pressed="false">专注模式</button>
-      <button id="fullscreenButton" type="button">电路全屏</button>
-      <button id="screenshotButton" type="button">保存截图</button>
-      <button id="exportReportButton" type="button" disabled>导出报告</button>
-      <span id="toolStatus" role="status" aria-live="polite"></span>
-    </div>
-
-    <section class="lab-grid">
-      <article id="circuitPanel" class="circuit-panel">
-        <div class="section-heading">
-          <div>
-            <span id="experimentChapter">实验</span>
-            <h2 id="experimentTitle">基本逻辑门</h2>
-          </div>
-          <button id="demoButton" type="button">自动演示</button>
+    <section id="labWorkspace" class="lab-workspace" tabindex="-1" aria-labelledby="experimentTitle">
+      <header class="workbench-header">
+        <div class="workbench-copy">
+          <span id="experimentChapter">实验</span>
+          <h2 id="experimentTitle">基本逻辑门</h2>
+          <p id="experimentObjective" class="workbench-objective">观察输入变化如何决定输出。</p>
         </div>
-
-        <div id="controls" class="controls"></div>
-
-        <section id="experimentGuide" class="experiment-guide">
-          <div>
-            <span>实验目标</span>
-            <strong id="guideObjective">观察输入变化如何决定输出。</strong>
+        <div class="workbench-actions">
+          <button id="workspaceStartButton" class="workbench-primary-action" type="button">开始实验</button>
+          <div class="lab-toolstrip" aria-label="实验工具">
+            <button id="demoButton" type="button">自动演示</button>
+            <button id="guideButton" type="button" aria-expanded="true">实验指南</button>
+            <button id="focusButton" type="button" aria-pressed="false">专注模式</button>
+            <button id="fullscreenButton" type="button">电路全屏</button>
+            <button id="screenshotButton" type="button">电路截图</button>
+            <button id="exportReportButton" type="button" disabled>导出报告</button>
+            <span id="toolStatus" role="status" aria-live="polite"></span>
           </div>
-          <ol id="guideSteps">
-            <li>设置输入或器件参数。</li>
-            <li>先预测，再运行仿真。</li>
-            <li>对照电路、真值表和讲解验证结论。</li>
-          </ol>
-        </section>
+        </div>
+      </header>
 
-        <div id="circuitDiagram" class="circuit-stage" aria-live="polite"></div>
+      <section id="experimentGuide" class="experiment-guide">
+        <img src="./assets/icons/book-open.svg" alt="" aria-hidden="true">
+        <div class="experiment-guide-copy">
+          <span>实验目标</span>
+          <strong id="guideObjective">观察输入变化如何决定输出。</strong>
+        </div>
+        <ol id="guideSteps">
+          <li>设置输入或器件参数。</li>
+          <li>先预测，再运行仿真。</li>
+          <li>对照电路、真值表和讲解验证结论。</li>
+        </ol>
+      </section>
 
-        <section id="fullAdderChallenge" class="prediction-panel" hidden>
+      <section class="lab-grid">
+        <article id="circuitPanel" class="circuit-panel">
+          <div class="section-heading compact workbench-section-heading">
+            <div>
+              <span>交互工作台</span>
+              <h3>电路搭建与仿真</h3>
+            </div>
+          </div>
+
+          <div class="simulation-layout">
+            <div class="simulation-primary">
+              <div id="controls" class="controls"></div>
+              <div id="circuitDiagram" class="circuit-stage" aria-live="polite"></div>
+            </div>
+
+            <div class="verification-column">
+              <section id="fullAdderChallenge" class="prediction-panel" hidden>
           <div class="prediction-heading">
             <div>
               <span>预测 → 验证 → 形成证据</span>
@@ -133,15 +149,21 @@
             <button id="runVerificationButton" type="button" disabled>运行验证</button>
           </div>
           <p id="predictionFeedback" class="prediction-feedback" role="status" aria-live="polite">请选择 S 和 Cout 的预测值。</p>
-          <div id="experimentRunLog" class="experiment-run-log" aria-label="实验记录"></div>
-          <div class="experiment-conclusion">
-            <label for="experimentConclusion">实验结论</label>
-            <textarea id="experimentConclusion" rows="3" placeholder="完成 8 组验证后，用自己的话总结和位与进位规律。"></textarea>
-            <button id="completeExperimentButton" type="button" disabled>完成实验并生成报告</button>
-          </div>
-        </section>
+              </section>
 
-        <section id="timingPanel" class="timing-panel" hidden>
+              <aside id="truthPanel" class="truth-panel">
+                <div class="section-heading compact">
+                  <div>
+                    <span>实时验证</span>
+                    <h3>真值表 / 状态表</h3>
+                  </div>
+                </div>
+                <div id="truthTable" class="truth-table"></div>
+              </aside>
+            </div>
+          </div>
+
+          <section id="timingPanel" class="timing-panel" hidden>
           <div class="timing-heading">
             <div>
               <span>边沿触发过程</span>
@@ -151,53 +173,61 @@
             <button id="clearTimingButton" type="button">清空波形</button>
           </div>
           <div id="timingDiagram" class="timing-diagram"></div>
-        </section>
+          </section>
 
-        <div class="explanation-card">
-          <span>状态讲解</span>
-          <p id="stateExplanation"></p>
-          <button id="speakButton" type="button">朗读讲解</button>
-        </div>
-      </article>
+        </article>
+      </section>
 
-      <aside class="truth-panel">
+      <div class="lab-lower-grid">
+      <section id="experimentEvidencePanel" class="experiment-evidence-panel" hidden>
         <div class="section-heading compact">
           <div>
-            <span>实时验证</span>
-            <h2>真值表 / 状态表</h2>
+            <span>实验证据</span>
+            <h3>实验记录与结论</h3>
           </div>
         </div>
-        <div id="truthTable" class="truth-table"></div>
-      </aside>
-    </section>
+        <div id="experimentRunLog" class="experiment-run-log" aria-label="实验记录"></div>
+        <div class="experiment-conclusion">
+          <label for="experimentConclusion">实验结论</label>
+          <textarea id="experimentConclusion" rows="3" placeholder="完成 8 组验证后，用自己的话总结和位与进位规律。"></textarea>
+          <button id="completeExperimentButton" type="button" disabled>完成实验并生成报告</button>
+        </div>
+      </section>
 
-    <section class="assistant-panel">
-      <div class="digital-tutor" aria-hidden="true">
-        <div id="tutorFace" class="tutor-face">
-          <span class="eye left"></span>
-          <span class="eye right"></span>
-          <span class="mouth"></span>
+      <section class="assistant-panel">
+        <div class="digital-tutor" aria-hidden="true">
+          <div id="tutorFace" class="tutor-face">
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="mouth"></span>
+          </div>
+          <strong>实验助教</strong>
+          <small id="voiceStatus">可朗读，也可语音提问</small>
         </div>
-        <strong>实验助教</strong>
-        <small id="voiceStatus">可朗读，也可语音提问</small>
-      </div>
-      <div class="assistant-chat">
-        <div id="labMessages" class="lab-messages">
-          <div class="message assistant">改变输入后，我会同步解释电路输出。你也可以直接问“为什么现在输出是 1”。</div>
+        <div class="assistant-chat">
+          <div class="explanation-card">
+            <span>状态讲解</span>
+            <p id="stateExplanation"></p>
+            <button id="speakButton" type="button">朗读讲解</button>
+          </div>
+          <div id="labMessages" class="lab-messages">
+            <div class="message assistant">改变输入后，我会同步解释电路输出。你也可以直接问“为什么现在输出是 1”。</div>
+          </div>
+          <div class="assistant-actions">
+            <button id="stateQuestionButton" type="button">解释当前状态</button>
+            <button id="voiceButton" type="button">语音提问</button>
+          </div>
+          <div class="assistant-composer">
+            <input id="labQuestion" type="text" placeholder="结合当前实验状态提问">
+            <button id="askButton" type="button">发送</button>
+          </div>
         </div>
-        <div class="assistant-actions">
-          <button id="stateQuestionButton" type="button">解释当前状态</button>
-          <button id="voiceButton" type="button">语音提问</button>
-        </div>
-        <div class="assistant-composer">
-          <input id="labQuestion" type="text" placeholder="结合当前实验状态提问">
-          <button id="askButton" type="button">发送</button>
-        </div>
+      </section>
       </div>
     </section>
   </main>
 
   <script src="./circuit-background.js?v=20260620-1"></script>
-  <script type="module" src="./labs.js?v=20260718-1"></script>
+  <script type="module" src="./labs.js?v=20260718-3"></script>
 </body>
 </html>

@@ -34,6 +34,10 @@ test.after(async () => {
 async function openExperiment(page, groupName, experimentName) {
   const button = page.getByRole("button", { name: experimentName });
   if (!await button.isVisible()) await page.getByRole("button", { name: groupName }).click();
+  if (!await button.isVisible()) {
+    const showAll = page.locator(".experiment-show-more");
+    if (await showAll.isVisible()) await showAll.click();
+  }
   await button.click();
 }
 
@@ -75,6 +79,45 @@ test("expanded curriculum models are interactive, visualized and restored", {
   await context.close();
 });
 
+test("experiment catalog is a compact accordion with progressive disclosure and search", {
+  skip: browserExecutable ? false : "未找到可用于实验目录验证的 Chromium 浏览器"
+}, async () => {
+  const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+  const page = await context.newPage();
+  await page.goto(`${baseUrl}/labs.html`, { waitUntil: "networkidle" });
+
+  assert.equal((await page.locator("#experimentBrowserTitle").textContent()).trim(), "课程实验 22");
+  assert.equal(await page.locator('[data-experiment-group="basic-logic"] .experiment-group-toggle').getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator('[data-experiment-group="combinational-logic"] .experiment-group-toggle').getAttribute("aria-expanded"), "false");
+
+  const combination = page.locator('[data-experiment-group="combinational-logic"]');
+  await combination.locator(".experiment-group-toggle").click();
+  assert.equal(await page.locator('[data-experiment-group="basic-logic"] .experiment-group-toggle').getAttribute("aria-expanded"), "false");
+  assert.equal(await combination.locator("button.experiment-item:visible").count(), 5);
+  assert.equal((await combination.locator(".experiment-show-more").textContent()).trim(), "查看全部 11 个");
+  assert.doesNotMatch(await combination.locator(".experiment-group-items").textContent(), /进入|输出仅由当前输入决定/);
+
+  await combination.getByRole("button", { name: "全加器", exact: true }).click();
+  assert.equal(await page.locator("body").getAttribute("data-current-experiment"), "fullAdder");
+  assert.equal(await page.locator("#labWorkspace").evaluate((workspace) => document.activeElement === workspace), true);
+  assert.equal(await combination.getByRole("button", { name: "全加器", exact: true }).getAttribute("aria-pressed"), "true");
+
+  await combination.locator(".experiment-show-more").click();
+  assert.equal(await combination.locator("button.experiment-item:visible").count(), 9);
+  assert.match(await combination.locator('[data-experiment-id="halfSubtractor"]').textContent(), /半减器.*规划中/);
+
+  await page.locator("#experimentSearch").fill("半减器");
+  assert.equal((await page.locator("#catalogResultSummary").textContent()).trim(), "找到 2 个实验");
+  assert.equal(await page.locator('[data-experiment-id="halfSubtractor"]').isVisible(), true);
+  await page.locator("#experimentSearch").fill("不存在的实验名称");
+  assert.equal((await page.locator("#catalogResultSummary").textContent()).trim(), "找到 0 个实验");
+  await page.locator("#experimentSearch").press("Escape");
+  assert.equal(await page.locator("#experimentSearch").inputValue(), "");
+  assert.equal(await page.locator("#catalogResultSummary").isHidden(), true);
+
+  await context.close();
+});
+
 test("invalid persisted experiment controls fall back safely instead of breaking lab startup", {
   skip: browserExecutable ? false : "未找到可用于扩展实验验证的 Chromium 浏览器"
 }, async () => {
@@ -99,6 +142,8 @@ test("invalid persisted experiment controls fall back safely instead of breaking
   await page.goto(`${baseUrl}/labs.html`, { waitUntil: "networkidle" });
 
   assert.equal((await page.locator("#experimentTitle").textContent()).trim(), "BCD-7 段译码器");
+  assert.equal(await page.locator('[data-experiment-id="bcdSevenSegment"]').isVisible(), true);
+  assert.equal(await page.locator('[data-experiment-id="bcdSevenSegment"]').getAttribute("aria-pressed"), "true");
   assert.match(await page.locator("#stateExplanation").textContent(), /数字 0|BCD 0/);
   assert.deepEqual(pageErrors, []);
   await context.close();

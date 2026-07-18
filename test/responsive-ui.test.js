@@ -94,7 +94,12 @@ test("390px 实验中心完整显示电路且主要控件适合触摸", {
     const group = page.locator(`[data-experiment-group="${target.group}"]`);
     const toggle = group.locator(".experiment-group-toggle");
     if (await toggle.getAttribute("aria-expanded") !== "true") await toggle.click();
-    await group.getByRole("button", { name: target.name }).click();
+    const experimentButton = group.getByRole("button", { name: target.name });
+    if (!await experimentButton.isVisible()) {
+      const showAll = group.locator(".experiment-show-more");
+      if (await showAll.isVisible()) await showAll.click();
+    }
+    await experimentButton.click();
     const experimentLayout = await page.evaluate(() => {
       const stage = document.querySelector("#circuitDiagram");
       const controls = [...document.querySelectorAll("#controls button")].map((button) => {

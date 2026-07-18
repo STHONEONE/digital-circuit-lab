@@ -149,3 +149,70 @@ final result: passed
 - Browser console: no application errors or warnings; Chromium only emitted its verbose password-autofill advisory.
 
 final result: passed
+
+## 实验中心重设计 — 2026-07-18
+
+- 日期：2026-07-18
+- 设计来源：`C:\Users\STONEO~1\AppData\Local\Temp\codex-clipboard-9e6ed889-e937-499d-83d7-eca641ff93e3.png`
+- 实现页面：`public/labs.html`
+- 样式与行为：`public/labs.css`、`public/labs.js`
+- 桌面视口：1440 × 1024，Microsoft Edge（Playwright 自动化）
+- 移动视口：390 × 844，Microsoft Edge（Playwright 自动化）
+- 页面状态：组合逻辑 / 全加器；尚未提交第一组预测
+- 浏览器插件：当前环境没有 Browser plugin，使用项目已有的 Playwright 与本机 Edge 完成同等的真实浏览器检查。
+
+## 对照记录
+
+### Pass 1
+
+对照图：`C:\Users\Stone One\.codex\visualizations\2026\07\17\019f6d9d-14d5-72d3-9703-812a57e99774\experiment-center-redesign-qa\comparison-pass1.png`
+
+- 目录宽度、深蓝工作台、青色选中态以及左右仿真布局已与参考方向一致。
+- 标题区工具按钮过于靠上，视觉上被顶部导航压住。
+- 输出门禁遮罩覆盖电路主体，弱化了参考稿强调的可读电路图。
+- 真值表行距偏大，只能看到部分组合；底部日志和 AI 面板进入首屏过少。
+
+修正：工具栏下移到标题区；门禁改为右上角提示并恢复电路可见度；真值表采用紧凑行距显示完整 8 组；日志、结论与 AI 助教组成下方双栏。
+
+### Pass 2
+
+对照图：`C:\Users\Stone One\.codex\visualizations\2026\07\17\019f6d9d-14d5-72d3-9703-812a57e99774\experiment-center-redesign-qa\comparison-pass2.png`
+
+- 顶部导航、252px 固定课程目录、工作台标题、工具区、目标条、主仿真双栏及底部双栏的顺序与参考稿一致。
+- 全加器电路保持项目真实逻辑模型和预测门禁，没有为了贴图绕过“先预测、再验证”的学习协议。
+- 参考稿中的画布编辑工具未伪造成无效控件；当前实现保留已有输入、截图、全屏、专注、报告和 AI 能力。
+- 实现使用项目已有图标和动态 SVG 电路渲染，没有新增占位图、CSS 假图标或装饰性伪资产。
+
+### Pass 3
+
+对照图：`C:\Users\Stone One\.codex\visualizations\2026\07\17\019f6d9d-14d5-72d3-9703-812a57e99774\experiment-center-redesign-qa\comparison-pass3.png`
+
+- 独立复核指出的真值表末行截断已修正，表头与 8 组输入现在全部显示。
+- 移动目录将当前实验和“查看全部 11 个”提升到可视区，仍保留其余实验和内部滚动。
+- 标题边界为 y=110.55，粘性顶部栏底边为 y=60，两者相距约 50px；局部元素截图的粘性覆盖不代表实际页面裁切，完整页面截图确认标题可见。
+
+### Pass 4
+
+移动复核图：`C:\Users\Stone One\.codex\visualizations\2026\07\17\019f6d9d-14d5-72d3-9703-812a57e99774\experiment-center-redesign-qa\mobile-full-adder-390x844.png`
+
+- 修复移动端折叠内容被后置样式重新显示的问题。
+- 390px 首屏同时提供搜索、基础逻辑、组合逻辑、时序逻辑、进阶主题、当前全加器和“查看全部 11 个”，工作台标题与主操作仍可见。
+- 独立终检确认桌面和移动端均无 P0/P1。
+
+## 响应式与交互
+
+- 桌面端文档宽度与视口均为 1440px；侧栏 252px，工作台 1188px，无横向溢出。
+- 390px 下文档宽度与视口均为 390px；活动实验可见，工作台宽度 390px，输入按钮为 46 × 44px。
+- 目录支持单开手风琴、组合逻辑渐进展开、搜索结果计数、空结果和 Esc 清空。
+- “开始预测”只聚焦当前预测动作，不会直接运行仿真或绕过预测门禁。
+- 指南、专注、全屏、截图、实验恢复、全加器预测与报告路径均由真实浏览器测试覆盖。
+- 桌面和移动检查均无控制台 warning、error 或 pageerror。
+- 全量自动化回归：130/130 通过。
+
+## 可访问性
+
+- 目录分组和实验项保留按钮语义、`aria-expanded`、`aria-pressed` 与活动状态。
+- 搜索反馈使用 `role="status"` 与 `aria-live`；工作台可聚焦；可见焦点和减少动画偏好保持有效。
+- 390px 主要交互控件达到 44px 触控高度；禁用态、选中态和预测状态不仅依赖文字说明。
+
+Final result: passed
