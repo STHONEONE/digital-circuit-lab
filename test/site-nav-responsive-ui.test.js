@@ -151,6 +151,86 @@ test("390px navigation stays inside the viewport and routes with the correct act
   await context.close();
 });
 
+test("page navigation has no transition overlay or delayed click interception", {
+  skip: browserExecutable ? false : "未找到可用于无动画导航验证的 Chromium 浏览器"
+}, async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  async function assertNoTransitionArtifacts() {
+    const state = await page.evaluate(() => {
+      const forbiddenClasses = [
+        "page-enter", "page-enter-active", "page-leave",
+        "platform-page-ready", "platform-page-leaving"
+      ];
+      return {
+        overlayCount: document.querySelectorAll(".transition-flash, .platform-transition").length,
+        bodyClasses: forbiddenClasses.filter((className) => document.body.classList.contains(className))
+      };
+    });
+    assert.equal(state.overlayCount, 0, "transition overlays must not be mounted");
+    assert.deepEqual(state.bodyClasses, [], "transition state classes must not be applied");
+  }
+
+  async function assertNativeNavigation(source, selector, destination) {
+    await page.goto(`${baseUrl}/${source}`, { waitUntil: "networkidle" });
+    await assertNoTransitionArtifacts();
+    await page.evaluate(() => {
+      sessionStorage.removeItem("navigation-default-prevented");
+      document.addEventListener("click", (event) => {
+        if (event.target.closest("a[href]")) {
+          sessionStorage.setItem("navigation-default-prevented", String(event.defaultPrevented));
+        }
+      }, { once: true });
+    });
+    await Promise.all([
+      page.waitForURL((url) => url.pathname.endsWith(`/${destination}`)),
+      page.locator(selector).click()
+    ]);
+    assert.equal(await page.evaluate(() => sessionStorage.getItem("navigation-default-prevented")), "false",
+      `${source} should allow the browser to navigate directly`);
+    await assertNoTransitionArtifacts();
+  }
+
+  await assertNativeNavigation("home.html", ".enter-button", "index.html");
+  await assertNativeNavigation("index.html", '.site-nav__link[href="./gate-builder-demo.html"]', "gate-builder-demo.html");
+  await assertNativeNavigation("extensions.html", '.site-nav__link[href="./index.html"]', "index.html");
+
+  await page.goto(`${baseUrl}/index.html`, { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    sessionStorage.removeItem("navigation-default-prevented");
+    document.addEventListener("click", (event) => {
+      if (event.target.closest("[data-learning-nav] a[href]")) {
+        sessionStorage.setItem("navigation-default-prevented", String(event.defaultPrevented));
+      }
+    }, { once: true });
+  });
+  await Promise.all([
+    page.waitForURL((url) => url.pathname.endsWith("/learning-route.html")),
+    page.locator('[data-learning-nav] a[href="./learning-route.html"]').click()
+  ]);
+  await page.waitForFunction(() => document.body.dataset.learningPage === "route");
+  await page.locator('iframe[data-learning-view="route"]').waitFor({ state: "visible" });
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("navigation-default-prevented")), "true",
+    "same-shell learning navigation should keep its intentional interception");
+  await assertNoTransitionArtifacts();
+
+  await page.goBack();
+  await page.waitForFunction(() => document.body.dataset.learningPage === "center");
+  assert.match(page.url(), /\/index\.html$/);
+  await assertNoTransitionArtifacts();
+
+  await page.goForward();
+  await page.waitForFunction(() => document.body.dataset.learningPage === "route");
+  await page.locator('iframe[data-learning-view="route"]').waitFor({ state: "visible" });
+  await assertNoTransitionArtifacts();
+
+  assert.deepEqual(pageErrors, []);
+  await context.close();
+});
+
 test("tablet-width brand and navigation never overlap", {
   skip: browserExecutable ? false : "未找到可用于统一导航中间断点验证的 Chromium 浏览器"
 }, async () => {

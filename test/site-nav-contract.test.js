@@ -78,6 +78,8 @@ test("all official pages expose the same four-destination platform navigation co
       const response = await fetch(`${baseUrl}/${page.file}`);
       assert.equal(response.status, 200);
       const html = await response.text();
+      assert.doesNotMatch(html, /page-transition\.js|data-no-transition=/,
+        "official pages must use direct navigation without transition scripts");
 
       const platformHeaders = openingTags(html, "header").filter(({ attributes }) =>
         hasClass(attributes, "platform-topbar"),

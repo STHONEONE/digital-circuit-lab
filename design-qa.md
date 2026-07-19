@@ -278,3 +278,16 @@ Final result: passed
 - 桌面、平板和移动真实浏览器检查均无 `pageerror`；全量自动化回归 144/144 通过。
 
 final result: passed
+
+## 全站无跳转动画 — 2026-07-19
+
+- 目标：删除页面进入、离开、擦除、闪光和跳转延迟；保留按钮悬停、背景装饰和实验反馈等非跳转动效。
+- 实现：移除全站 `page-transition.js`，删除学习中心遮罩与 320ms 延迟，并移除首页入口点击火花；跨模块链接恢复浏览器原生直接跳转。
+- 学习中心：五个学习子页继续使用既有 iframe、History API、返回与前进协议，但切换内容时不再播放遮罩或页面进出动画。
+- 桌面检查：Edge + Playwright，1440 × 900；首页进入学习中心、学习中心内部切换、进入扩展页均即时完成且无遮罩。
+- 移动检查：Edge + Playwright，390 × 844；学习中心进入实验中心即时完成，首屏无空白、裁切或遮挡。
+- 证据：`D:\AICodeing\codex\数字电路项目\no-transition-qa\01-index-after-direct-home-navigation.png`、`02-learning-route-instant-switch.png`、`03-extensions-after-direct-navigation.png`、`04-mobile-labs-after-direct-navigation.png`。
+- 浏览器控制：当前环境没有 Browser plugin，使用项目 Playwright 与本机 Edge 完成真实浏览器检查；无 `console.error`、`pageerror` 或请求失败。
+- 回归：全量自动化测试 145/145 通过。
+
+final result: passed

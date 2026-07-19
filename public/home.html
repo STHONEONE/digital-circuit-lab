@@ -721,37 +721,6 @@
       transform: translateX(120%);
     }
 
-    .click-spark {
-      position: absolute;
-      z-index: 30;
-      left: var(--spark-x);
-      top: var(--spark-y);
-      width: 8px;
-      height: 8px;
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      animation: click-spark-burst .52s ease-out forwards;
-    }
-
-    .click-spark::before,
-    .click-spark::after {
-      position: absolute;
-      inset: -18px;
-      content: "";
-      border-radius: 50%;
-      border: 1px solid rgba(121, 245, 255, .80);
-      box-shadow: 0 0 18px rgba(87, 226, 255, .54), inset 0 0 12px rgba(139, 92, 246, .22);
-    }
-
-    .click-spark::after {
-      inset: -2px;
-      border: 0;
-      background:
-        linear-gradient(90deg, transparent 0 42%, rgba(255,255,255,.95) 48% 52%, transparent 58% 100%),
-        linear-gradient(0deg, transparent 0 42%, rgba(103,232,249,.92) 48% 52%, transparent 58% 100%);
-      filter: drop-shadow(0 0 10px rgba(103, 232, 249, .78));
-    }
-
     .button-chip,
     .button-arrow {
       position: relative;
@@ -863,17 +832,6 @@
       84% {
         opacity: 0;
         transform: translateX(390%) skewX(-14deg);
-      }
-    }
-
-    @keyframes click-spark-burst {
-      0% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(.42) rotate(0deg);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(2.6) rotate(90deg);
       }
     }
 
@@ -1033,11 +991,11 @@
         <p class="subtitle">集成逻辑门、触发器、译码器与存储器，探索动态信号与时序波形</p>
 
         <nav class="feature-tags" aria-label="功能入口">
-          <a class="feature-tag" href="./gate-builder-demo.html" data-no-transition="true">逻辑门</a>
-          <a class="feature-tag" href="./labs.html" data-no-transition="true">触发器</a>
-          <a class="feature-tag" href="./labs.html" data-no-transition="true">译码器</a>
-          <a class="feature-tag" href="./gate-builder-demo.html" data-no-transition="true">存储器</a>
-          <a class="feature-tag" href="./extensions.html" data-no-transition="true">专题仿真</a>
+          <a class="feature-tag" href="./gate-builder-demo.html">逻辑门</a>
+          <a class="feature-tag" href="./labs.html">触发器</a>
+          <a class="feature-tag" href="./labs.html">译码器</a>
+          <a class="feature-tag" href="./gate-builder-demo.html">存储器</a>
+          <a class="feature-tag" href="./extensions.html">专题仿真</a>
         </nav>
 
         <div class="hero-actions">
@@ -1341,29 +1299,9 @@
       });
     }
 
-    function initClickSparks() {
-      const home = document.querySelector(".pixel-home");
-      if (!home || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-      const targets = home.querySelectorAll(".enter-button, .feature-tag");
-      targets.forEach((target) => {
-        target.addEventListener("pointerdown", (event) => {
-          const rect = home.getBoundingClientRect();
-          const spark = document.createElement("span");
-          spark.className = "click-spark";
-          spark.style.setProperty("--spark-x", `${event.clientX - rect.left}px`);
-          spark.style.setProperty("--spark-y", `${event.clientY - rect.top}px`);
-          home.append(spark);
-          spark.addEventListener("animationend", () => spark.remove(), { once: true });
-        });
-      });
-    }
-
     initPixelHeroCanvas();
     initBinaryCounter();
     initCursorField();
-    initClickSparks();
   </script>
-  <script src="./page-transition.js?v=20260621-1"></script>
 </body>
 </html>

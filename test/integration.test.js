@@ -37,7 +37,6 @@ test("health, pages and question APIs are available", async () => {
   const siteNavStyle = await fetch(`${baseUrl}/site-nav.css`).then((response) => response.text());
   const appScript = await fetch(`${baseUrl}/app.js`).then((response) => response.text());
   const labsScript = await fetch(`${baseUrl}/labs.js`).then((response) => response.text());
-  const transitionScript = await fetch(`${baseUrl}/page-transition.js`).then((response) => response.text());
 
   assert.equal(health.ok, true);
   assert.equal(questions.length, 36);
@@ -61,9 +60,9 @@ test("health, pages and question APIs are available", async () => {
   assert.match(home, /触发器/);
   assert.match(home, /译码器/);
   assert.match(home, /存储器/);
-  assert.match(home, /data-no-transition="true"/);
+  assert.doesNotMatch(home, /data-no-transition|click-spark/);
   assert.doesNotMatch(home, /site-nav\.css/);
-  assert.match(home, /page-transition\.js/);
+  assert.doesNotMatch(home, /page-transition\.js/);
   assert.match(appHome, /数字电路个性化学习中心/);
   assert.match(appHome, /site-nav\.css/);
   assert.match(appHome, /data-scope="basic-logic"/);
@@ -217,10 +216,7 @@ test("health, pages and question APIs are available", async () => {
   assert.doesNotMatch(builder, /metrics|componentCount|wireCount|buildCircuitAnalysisText/);
   assert.match(builder, /lamp-bulb/);
   assert.doesNotMatch(builder, /page-transition\.js/);
-  assert.match(transitionScript, /flashPulse/);
-  assert.match(transitionScript, /navigateWithLightTransition/);
-  assert.match(transitionScript, /body\.page-leave/);
-  assert.doesNotMatch(transitionScript, /circuit-core-ring|120vmax|navigateWithCoreBurst/);
+  assert.doesNotMatch(extensions, /page-transition\.js|data-no-transition/);
   assert.match(labs, /JK 触发器动态时序图/);
   assert.match(labsScript, /name: "基本逻辑门"/);
   assert.match(labsScript, /name: "全加器"/);
@@ -296,6 +292,9 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(shell, /window\.parent\.learningPlatform\.switchPage/);
   assert.match(shell, /visiblePage/);
   assert.match(shell, /location\.assign\(destination\.href\)/);
+  assert.match(shell, /function installLearningPageRouting\(\)/);
+  assert.doesNotMatch(shell, /platform-transition|platform-page-ready|platform-page-leaving/);
+  assert.doesNotMatch(shell, /window\.setTimeout\(\(\) => location\.assign/);
   assert.match(controller, /class PlatformQuestionRunner/);
   assert.match(controller, /renderKnowledge\(response, sourceQuestion\)/);
   assert.match(controller, /platform-remediation-launcher/);
@@ -341,6 +340,8 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(styles, /\.learning-view-frame/);
   assert.match(styles, /\.learning-view-frame\[hidden\]/);
   assert.match(styles, /html\.learning-embedded/);
+  assert.doesNotMatch(styles, /platform-transition|platform-page-ready|platform-page-leaving/);
+  assert.doesNotMatch(styles, /@keyframes\s+platform-(?:enter|wipe)/);
   assert.match(styles, /\.route-workspace/);
   assert.match(styles, /\.route-knowledge-console/);
   assert.match(styles, /\.route-lesson-console/);

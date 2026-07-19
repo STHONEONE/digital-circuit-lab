@@ -28,8 +28,7 @@ html.learning-embedded body {
 .learning-embedded .tech-background,
 .learning-embedded .app > .desktop-rail-logo,
 .learning-embedded .app > .topbar,
-.learning-embedded [data-learning-nav],
-.learning-embedded .platform-transition {
+.learning-embedded [data-learning-nav] {
   display: none !important;
 }
 
@@ -938,34 +937,6 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
   cursor: pointer;
 }
 
-.platform-transition {
-  position: fixed;
-  z-index: 9999;
-  inset: 0;
-  display: grid;
-  pointer-events: none;
-  opacity: 0;
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.platform-transition span {
-  background: linear-gradient(135deg, #020817, #092144 58%, #061323);
-  transform: translateY(-105%);
-}
-
-.platform-page-ready .platform-page-frame { animation: platform-enter .45s cubic-bezier(.22, .8, .22, 1) both; }
-.platform-page-leaving .platform-transition { opacity: 1; }
-.platform-page-leaving .platform-transition span { animation: platform-wipe .32s ease forwards; }
-.platform-page-leaving .platform-transition span:nth-child(2) { animation-delay: .035s; }
-.platform-page-leaving .platform-transition span:nth-child(3) { animation-delay: .07s; }
-
-@keyframes platform-enter {
-  from { opacity: 0; transform: translateY(12px) scale(.995); }
-  to { opacity: 1; transform: none; }
-}
-
-@keyframes platform-wipe { to { transform: translateY(0); } }
-
 @media (min-width: 960px) {
   .index-platform-sidebar {
     gap: 0 !important;
@@ -1127,8 +1098,3 @@ body.center-page .desktop-insights[hidden] { display: none !important; }
 .report-footer span,
 .report-inline-notice,
 .report-footer-actions .platform-button { font-size: 12px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .platform-page-ready .platform-page-frame,
-  .platform-page-leaving .platform-transition span { animation: none; }
-}

@@ -71,7 +71,7 @@ function setActiveNavigation(page) {
   });
 }
 
-function installPageTransitions() {
+function installLearningPageRouting() {
   if (embeddedView) {
     document.addEventListener("click", (event) => {
       const link = event.target.closest("a[href]");
@@ -89,13 +89,6 @@ function installPageTransitions() {
     });
     return null;
   }
-
-  const overlay = document.createElement("div");
-  overlay.className = "platform-transition";
-  overlay.setAttribute("aria-hidden", "true");
-  overlay.innerHTML = "<span></span><span></span><span></span>";
-  document.body.append(overlay);
-  requestAnimationFrame(() => document.body.classList.add("platform-page-ready"));
 
   const main = document.querySelector("main");
   const navigation = document.querySelector("[data-learning-nav]");
@@ -196,21 +189,9 @@ function installPageTransitions() {
     if (learningItem && !destination.search) {
       event.preventDefault();
       switchLearningPage(learningItem.key).catch(() => location.assign(destination.href));
-      return;
     }
-    event.preventDefault();
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      location.assign(destination.href);
-      return;
-    }
-    document.body.classList.add("platform-page-leaving");
-    window.setTimeout(() => location.assign(destination.href), 320);
   });
 
-  window.addEventListener("pageshow", () => {
-    document.body.classList.remove("platform-page-leaving");
-    document.body.classList.add("platform-page-ready");
-  });
   window.addEventListener("popstate", () => {
     const item = learningItemForUrl(location.href);
     if (item) switchLearningPage(item.key, { history: false }).catch(() => location.reload());
@@ -226,5 +207,5 @@ window.learningPlatform = {
 };
 
 renderLearningNavigation();
-window.learningPlatform.switchPage = installPageTransitions();
+window.learningPlatform.switchPage = installLearningPageRouting();
 })();
