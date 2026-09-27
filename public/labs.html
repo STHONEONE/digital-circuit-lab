@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>数字电路交互仿真实验</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./labs.css?v=20260718-3">
-  <link rel="stylesheet" href="./site-nav.css?v=20260718-2">
+<link rel="stylesheet" href="./labs.css?v=20260722-3">
+  <link rel="stylesheet" href="./site-nav.css?v=20260721-2">
+  <link rel="stylesheet" href="./design-tokens.css?v=20260722-1">
+<link rel="stylesheet" href="./fresh-theme.css?v=20260722-6">
 </head>
 <body class="inner-page lab-page experiment-page experiment-center has-platform-topbar">
   <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>
@@ -161,6 +163,41 @@
                 </div>
                 <div id="truthTable" class="truth-table"></div>
               </aside>
+
+              <section id="assistantPanel" class="assistant-panel lab-ai-dock is-collapsed" aria-label="AI 实验助教">
+                <button id="assistantDockToggle" class="assistant-dock-toggle" type="button" aria-expanded="false" aria-controls="labMessages" title="拖动移动；单击展开或收起">
+                  <span class="assistant-dock-toggle__mark" aria-hidden="true">AI</span>
+                  <span><strong>实验助教</strong><small>提问或查看当前状态</small></span>
+                </button>
+                <div class="digital-tutor" aria-hidden="true">
+                  <div id="tutorFace" class="tutor-face">
+                    <span class="eye left"></span>
+                    <span class="eye right"></span>
+                    <span class="mouth"></span>
+                  </div>
+                  <strong>实验助教</strong>
+                  <small id="voiceStatus">可朗读，也可语音提问</small>
+                </div>
+                <div class="assistant-chat">
+                  <div class="explanation-card">
+                    <span>状态讲解</span>
+                    <p id="stateExplanation"></p>
+                    <button id="speakButton" type="button">朗读讲解</button>
+                  </div>
+                  <div id="labMessages" class="lab-messages">
+                    <div class="message assistant">改变输入后，我会同步解释电路输出。你也可以直接问“为什么现在输出是 1”。</div>
+                  </div>
+                  <div class="assistant-actions">
+                    <button id="stateQuestionButton" type="button">解释当前状态</button>
+                    <button id="voiceButton" type="button">语音提问</button>
+                  </div>
+                  <div class="assistant-composer">
+                    <input id="labQuestion" type="text" placeholder="结合当前实验状态提问">
+                    <button id="askButton" type="button">发送</button>
+                  </div>
+                </div>
+                <span id="assistantResizeHandle" class="assistant-resize-handle" aria-hidden="true" title="拖动调整窗口大小"></span>
+              </section>
             </div>
           </div>
 
@@ -195,40 +232,11 @@
         </div>
       </section>
 
-      <section class="assistant-panel">
-        <div class="digital-tutor" aria-hidden="true">
-          <div id="tutorFace" class="tutor-face">
-            <span class="eye left"></span>
-            <span class="eye right"></span>
-            <span class="mouth"></span>
-          </div>
-          <strong>实验助教</strong>
-          <small id="voiceStatus">可朗读，也可语音提问</small>
-        </div>
-        <div class="assistant-chat">
-          <div class="explanation-card">
-            <span>状态讲解</span>
-            <p id="stateExplanation"></p>
-            <button id="speakButton" type="button">朗读讲解</button>
-          </div>
-          <div id="labMessages" class="lab-messages">
-            <div class="message assistant">改变输入后，我会同步解释电路输出。你也可以直接问“为什么现在输出是 1”。</div>
-          </div>
-          <div class="assistant-actions">
-            <button id="stateQuestionButton" type="button">解释当前状态</button>
-            <button id="voiceButton" type="button">语音提问</button>
-          </div>
-          <div class="assistant-composer">
-            <input id="labQuestion" type="text" placeholder="结合当前实验状态提问">
-            <button id="askButton" type="button">发送</button>
-          </div>
-        </div>
-      </section>
       </div>
     </section>
   </main>
 
   <script src="./circuit-background.js?v=20260620-1"></script>
-  <script type="module" src="./labs.js?v=20260718-3"></script>
+  <script type="module" src="./labs.js?v=20260722-2"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>专题仿真中心</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./styles.css?v=20260718-1">
+<link rel="stylesheet" href="./styles.css?v=20260722-3">
   <style>
     .extensions-shell {
       width: min(1180px, calc(100vw - 48px));
@@ -20,23 +20,23 @@
       align-items: end;
       margin-bottom: 24px;
       padding: 28px;
-      border: 1px solid rgba(125, 211, 252, .25);
+      border: 1px solid var(--dc-color-border, rgba(125, 211, 252, .25));
       border-radius: 18px;
-      background: rgba(5, 14, 32, .68);
-      box-shadow: 0 20px 48px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .06);
+      background: var(--dc-color-surface-glass, rgba(5, 14, 32, .68));
+      box-shadow: var(--dc-shadow-lg), var(--dc-inset-highlight);
       backdrop-filter: blur(14px);
     }
 
     .extensions-hero p {
       margin: 0 0 8px;
-      color: #7dd3fc;
+      color: var(--dc-color-brand, #7dd3fc);
       font-weight: 800;
       letter-spacing: .04em;
     }
 
     .extensions-hero h1 {
       margin: 0;
-      color: #f8fdff;
+      color: var(--dc-color-text, #f8fdff);
       font-size: clamp(28px, 4vw, 44px);
       line-height: 1.12;
     }
@@ -44,7 +44,7 @@
     .extensions-hero .summary {
       max-width: 760px;
       margin-top: 12px;
-      color: #c7dff2;
+      color: var(--dc-color-text-secondary, #c7dff2);
       font-size: 16px;
       line-height: 1.7;
     }
@@ -61,31 +61,31 @@
       flex-direction: column;
       justify-content: space-between;
       gap: 18px;
-      border: 1px solid rgba(125, 211, 252, .24);
+      border: 1px solid var(--dc-color-border, rgba(125, 211, 252, .24));
       border-radius: 16px;
-      background: rgba(5, 14, 32, .72);
+      background: var(--dc-color-surface, rgba(5, 14, 32, .72));
       padding: 22px;
-      color: #eef9ff;
+      color: var(--dc-color-text, #eef9ff);
       text-decoration: none;
-      box-shadow: 0 18px 42px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .05);
+      box-shadow: var(--dc-shadow-md), var(--dc-inset-highlight);
       backdrop-filter: blur(14px);
       transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
     }
 
     .extension-module:hover {
       transform: translateY(-3px);
-      border-color: rgba(34, 211, 238, .68);
-      box-shadow: 0 24px 52px rgba(34, 211, 238, .14), inset 0 1px 0 rgba(255, 255, 255, .08);
+      border-color: var(--dc-color-border-strong, rgba(34, 211, 238, .68));
+      box-shadow: var(--dc-shadow-lg), var(--dc-shadow-focus);
     }
 
     .extension-module .eyebrow {
       display: inline-flex;
       width: fit-content;
-      border: 1px solid rgba(56, 189, 248, .3);
+      border: 1px solid var(--dc-color-border, rgba(56, 189, 248, .3));
       border-radius: 999px;
-      background: rgba(14, 165, 233, .12);
+      background: var(--dc-color-brand-soft, rgba(14, 165, 233, .12));
       padding: 7px 11px;
-      color: #7dd3fc;
+      color: var(--dc-color-brand, #7dd3fc);
       font-size: 13px;
       font-weight: 900;
     }
@@ -98,7 +98,7 @@
 
     .extension-module p {
       margin: 0;
-      color: #c7dff2;
+      color: var(--dc-color-text-secondary, #c7dff2);
       line-height: 1.7;
     }
 
@@ -107,7 +107,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      color: #67e8f9;
+      color: var(--dc-color-brand, #67e8f9);
       font-weight: 900;
     }
 
@@ -119,11 +119,11 @@
     }
 
     .module-tags span {
-      border: 1px solid rgba(148, 163, 184, .22);
+      border: 1px solid var(--dc-color-border-subtle, rgba(148, 163, 184, .22));
       border-radius: 999px;
-      background: rgba(15, 23, 42, .65);
+      background: var(--dc-color-surface-soft, rgba(15, 23, 42, .65));
       padding: 6px 9px;
-      color: #cfeeff;
+      color: var(--dc-color-text-secondary, #cfeeff);
       font-size: 12px;
       font-weight: 800;
     }
@@ -132,16 +132,16 @@
       display: grid;
       gap: 8px;
       margin-top: 18px;
-      border-top: 1px solid rgba(148, 163, 184, .16);
+      border-top: 1px solid var(--dc-color-border-subtle, rgba(148, 163, 184, .16));
       padding-top: 14px;
-      color: #b9d8ea;
+      color: var(--dc-color-text-muted, #b9d8ea);
       font-size: 13px;
       line-height: 1.45;
     }
 
     .module-meta span::before {
       margin-right: 7px;
-      color: #22d3ee;
+      color: var(--dc-color-brand, #22d3ee);
       content: "•";
     }
 
@@ -171,7 +171,9 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="./site-nav.css?v=20260718-2">
+  <link rel="stylesheet" href="./site-nav.css?v=20260721-2">
+  <link rel="stylesheet" href="./design-tokens.css?v=20260721-2">
+<link rel="stylesheet" href="./fresh-theme.css?v=20260722-6">
 </head>
 <body class="inner-page extensions-page has-platform-topbar">
   <canvas class="circuit-bg-canvas" data-circuit-background aria-hidden="true"></canvas>

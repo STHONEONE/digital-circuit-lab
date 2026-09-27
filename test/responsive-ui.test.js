@@ -46,6 +46,7 @@ test("390px 实验中心完整显示电路且主要控件适合触摸", {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   await page.goto(`${baseUrl}/labs.html`, { waitUntil: "networkidle" });
+  await page.locator("#circuitDiagram svg").waitFor({ state: "visible" });
 
   const layout = await page.evaluate(() => {
     const stage = document.querySelector("#circuitDiagram");
@@ -88,8 +89,8 @@ test("390px 实验中心完整显示电路且主要控件适合触摸", {
     { group: "combinational-logic", name: "3-8 译码器" },
     { group: "sequential-logic", name: "JK 触发器" }
   ];
-  assert.ok(await page.locator("#experimentTabs button.experiment-item").count() >= 22,
-    "核心与扩展实验入口应全部可用");
+  assert.equal(await page.locator("#experimentTabs button.experiment-item").count(), 8,
+    "实验中心应仅保留 8 个经典实验入口");
   for (const target of experimentTargets) {
     const group = page.locator(`[data-experiment-group="${target.group}"]`);
     const toggle = group.locator(".experiment-group-toggle");

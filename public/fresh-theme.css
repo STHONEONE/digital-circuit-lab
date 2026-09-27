@@ -1,0 +1,1726 @@
+/* Fresh daylight theme ----------------------------------------------------
+   Keep the educational circuit canvases dark for signal contrast while the
+   application shell, navigation and content surfaces stay bright and airy. */
+
+body.inner-page {
+  color: var(--dc-color-text);
+  background: var(--dc-gradient-page) !important;
+}
+
+body.inner-page,
+body.inner-page .app,
+body.inner-page .page,
+body.inner-page .layout,
+body.inner-page .platform-layout,
+body.inner-page .platform-page,
+body.inner-page .lab-shell,
+body.inner-page .lab-workspace,
+body.inner-page .workspace {
+  background-color: transparent !important;
+}
+
+body.inner-page::before,
+body.inner-page.practice-page::before,
+body.inner-page.lab-page::before {
+  opacity: .11 !important;
+  filter: saturate(.52) brightness(1.16) !important;
+}
+
+body.inner-page::after,
+body.inner-page.practice-page::after,
+body.inner-page.lab-page::after {
+  background:
+    linear-gradient(180deg, rgba(248, 252, 254, .78), rgba(237, 248, 252, .91)),
+    radial-gradient(circle at 76% 14%, rgba(37, 201, 199, .10), transparent 34%),
+    radial-gradient(circle at 18% 82%, rgba(88, 169, 238, .10), transparent 36%) !important;
+}
+
+body.inner-page .circuit-bg-canvas,
+body.inner-page .circuit-bg-overlay,
+body.inner-page .tech-background,
+body.inner-page .lab-background {
+  opacity: .08 !important;
+}
+
+/* Shared app chrome */
+body.inner-page .platform-topbar.topbar,
+body.inner-page .platform-topbar.lab-topbar,
+body.inner-page.lab-page .lab-topbar {
+  border-bottom-color: var(--platform-nav-line) !important;
+  background: var(--platform-nav-bg) !important;
+  box-shadow: var(--dc-shadow-sm) !important;
+}
+
+body.inner-page .platform-brand,
+body.inner-page .platform-brand:visited,
+body.inner-page .platform-topbar h1 {
+  color: var(--dc-color-text) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page .platform-topbar .site-nav .site-nav__link {
+  color: var(--platform-nav-copy);
+}
+
+body.inner-page .platform-topbar .site-nav .site-nav__link:hover {
+  color: var(--dc-color-text);
+  background: var(--dc-color-brand-soft);
+}
+
+body.inner-page .platform-header-tools button,
+body.inner-page .top-actions button {
+  background: rgba(255, 255, 255, .88);
+  color: var(--dc-color-text-secondary);
+  border-color: var(--dc-color-border);
+}
+
+body.inner-page h1,
+body.inner-page h2,
+body.inner-page h3,
+body.inner-page h4,
+body.inner-page .page-title,
+body.inner-page .section-title,
+body.inner-page .question-title {
+  color: var(--dc-color-text) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page p,
+body.inner-page .desc,
+body.inner-page .muted,
+body.inner-page .tip,
+body.inner-page .help-text,
+body.inner-page .note,
+body.inner-page small {
+  color: var(--dc-color-text-secondary);
+  text-shadow: none;
+}
+
+body.inner-page .panel,
+body.inner-page .card,
+body.inner-page .left-panel,
+body.inner-page .right-panel,
+body.inner-page .side-panel,
+body.inner-page .practice-card,
+body.inner-page .experiment-card,
+body.inner-page .truth-table-card,
+body.inner-page .control-panel,
+body.inner-page .stats-card,
+body.inner-page .track-card,
+body.inner-page .recommend-card,
+body.inner-page .ai-panel,
+body.inner-page .result-card,
+body.inner-page .import-panel,
+body.inner-page .paper-panel,
+body.inner-page .route-panel,
+body.inner-page .module-card,
+body.inner-page .shutdown-page,
+body.inner-page .question-card,
+body.inner-page .question-recommendations,
+body.inner-page .practice-settings,
+body.inner-page .platform-page-header,
+body.inner-page .platform-panel,
+body.inner-page .report-hero,
+body.inner-page .extensions-hero,
+body.inner-page .extension-module {
+  border-color: var(--dc-color-border) !important;
+  background: var(--dc-color-surface) !important;
+  box-shadow: var(--dc-shadow-md), var(--dc-inset-highlight) !important;
+  backdrop-filter: blur(12px) saturate(1.02);
+  -webkit-backdrop-filter: blur(12px) saturate(1.02);
+}
+
+body.inner-page .question-card,
+body.inner-page .main-card,
+body.inner-page .question-main,
+body.inner-page .experiment-board,
+body.inner-page .practice-canvas,
+body.inner-page .simulation-area {
+  background: var(--dc-color-surface-raised) !important;
+}
+
+body.inner-page button,
+body.inner-page .button-link,
+body.inner-page input,
+body.inner-page textarea,
+body.inner-page select {
+  border-color: var(--dc-color-border-interactive);
+  background: rgba(255, 255, 255, .90);
+  color: var(--dc-color-text);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+body.inner-page button:hover,
+body.inner-page .button-link:hover {
+  border-color: var(--dc-color-brand);
+  background: var(--dc-color-brand-soft);
+  color: var(--dc-color-brand-strong);
+  box-shadow: none;
+}
+
+body.inner-page button.primary,
+body.inner-page .btn-primary,
+body.inner-page .primary-btn,
+body.inner-page .submit-btn,
+body.inner-page .enter-btn,
+body.inner-page .button-link.primary,
+body.inner-page #submitButton,
+body.inner-page #importButton,
+body.inner-page .simulation-start {
+  border-color: rgba(8, 169, 196, .38) !important;
+  background: var(--dc-gradient-action) !important;
+  color: var(--dc-color-text-on-brand) !important;
+  box-shadow: var(--dc-shadow-action) !important;
+}
+
+body.inner-page button:disabled {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(235, 243, 247, .78) !important;
+  color: #8ba0af !important;
+  box-shadow: none !important;
+}
+
+body.inner-page input::placeholder,
+body.inner-page textarea::placeholder {
+  color: #8298a8;
+}
+
+body.inner-page .system-notice,
+body.inner-page .platform-notice {
+  box-shadow: var(--dc-shadow-sm);
+}
+
+/* Learning center */
+body.inner-page .platform-sidebar,
+body.inner-page .index-platform-sidebar {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(251, 254, 255, .94) !important;
+  box-shadow: var(--dc-shadow-sm);
+}
+
+body.inner-page .platform-nav-link {
+  color: var(--dc-color-text-secondary);
+}
+
+body.inner-page .platform-nav-link img {
+  opacity: .88;
+  filter: brightness(0) saturate(100%) invert(49%) sepia(79%) saturate(1526%) hue-rotate(153deg) brightness(91%) contrast(101%);
+}
+
+body.inner-page .platform-nav-link:hover,
+body.inner-page .platform-nav-link.active {
+  background: var(--dc-color-brand-soft) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .platform-nav-link.active img {
+  filter: brightness(0) saturate(100%) invert(49%) sepia(79%) saturate(1526%) hue-rotate(153deg) brightness(91%) contrast(101%);
+}
+
+body.inner-page .practice-settings-fieldset legend,
+body.inner-page .practice-settings-result > span,
+body.inner-page .practice-bank-copy span,
+body.inner-page .practice-source-settings summary {
+  color: var(--dc-color-text-muted);
+}
+
+body.inner-page .practice-bank-copy strong,
+body.inner-page .practice-settings-result strong {
+  color: var(--dc-color-text);
+}
+
+body.inner-page .practice-scope-options button,
+body.inner-page .segments button,
+body.inner-page .tags button,
+body.inner-page .platform-option,
+body.inner-page .options button,
+body.inner-page .recommendations button,
+body.inner-page .recommendation-card,
+body.inner-page .source-item,
+body.inner-page .review-item,
+body.inner-page .plan-step,
+body.inner-page .stat-box,
+body.inner-page .knowledge-row,
+body.inner-page .details-body {
+  border-color: var(--dc-color-border) !important;
+  background: rgba(255, 255, 255, .92) !important;
+  color: var(--dc-color-text) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page .practice-scope-options button.active,
+body.inner-page .segments button.active,
+body.inner-page .tags button.active,
+body.inner-page .platform-option.selected,
+body.inner-page .options button.selected {
+  border-color: var(--dc-color-brand) !important;
+  background: var(--dc-color-brand-soft) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .tags span,
+body.inner-page .mode-status,
+body.inner-page .focus-chip,
+body.inner-page .level-chip {
+  border-color: rgba(8, 169, 196, .28) !important;
+  background: rgba(214, 244, 247, .88) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page #meta.question-picker-toggle {
+  border-color: rgba(8, 169, 196, .38) !important;
+  background: rgba(232, 248, 250, .96) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .round-learning-summary section strong,
+body.inner-page .round-learning-summary h3 {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .round-learning-summary .route-review {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: linear-gradient(135deg, rgba(225, 246, 248, .94), rgba(234, 243, 253, .94)) !important;
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .question-head p,
+body.inner-page .platform-question-head p,
+body.inner-page .platform-question-counter,
+body.inner-page .platform-page-eyebrow,
+body.inner-page .scope-domain-count {
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .question-text,
+body.inner-page .platform-question-text,
+body.inner-page .platform-question-head h3 {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .question-recommendations,
+body.inner-page .desktop-insights,
+body.inner-page .scope-domain,
+body.inner-page .review-trend,
+body.inner-page .review-recent,
+body.inner-page .review-knowledge,
+body.inner-page .review-actions,
+body.inner-page .wrong-list,
+body.inner-page .wrong-desk,
+body.inner-page .self-test-config,
+body.inner-page .self-test-paper {
+  border-color: var(--dc-color-border) !important;
+  background: var(--dc-color-surface) !important;
+  box-shadow: var(--dc-shadow-sm) !important;
+}
+
+body.inner-page .platform-remediation-float,
+body.inner-page .ai-chat-panel,
+body.inner-page .ai-variant-float {
+  border-color: var(--dc-color-border-strong) !important;
+  background: rgba(255, 255, 255, .98) !important;
+  color: var(--dc-color-text) !important;
+  box-shadow: var(--dc-shadow-lg) !important;
+}
+
+body.inner-page .platform-remediation-header,
+body.inner-page .chat-header,
+body.inner-page .ai-variant-float__header {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: linear-gradient(135deg, rgba(222, 247, 249, .98), rgba(232, 242, 255, .98)) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .chat-bubble,
+body.inner-page .ai-response,
+body.inner-page .message {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: var(--dc-color-surface-soft) !important;
+  color: var(--dc-color-text) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page .ai-chat-launcher {
+  background: var(--dc-gradient-action) !important;
+  color: #fff !important;
+  box-shadow: var(--dc-shadow-action) !important;
+}
+
+/* Experiment center: light chrome, dark circuit stage. */
+body.inner-page.lab-page {
+  --workbench-bg: var(--dc-color-canvas);
+  --workbench-bg-deep: var(--dc-color-canvas-deep);
+  --workbench-surface: var(--dc-color-surface-raised);
+  --workbench-surface-soft: var(--dc-color-surface-soft);
+  --workbench-border: var(--dc-color-border);
+  --workbench-border-strong: var(--dc-color-border-strong);
+  --workbench-copy: var(--dc-color-text);
+  --workbench-muted: var(--dc-color-text-muted);
+}
+
+body.inner-page.lab-page .lab-shell {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.inner-page.lab-page .experiment-browser {
+  border-right-color: var(--dc-color-border-subtle) !important;
+  background: rgba(251, 254, 255, .95) !important;
+  box-shadow: 8px 0 24px rgba(43, 104, 137, .06) !important;
+}
+
+body.inner-page.lab-page .experiment-browser-heading h2,
+body.inner-page.lab-page .workbench-copy h1,
+body.inner-page.lab-page .workbench-copy h2,
+body.inner-page.lab-page .workbench-section-heading h2,
+body.inner-page.lab-page .section-heading.compact h2,
+body.inner-page.lab-page .section-heading.compact h3,
+body.inner-page.lab-page .prediction-heading h3 {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.lab-page .workbench-copy p,
+body.inner-page.lab-page .control-group > span,
+body.inner-page.lab-page .prediction-controls legend {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page.lab-page .experiment-search input,
+body.inner-page.lab-page .control-group,
+body.inner-page.lab-page .prediction-controls fieldset,
+body.inner-page.lab-page .assistant-chat,
+body.inner-page.lab-page .assistant-composer,
+body.inner-page.lab-page .message,
+body.inner-page.lab-page .truth-row {
+  border-color: var(--dc-color-border) !important;
+  background: var(--dc-color-surface-soft) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.lab-page .experiment-tabs .experiment-group-toggle,
+body.inner-page.lab-page .experiment-tabs .experiment-item,
+body.inner-page.lab-page .experiment-show-more {
+  color: var(--dc-color-text-secondary) !important;
+  background: transparent !important;
+}
+
+body.inner-page.lab-page .experiment-group-items {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(236, 247, 251, .76) !important;
+}
+
+body.inner-page.lab-page .experiment-group-toggle strong,
+body.inner-page.lab-page .experiment-item strong {
+  color: var(--dc-color-text) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page.lab-page .experiment-group-toggle b,
+body.inner-page.lab-page .experiment-item b,
+body.inner-page.lab-page .experiment-group-toggle i {
+  color: var(--dc-color-brand-strong) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page.lab-page .experiment-tabs .experiment-group-toggle:hover,
+body.inner-page.lab-page .experiment-tabs .experiment-item:hover,
+body.inner-page.lab-page .experiment-tabs .experiment-item.active {
+  color: var(--dc-color-brand-strong) !important;
+  background: var(--dc-color-brand-soft) !important;
+}
+
+body.inner-page.lab-page .experiment-tabs button.experiment-item.active {
+  color: var(--dc-color-brand-strong) !important;
+  background: linear-gradient(90deg, rgba(37, 201, 199, .18), rgba(88, 169, 238, .14)) !important;
+  box-shadow: inset 3px 0 var(--dc-color-brand) !important;
+}
+
+body.inner-page.lab-page .truth-panel,
+body.inner-page.lab-page .prediction-panel,
+body.inner-page.lab-page .timing-panel,
+body.inner-page.lab-page .explanation-card,
+body.inner-page.lab-page .assistant-panel,
+body.inner-page.lab-page .experiment-guide {
+  border-color: var(--dc-color-border) !important;
+  background: var(--dc-color-surface-raised) !important;
+  color: var(--dc-color-text) !important;
+  box-shadow: var(--dc-shadow-sm) !important;
+}
+
+body.inner-page.lab-page .experiment-guide {
+  border-color: var(--dc-color-border) !important;
+  background: linear-gradient(135deg, rgba(240, 250, 252, .98), rgba(235, 245, 253, .96)) !important;
+}
+
+body.inner-page.lab-page .experiment-guide span,
+body.inner-page.lab-page .experiment-guide strong,
+body.inner-page.lab-page .experiment-guide ol {
+  color: var(--dc-color-text-secondary) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page.lab-page .experiment-guide strong {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.lab-page .workbench-section-heading h3 {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.lab-page .lab-toolstrip button,
+body.inner-page.lab-page .control-group button,
+body.inner-page.lab-page .prediction-controls button {
+  border-color: var(--dc-color-border) !important;
+  background: #fff !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.lab-page .lab-toolstrip button:hover:not(:disabled),
+body.inner-page.lab-page .lab-toolstrip button[aria-pressed="true"] {
+  border-color: var(--dc-color-brand) !important;
+  background: var(--dc-color-brand-soft) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page.lab-page .control-group button.active,
+body.inner-page.lab-page .prediction-controls button.active {
+  border-color: var(--dc-color-brand) !important;
+  background: linear-gradient(135deg, #24c8ca, #55a9ee) !important;
+  color: #073149 !important;
+}
+
+body.inner-page.lab-page .circuit-stage {
+  --ink: #eaf6ff;
+  --text: #eaf6ff;
+  --muted: #9fb8ce;
+  --accent: #67e8f9;
+  --accent-dark: #67e8f9;
+  border-color: rgba(66, 157, 202, .40) !important;
+  background:
+    linear-gradient(rgba(12, 55, 96, .96), rgba(12, 55, 96, .96)),
+    radial-gradient(circle at center, rgba(38, 205, 220, .12), transparent 64%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08) !important;
+}
+
+body.inner-page.lab-page .digital-tutor,
+body.inner-page.lab-page .assistant-panel .explanation-card {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(238, 248, 252, .94) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.lab-page .digital-tutor strong,
+body.inner-page.lab-page .digital-tutor small,
+body.inner-page.lab-page .assistant-panel .explanation-card p {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page.lab-page .truth-table,
+body.inner-page.lab-page .truth-row,
+body.inner-page.lab-page .truth-row strong,
+body.inner-page.lab-page .truth-row span {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.lab-page #toolStatus,
+body.inner-page.lab-page .coverage-badge,
+body.inner-page.lab-page .experiment-conclusion {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+/* Free-form circuit builder */
+body.inner-page.practice-page .panel,
+body.inner-page.practice-page .canvas-panel,
+body.inner-page.practice-page .library-panel,
+body.inner-page.practice-page .analysis-panel {
+  border-color: var(--dc-color-border) !important;
+  background: var(--dc-color-surface) !important;
+  box-shadow: var(--dc-shadow-md) !important;
+}
+
+body.inner-page.practice-page .component-item,
+body.inner-page.practice-page .library-section summary,
+body.inner-page.practice-page .toolbar button,
+body.inner-page.practice-page .toolbar .tool-link,
+body.inner-page.practice-page .analysis-actions button,
+body.inner-page.practice-page .chat-log,
+body.inner-page.practice-page .chat-bubble,
+body.inner-page.practice-page textarea {
+  border-color: var(--dc-color-border) !important;
+  background: var(--dc-color-surface-soft) !important;
+  color: var(--dc-color-text) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page.practice-page .library-section {
+  border-color: var(--dc-color-border) !important;
+  background: rgba(248, 252, 254, .94) !important;
+}
+
+body.inner-page.practice-page .library-section summary {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(224, 241, 247, .92) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.practice-page .library-item {
+  border-color: var(--dc-color-border) !important;
+  background: linear-gradient(135deg, rgba(245, 252, 253, .98), rgba(229, 244, 250, .96)) !important;
+  color: var(--dc-color-text) !important;
+  box-shadow: 0 4px 12px rgba(39, 96, 128, .06) !important;
+}
+
+body.inner-page.practice-page .library-item:hover {
+  border-color: var(--dc-color-brand) !important;
+  box-shadow: 0 8px 18px rgba(39, 127, 158, .12) !important;
+}
+
+body.inner-page.practice-page .library-item .icon {
+  background: linear-gradient(135deg, rgba(37, 201, 199, .20), rgba(88, 169, 238, .18)) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page.practice-page .library-item strong,
+body.inner-page.practice-page .library-item .label-cn {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.practice-page .library-item span {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page.practice-page .component-item strong,
+body.inner-page.practice-page .component-item span,
+body.inner-page.practice-page .canvas-heading h2,
+body.inner-page.practice-page .analysis-panel h2 {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.practice-page .board {
+  --text: #e8f7ff;
+  --muted: #9fb8ce;
+  --aqua: #22d3ee;
+  border-color: rgba(66, 157, 202, .38) !important;
+  background:
+    linear-gradient(rgba(11, 52, 91, .96), rgba(11, 52, 91, .96)),
+    radial-gradient(circle at center, rgba(37, 201, 199, .12), transparent 64%) !important;
+}
+
+body.inner-page.practice-page .empty-tip {
+  color: rgba(220, 239, 250, .58) !important;
+}
+
+body.inner-page.practice-page .simulation-summary,
+body.inner-page.practice-page .ghost-helper,
+body.inner-page.practice-page .ghost-status {
+  border-color: rgba(104, 190, 229, .34) !important;
+  background: rgba(10, 44, 78, .88) !important;
+  color: #eaf7ff !important;
+}
+
+body.inner-page.practice-page .ghost-helper {
+  border-color: var(--dc-color-border) !important;
+  background: rgba(247, 252, 254, .98) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page.practice-page .ghost-helper-toggle,
+body.inner-page.practice-page .ghost-helper-body,
+body.inner-page.practice-page .ghost-status {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(231, 245, 250, .92) !important;
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page.practice-page .ghost-helper-title {
+  color: var(--dc-color-brand-strong) !important;
+  text-shadow: none !important;
+}
+
+body.inner-page.practice-page .toolbar button.primary,
+body.inner-page.practice-page .analysis-actions button.primary {
+  border-color: rgba(8, 169, 196, .38) !important;
+  background: var(--dc-gradient-action) !important;
+  color: var(--dc-color-text-on-brand) !important;
+  box-shadow: var(--dc-shadow-action) !important;
+}
+
+body.inner-page.practice-page .toolbar button.danger {
+  border-color: var(--dc-color-danger-border) !important;
+  background: var(--dc-color-danger-soft) !important;
+  color: var(--dc-color-danger) !important;
+}
+
+body.inner-page.practice-page .status-pill {
+  border-color: var(--dc-color-success-border) !important;
+  background: var(--dc-color-success-soft) !important;
+  color: var(--dc-color-success) !important;
+}
+
+/* Topic simulations */
+body.inner-page.extensions-page .extensions-hero,
+body.inner-page.extensions-page .extension-module {
+  background: rgba(255, 255, 255, .92) !important;
+}
+
+body.inner-page.extensions-page .extension-module:hover {
+  border-color: var(--dc-color-brand) !important;
+  box-shadow: var(--dc-shadow-lg) !important;
+}
+
+/* Reporting and generated-study screens need explicit light-mode semantics. */
+body.inner-page .review-trend-panel,
+body.inner-page .review-recent-panel,
+body.inner-page .review-knowledge-panel,
+body.inner-page .review-action-panel,
+body.inner-page .review-experiment-panel {
+  border-color: var(--dc-color-border) !important;
+  background: var(--dc-color-surface) !important;
+  box-shadow: var(--dc-shadow-sm) !important;
+}
+
+body.inner-page .review-summary {
+  border-color: var(--dc-color-border) !important;
+  background: rgba(255, 255, 255, .94) !important;
+  box-shadow: var(--dc-shadow-sm) !important;
+}
+
+body.inner-page .review-metric {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(235, 248, 252, .86)) !important;
+}
+
+body.inner-page .review-metric-icon {
+  border-color: rgba(8, 169, 196, .30) !important;
+  background: linear-gradient(145deg, rgba(37, 201, 199, .17), rgba(88, 169, 238, .13)) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .review-metric-copy strong {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .review-metric-copy span,
+body.inner-page .review-metric-copy small {
+  color: var(--dc-color-text-muted) !important;
+}
+
+body.inner-page .report-hero-copy strong,
+body.inner-page .review-knowledge-row,
+body.inner-page .review-knowledge-row-head strong,
+body.inner-page .review-knowledge-empty strong,
+body.inner-page .review-advice strong {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .review-chart-value {
+  fill: var(--dc-color-text) !important;
+}
+
+body.inner-page .review-chart-axis,
+body.inner-page .review-chart-legend,
+body.inner-page .review-knowledge-row small {
+  color: var(--dc-color-text-muted) !important;
+  fill: var(--dc-color-text-muted) !important;
+}
+
+body.inner-page .review-progress-track,
+body.inner-page .review-advice {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(226, 242, 248, .82) !important;
+}
+
+body.inner-page .review-recent-item,
+body.inner-page .review-action-link,
+body.inner-page .review-experiment-item,
+body.inner-page .report-footer {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(244, 251, 253, .94) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .review-recent-copy strong,
+body.inner-page .review-recent-empty strong,
+body.inner-page .review-action-link strong,
+body.inner-page .review-experiment-head strong,
+body.inner-page .review-experiment-empty strong {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .review-advice p,
+body.inner-page .review-action-link small,
+body.inner-page .review-experiment-item p,
+body.inner-page .review-experiment-head span,
+body.inner-page .review-experiment-metrics span {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .review-advice-meta span,
+body.inner-page .review-experiment-metrics span {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(255, 255, 255, .70) !important;
+}
+
+body.inner-page .review-action-link.primary {
+  border-color: rgba(8, 169, 196, .34) !important;
+  background: linear-gradient(105deg, rgba(37, 201, 199, .18), rgba(141, 132, 232, .16)) !important;
+}
+
+body.inner-page .report-range-switch button.active,
+body.inner-page .self-test-scope-options button.active {
+  border-color: var(--dc-color-brand) !important;
+  background: var(--dc-color-brand-soft) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .self-test-start-button,
+body.inner-page .ai-variant-float__primary {
+  border-color: rgba(8, 169, 196, .38) !important;
+  background: var(--dc-gradient-action) !important;
+  color: var(--dc-color-text-on-brand) !important;
+  box-shadow: var(--dc-shadow-action) !important;
+}
+
+body.inner-page .self-test-panel-heading h3,
+body.inner-page .self-test-estimate strong,
+body.inner-page .self-test-coverage-item strong,
+body.inner-page .self-test-type-structure h4,
+body.inner-page .saved-task-card strong {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .self-test-scope-fieldset legend,
+body.inner-page .platform-field,
+body.inner-page .self-test-source-title span,
+body.inner-page .self-test-source-loading,
+body.inner-page .self-test-weak-item > span,
+body.inner-page .self-test-source > p,
+body.inner-page .self-test-preview .self-test-panel-heading > strong,
+body.inner-page .self-test-sheet-top,
+body.inner-page .self-test-coverage-item small,
+body.inner-page .self-test-type-structure > div,
+body.inner-page .self-test-preview-note,
+body.inner-page .self-test-estimate span,
+body.inner-page .self-test-estimate small,
+body.inner-page .self-test-privacy,
+body.inner-page .saved-task-card small,
+body.inner-page .saved-task-empty {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .self-test-source,
+body.inner-page .self-test-estimate,
+body.inner-page .self-test-type-structure,
+body.inner-page .self-test-sheet-top {
+  border-color: var(--dc-color-border-subtle) !important;
+}
+
+body.inner-page .self-test-source-loading,
+body.inner-page .self-test-paper-sheet,
+body.inner-page .self-test-coverage-item,
+body.inner-page .self-test-rationale-list li,
+body.inner-page .saved-task-card,
+body.inner-page .paper-directory-list button {
+  border-color: var(--dc-color-border) !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .97), rgba(232, 246, 251, .90)) !important;
+  color: var(--dc-color-text) !important;
+  box-shadow: none !important;
+}
+
+body.inner-page .self-test-sheet-top em,
+body.inner-page .self-test-coverage-item > span,
+body.inner-page .self-test-rationale-list li > span,
+body.inner-page .saved-task-card-status {
+  border-color: rgba(116, 110, 224, .28) !important;
+  background: rgba(116, 110, 224, .08) !important;
+  color: var(--dc-color-violet) !important;
+}
+
+body.inner-page .self-test-coverage-item em,
+body.inner-page .self-test-source-title strong,
+body.inner-page .self-test-weak-item > strong {
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .self-test-rationale-list strong {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .self-test-rationale-list p {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .paper-directory-list button.active {
+  border-color: var(--dc-color-brand) !important;
+  background: var(--dc-color-brand-soft) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .ai-variant-float__secondary {
+  border-color: var(--dc-color-border) !important;
+  background: rgba(255, 255, 255, .92) !important;
+  color: var(--dc-color-text-secondary) !important;
+}
+
+/* Knowledge review: all reading surfaces stay light; only circuit canvases are dark. */
+body.inner-page .route-directory-heading h3,
+body.inner-page .route-knowledge-group summary,
+body.inner-page .route-lesson-heading h3,
+body.inner-page .route-lesson-scroll h4,
+body.inner-page .route-example-solution strong {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .route-knowledge-group,
+body.inner-page .route-lesson-heading,
+body.inner-page .route-lesson-tabs,
+body.inner-page .route-knowledge-legend {
+  border-color: var(--dc-color-border-subtle) !important;
+}
+
+body.inner-page .route-knowledge-option {
+  border-color: rgba(64, 143, 184, .20) !important;
+  background: rgba(255, 255, 255, .80) !important;
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .route-knowledge-option:hover,
+body.inner-page .route-knowledge-option.active {
+  border-color: var(--dc-color-brand) !important;
+  background: linear-gradient(105deg, rgba(37, 201, 199, .16), rgba(88, 169, 238, .13)) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .route-knowledge-option span:last-child,
+body.inner-page .route-lesson-heading > div > span,
+body.inner-page .route-lesson-tabs button.active,
+body.inner-page .route-practice-copy span,
+body.inner-page .route-example-solution summary {
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .route-lesson-meta > span,
+body.inner-page .route-lesson-mastery,
+body.inner-page .route-example-heading em {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(232, 247, 250, .92) !important;
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .route-lesson-meta > span:first-child {
+  border-color: rgba(8, 169, 196, .28) !important;
+  background: rgba(37, 201, 199, .10) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .route-lesson-meta strong {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .route-lesson-tabs button {
+  background: transparent !important;
+  color: var(--dc-color-text-muted) !important;
+}
+
+body.inner-page .route-lesson-tabs button:hover,
+body.inner-page .route-lesson-tabs button.active {
+  border-bottom-color: var(--dc-color-brand) !important;
+  background: transparent !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .route-lesson-lead {
+  border-left-color: var(--dc-color-brand) !important;
+  background: linear-gradient(90deg, rgba(37, 201, 199, .13), rgba(88, 169, 238, .035)) !important;
+}
+
+body.inner-page .route-lesson-foundation section,
+body.inner-page .route-lesson-rules,
+body.inner-page .route-lesson-example,
+body.inner-page .route-practice-panel,
+body.inner-page .route-example-options > div {
+  border-color: var(--dc-color-border) !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(232, 246, 251, .88)) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .route-lesson-scroll p,
+body.inner-page .route-lesson-rules li,
+body.inner-page .route-lesson-rules > div span,
+body.inner-page .route-example-question {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .route-lesson-rules li::before {
+  border-color: rgba(8, 169, 196, .32) !important;
+  background: rgba(37, 201, 199, .10) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .route-example-heading span,
+body.inner-page .route-example-heading em {
+  color: var(--dc-color-violet) !important;
+}
+
+/* Wrong-answer review keeps the correction hierarchy without dark slabs. */
+body.inner-page.wrong-review-page .platform-page-frame {
+  align-content: start;
+}
+
+body.inner-page .wrong-knowledge-filters button,
+body.inner-page .wrong-list button,
+body.inner-page .wrong-answer-block,
+body.inner-page .wrong-knowledge-lesson,
+body.inner-page .wrong-review-footer {
+  border-color: var(--dc-color-border-subtle) !important;
+  background: rgba(247, 252, 254, .94) !important;
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .wrong-knowledge-filters button:hover,
+body.inner-page .wrong-knowledge-filters button.active,
+body.inner-page .wrong-list button.active {
+  border-color: var(--dc-color-brand) !important;
+  background: linear-gradient(105deg, rgba(37, 201, 199, .16), rgba(88, 169, 238, .13)) !important;
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .wrong-list-heading,
+body.inner-page .wrong-variant-preview,
+body.inner-page .wrong-review-footer {
+  border-color: var(--dc-color-border-subtle) !important;
+}
+
+body.inner-page .wrong-list strong,
+body.inner-page .wrong-diagnosis-heading h3,
+body.inner-page .wrong-answer-block strong,
+body.inner-page .wrong-empty-state strong,
+body.inner-page .wrong-path-steps strong,
+body.inner-page .wrong-knowledge-lesson h4 {
+  color: var(--dc-color-text) !important;
+}
+
+body.inner-page .wrong-list small,
+body.inner-page .wrong-path-steps small,
+body.inner-page .wrong-knowledge-lesson p,
+body.inner-page .wrong-variant-preview p,
+body.inner-page .wrong-review-footer span {
+  color: var(--dc-color-text-secondary) !important;
+}
+
+body.inner-page .wrong-path-steps li > span {
+  border-color: var(--dc-color-border) !important;
+  background: rgba(232, 247, 250, .96) !important;
+  color: var(--dc-color-brand-strong) !important;
+}
+
+body.inner-page .wrong-path-steps li.active > span {
+  border-color: var(--dc-color-brand) !important;
+  background: rgba(37, 201, 199, .13) !important;
+}
+
+body.inner-page .wrong-review-footer {
+  min-height: 44px;
+  align-self: start;
+  box-shadow: var(--dc-shadow-sm) !important;
+}
+
+body.inner-page .wrong-review-footer a {
+  color: var(--dc-color-brand-strong) !important;
+}
+
+@media (max-width: 959px) {
+  body.inner-page .platform-sidebar,
+  body.inner-page .index-platform-sidebar {
+    background: rgba(251, 254, 255, .96) !important;
+  }
+}
+
+@media (max-width: 620px) {
+  body.inner-page.lab-page .experiment-browser {
+    height: auto !important;
+    max-height: min(42vh, 300px) !important;
+    overflow-y: auto !important;
+  }
+
+  body.inner-page .platform-page,
+  body.inner-page .practice,
+  body.inner-page .platform-page-body .app {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Single-palette circuit canvas: pale blue surfaces, teal signals, no legacy navy
+   stage or violet component treatment. */
+body.inner-page.lab-page .circuit-stage {
+  border-color: rgba(64, 143, 184, .28) !important;
+  background:
+    linear-gradient(rgba(80, 178, 198, .075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 178, 198, .075) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgba(37, 201, 199, .10), transparent 52%),
+    #f5fcfd !important;
+  background-size: 24px 24px, 24px 24px, auto, auto !important;
+}
+
+body.inner-page.lab-page .circuit-svg .signal-line {
+  stroke: #86aebd;
+  filter: none;
+}
+
+body.inner-page.lab-page .circuit-svg .signal-line.high,
+body.inner-page.lab-page .circuit-svg .signal-line.logic-high {
+  stroke: #169b91;
+  filter: drop-shadow(0 0 3px rgba(22, 155, 145, .26));
+}
+
+body.inner-page.lab-page .circuit-svg .port {
+  fill: #fff;
+  stroke: #79a9b8;
+}
+
+body.inner-page.lab-page .circuit-svg .port.high,
+body.inner-page.lab-page .circuit-svg .port.logic-high {
+  fill: #c8f2e9;
+  stroke: #169b91;
+}
+
+body.inner-page.lab-page .circuit-svg .value-box {
+  fill: rgba(255, 255, 255, .96);
+  stroke: #80bec8;
+}
+
+body.inner-page.lab-page .circuit-svg .value-box.high,
+body.inner-page.lab-page .circuit-svg .active-output {
+  fill: #e5f8f2;
+  stroke: #24a98f;
+}
+
+body.inner-page.lab-page .circuit-svg .module-body,
+body.inner-page.lab-page .circuit-svg .gate-body,
+body.inner-page.lab-page .circuit-svg .chip-body {
+  fill: #e9f8fa;
+  stroke: #2aaebb;
+}
+
+body.inner-page.lab-page .circuit-svg .gate-detail,
+body.inner-page.lab-page .circuit-svg .module-divider {
+  stroke: #77b8c3;
+}
+
+body.inner-page.lab-page .circuit-svg .chip-label,
+body.inner-page.lab-page .circuit-svg .chip-subtext,
+body.inner-page.lab-page .circuit-svg .chip-pin,
+body.inner-page.lab-page .circuit-svg .chip-state-hint,
+body.inner-page.lab-page .circuit-svg .module-title,
+body.inner-page.lab-page .circuit-svg .module-formula,
+body.inner-page.lab-page .circuit-svg .value-label {
+  fill: #17465b;
+  stroke: none;
+}
+
+body.inner-page.lab-page .circuit-svg .diagram-caption,
+body.inner-page.lab-page .circuit-svg .small-label,
+body.inner-page.lab-page .circuit-svg .signal-label {
+  fill: #547789;
+}
+
+body.inner-page.lab-page .circuit-svg .clock-pulse {
+  stroke: #149ba6;
+}
+
+body.inner-page.lab-page .timing-diagram {
+  border-color: var(--dc-color-border);
+  background:
+    linear-gradient(rgba(57, 173, 192, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 173, 192, .08) 1px, transparent 1px),
+    #f7fcfd;
+  background-size: 20px 20px;
+}
+
+body.inner-page.lab-page .timing-svg .timing-signal.clock,
+body.inner-page.lab-page .timing-svg .timing-signal.output {
+  stroke: #169b91;
+}
+
+body.inner-page.lab-page .timing-svg .timing-signal.input,
+body.inner-page.lab-page .timing-svg .edge-marker {
+  stroke: #2a9abd;
+  fill: #2a9abd;
+}
+
+body.inner-page.lab-page .assistant-dock-toggle {
+  background: linear-gradient(135deg, rgba(29, 207, 226, .17), rgba(64, 172, 209, .14));
+}
+
+body.inner-page.lab-page .assistant-dock-toggle__mark {
+  background: linear-gradient(135deg, #16b9ba, #3295c4);
+}
+
+/* Learning-center pages share one quiet canvas.  Several legacy screens used
+   their own animated circuit layers, which made the background appear to
+   change when navigating between practice, review, route and self-test. */
+body.inner-page[data-learning-page] {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(42, 198, 218, .14), transparent 34%),
+    radial-gradient(circle at 88% 92%, rgba(86, 154, 226, .10), transparent 36%),
+    linear-gradient(180deg, #f9fcfe 0%, #eaf5f9 100%) !important;
+}
+
+body.inner-page[data-learning-page]::before {
+  background: none !important;
+  opacity: 0 !important;
+}
+
+body.inner-page[data-learning-page]::after {
+  background:
+    linear-gradient(180deg, rgba(249, 253, 255, .18), rgba(231, 245, 250, .26)),
+    repeating-linear-gradient(90deg, rgba(70, 152, 180, .022) 0 1px, transparent 1px 72px) !important;
+}
+
+body.inner-page[data-learning-page] .circuit-bg-canvas,
+body.inner-page[data-learning-page] .circuit-bg-overlay,
+body.inner-page[data-learning-page] .tech-background {
+  display: none !important;
+}
+
+body.inner-page.lab-page .circuit-stage.awaiting-prediction::after {
+  border-color: rgba(22, 155, 145, .44);
+  color: #1c5b68;
+  background: rgba(235, 252, 249, .96);
+  box-shadow: 0 10px 24px rgba(42, 123, 139, .12);
+}
+
+/* Match the learning-center assistant: its capsule and expanded window are both
+   repositionable, while the lower-right grip resizes the open window. */
+body.inner-page.lab-page .assistant-panel.lab-ai-dock {
+  min-width: 280px;
+  min-height: 280px;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-collapsed {
+  min-width: 0;
+  min-height: 0;
+}
+
+body.inner-page.lab-page .assistant-dock-toggle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-dragging .assistant-dock-toggle {
+  cursor: grabbing;
+}
+
+body.inner-page.lab-page .assistant-resize-handle {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  z-index: 2;
+  width: 19px;
+  height: 19px;
+  border-right: 3px solid rgba(22, 155, 145, .72);
+  border-bottom: 3px solid rgba(22, 155, 145, .72);
+  border-radius: 0 0 7px 0;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-collapsed .assistant-resize-handle {
+  display: none;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-resizing {
+  user-select: none;
+}
+
+body.inner-page.practice-page .bit-button {
+  border: 1px solid #99cbd2;
+  background: linear-gradient(180deg, #fafdfe, #e3f4f6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 5px 12px rgba(49, 122, 145, .12);
+}
+
+body.inner-page.practice-page .bit-button__led { background: #789aa9; }
+body.inner-page.practice-page .bit-button__value { color: #35566a; text-shadow: none; }
+body.inner-page.practice-page .bit-button__label { color: #5b7888; background: rgba(120, 166, 180, .12); }
+
+body.inner-page.practice-page .component.input.on .bit-button {
+  border-color: #18a79a;
+  background: linear-gradient(180deg, #e2faf4, #c8f0e6);
+  box-shadow: 0 0 16px rgba(22, 155, 145, .20), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+body.inner-page.practice-page .component.input.on .bit-button__led { background: #16b9aa; box-shadow: 0 0 8px rgba(22, 185, 170, .42); }
+body.inner-page.practice-page .component.input.on .bit-button__value { color: #087b71; text-shadow: none; }
+body.inner-page.practice-page .component.input.on .bit-button__label { color: #087b71; background: rgba(22, 155, 145, .10); }
+
+body.inner-page.practice-page .simulation-summary {
+  border-color: rgba(22, 155, 145, .34) !important;
+  color: #225b6d !important;
+  background: rgba(235, 251, 250, .94) !important;
+  box-shadow: 0 8px 20px rgba(49, 122, 145, .12) !important;
+}
+
+body.inner-page.practice-page .toast {
+  border-color: rgba(22, 155, 145, .38);
+  color: #1b596a;
+  background: rgba(241, 253, 252, .97);
+  box-shadow: 0 10px 24px rgba(49, 122, 145, .16);
+}
+
+/* Circuit builder follows the same daylight workbench palette as the experiment center. */
+body.inner-page.practice-page .board {
+  background:
+    linear-gradient(rgba(80, 178, 198, .075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 178, 198, .075) 1px, transparent 1px),
+    radial-gradient(circle at 50% 45%, rgba(37, 201, 199, .11), transparent 52%),
+    #f4fcfd !important;
+  background-size: 30px 30px, 30px 30px, auto, auto !important;
+}
+
+body.inner-page.practice-page .board.drag-over,
+body.inner-page.practice-page .board.wiring,
+body.inner-page.practice-page .board.simulating {
+  box-shadow: inset 0 0 0 2px rgba(22, 155, 145, .36), inset 0 0 34px rgba(37, 201, 199, .12);
+}
+
+body.inner-page.practice-page .empty-tip { color: #668596; }
+body.inner-page.practice-page .wire { stroke: #8baebb; filter: none; }
+body.inner-page.practice-page .wire.on { stroke: #169b91; filter: drop-shadow(0 0 5px rgba(22, 155, 145, .35)); }
+body.inner-page.practice-page .wire.pending { stroke: #2a9abd; filter: none; }
+
+body.inner-page.practice-page .component {
+  border-color: #86c5ce;
+  color: #153d52;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(225, 246, 248, .94)),
+    radial-gradient(circle at 50% 0, rgba(37, 201, 199, .10), transparent 70%);
+  box-shadow: 0 10px 24px rgba(49, 122, 145, .14), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+body.inner-page.practice-page .component.selected {
+  border-color: #169b91;
+  box-shadow: 0 0 0 2px rgba(22, 155, 145, .16), 0 12px 26px rgba(22, 155, 145, .16);
+}
+
+body.inner-page.practice-page .component .kind,
+body.inner-page.practice-page .component .value,
+body.inner-page.practice-page .symbol,
+body.inner-page.practice-page .constant-display,
+body.inner-page.practice-page .component-title-main,
+body.inner-page.practice-page .component-id {
+  color: #17465b;
+}
+
+body.inner-page.practice-page .symbol,
+body.inner-page.practice-page .constant-display {
+  background: rgba(226, 245, 247, .78);
+}
+
+body.inner-page.practice-page .component .value {
+  background: rgba(22, 155, 145, .12);
+}
+
+body.inner-page.practice-page .component .port,
+body.inner-page.practice-page .port {
+  border-color: #159c96;
+  background: #e4faf6;
+}
+
+body.inner-page.practice-page .ghost-node {
+  border-color: rgba(22, 155, 145, .48);
+  color: #285d70;
+  background: rgba(238, 251, 252, .88);
+  box-shadow: 0 8px 16px rgba(48, 124, 142, .10);
+}
+
+body.inner-page.practice-page .ghost-node .ghost-name { color: #638596; }
+
+body.inner-page.practice-page .recycle-bin {
+  border-color: rgba(190, 73, 99, .45);
+  color: #9e3950;
+  background: rgba(255, 245, 247, .94);
+  box-shadow: none;
+}
+
+body.inner-page.practice-page .recycle-bin span { color: #b75b70; }
+
+/* Keep the AI tutor beside the circuit, where the verification column has spare vertical room.
+   The former lower-row layout made the tutor very wide, while its content remained cramped. */
+body.inner-page.lab-page .verification-column > .assistant-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 2px 0 0;
+  padding: 11px;
+  border-color: var(--dc-color-border) !important;
+  border-radius: 10px;
+  background: rgba(248, 253, 255, .94) !important;
+  box-shadow: none !important;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .digital-tutor {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 6px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--dc-color-border-subtle) !important;
+  border-radius: 0;
+  background: transparent !important;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .tutor-face {
+  grid-row: 1 / span 2;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .tutor-face .eye {
+  top: 14px;
+  width: 6px;
+  height: 7px;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .tutor-face .eye.left { left: 11px; }
+body.inner-page.lab-page .verification-column > .assistant-panel .tutor-face .eye.right { right: 11px; }
+
+body.inner-page.lab-page .verification-column > .assistant-panel .tutor-face .mouth {
+  bottom: 8px;
+  width: 14px;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .digital-tutor strong {
+  align-self: end;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .digital-tutor small {
+  align-self: start;
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .assistant-chat {
+  display: grid;
+  gap: 8px;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .explanation-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 8px;
+  margin: 0;
+  padding: 8px 9px;
+  border-radius: 7px;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .explanation-card button {
+  position: static;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .explanation-card p {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .lab-messages {
+  min-height: 82px;
+  max-height: 136px;
+  padding: 8px;
+  border-color: var(--dc-color-border-subtle);
+  background: rgba(237, 248, 252, .76);
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .message {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .assistant-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .assistant-actions button,
+body.inner-page.lab-page .verification-column > .assistant-panel .assistant-composer button {
+  min-height: 36px;
+  padding-inline: 9px;
+  font-size: 12px;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .assistant-composer {
+  margin: 0;
+}
+
+body.inner-page.lab-page .verification-column > .assistant-panel .assistant-composer input {
+  min-height: 38px;
+  font-size: 12px;
+}
+
+@media (max-width: 920px) {
+  body.inner-page.lab-page .verification-column {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  body.inner-page.lab-page .verification-column > .assistant-panel {
+    padding: 10px;
+  }
+
+  body.inner-page.lab-page .verification-column > .assistant-panel .assistant-composer {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+/* Experiment center: keep the simulation surface calm and move AI help out of the
+   verification flow. The assistant remains one tap away instead of stretching the
+   right column into a second, competing page. */
+body.inner-page.lab-page .lab-workspace {
+  scroll-margin-top: 76px;
+}
+
+@media (min-width: 921px) {
+  body.inner-page.lab-page .workbench-header {
+    min-height: 0 !important;
+    margin-bottom: 12px;
+    padding: 4px 0 14px !important;
+    border-bottom: 1px solid var(--dc-color-border-subtle);
+  }
+
+  body.inner-page.lab-page .workbench-actions > #workspaceStartButton,
+  body.inner-page.lab-page .workbench-actions > .lab-toolstrip,
+  body.inner-page.lab-page .workbench-actions > #demoButton {
+    position: static !important;
+  }
+
+  body.inner-page.lab-page .workbench-actions {
+    align-self: center;
+    max-width: 720px;
+  }
+}
+
+body.inner-page.lab-page .simulation-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(312px, 350px);
+  gap: 16px;
+}
+
+body.inner-page.lab-page .simulation-primary {
+  padding: 14px;
+}
+
+body.inner-page.lab-page .circuit-stage {
+  min-height: 410px;
+  border-radius: 10px;
+}
+
+body.inner-page.lab-page .circuit-svg {
+  min-height: 384px;
+}
+
+body.inner-page.lab-page .verification-column {
+  gap: 14px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(251, 254, 255, .86);
+}
+
+body.inner-page.lab-page .verification-column > .truth-panel {
+  padding-top: 14px;
+}
+
+body.inner-page.lab-page .truth-table {
+  max-height: 312px;
+  overflow-y: auto;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 45;
+  display: block;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 112px));
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--dc-color-border) !important;
+  border-radius: 14px;
+  background: rgba(251, 254, 255, .98) !important;
+  box-shadow: 0 18px 48px rgba(34, 80, 110, .2) !important;
+}
+
+body.inner-page.lab-page .assistant-dock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--dc-color-ink);
+  background: linear-gradient(135deg, rgba(29, 207, 226, .17), rgba(115, 105, 255, .12));
+  box-shadow: none;
+  text-align: left;
+}
+
+body.inner-page.lab-page .assistant-dock-toggle__mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, var(--dc-color-brand), var(--dc-color-violet));
+  font-size: 12px;
+  font-weight: 800;
+}
+
+body.inner-page.lab-page .assistant-dock-toggle strong,
+body.inner-page.lab-page .assistant-dock-toggle small {
+  display: block;
+}
+
+body.inner-page.lab-page .assistant-dock-toggle strong {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+body.inner-page.lab-page .assistant-dock-toggle small {
+  margin-top: 2px;
+  color: var(--dc-color-ink-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock .digital-tutor {
+  display: none;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock .assistant-chat {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-collapsed {
+  width: 184px;
+  max-height: none;
+  padding: 5px;
+  overflow: visible;
+  border-color: rgba(52, 205, 228, .42) !important;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-collapsed .assistant-dock-toggle {
+  min-height: 42px;
+  padding: 4px 7px;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-collapsed .assistant-dock-toggle__mark {
+  width: 31px;
+  height: 31px;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-collapsed .assistant-dock-toggle small {
+  display: none;
+}
+
+body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-collapsed .assistant-chat {
+  display: none;
+}
+
+@media (max-width: 920px) {
+  body.inner-page.lab-page .simulation-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  body.inner-page.lab-page .assistant-panel.lab-ai-dock {
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  body.inner-page.lab-page .assistant-panel.lab-ai-dock.is-collapsed {
+    width: 154px;
+  }
+}
+
+/* Final palette normalization must follow the legacy workbench overrides above. */
+body.inner-page.lab-page .circuit-stage {
+  border-color: rgba(64, 143, 184, .28) !important;
+  background:
+    linear-gradient(rgba(80, 178, 198, .075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 178, 198, .075) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgba(37, 201, 199, .10), transparent 52%),
+    #f5fcfd !important;
+  background-size: 24px 24px, 24px 24px, auto, auto !important;
+}
+
+body.inner-page.lab-page .circuit-svg .signal-line { stroke: #86aebd; filter: none; }
+body.inner-page.lab-page .circuit-svg .signal-line.high,
+body.inner-page.lab-page .circuit-svg .signal-line.logic-high {
+  stroke: #169b91;
+  filter: drop-shadow(0 0 3px rgba(22, 155, 145, .26));
+}
+body.inner-page.lab-page .circuit-svg .port { fill: #fff; stroke: #79a9b8; }
+body.inner-page.lab-page .circuit-svg .port.high,
+body.inner-page.lab-page .circuit-svg .port.logic-high { fill: #c8f2e9; stroke: #169b91; }
+body.inner-page.lab-page .circuit-svg .value-box { fill: rgba(255, 255, 255, .96); stroke: #80bec8; }
+body.inner-page.lab-page .circuit-svg .value-box.high,
+body.inner-page.lab-page .circuit-svg .active-output { fill: #e5f8f2; stroke: #24a98f; }
+body.inner-page.lab-page .circuit-svg .module-body,
+body.inner-page.lab-page .circuit-svg .gate-body,
+body.inner-page.lab-page .circuit-svg .chip-body { fill: #e9f8fa; stroke: #2aaebb; }
+body.inner-page.lab-page .circuit-svg .gate-detail,
+body.inner-page.lab-page .circuit-svg .module-divider { stroke: #77b8c3; }
+body.inner-page.lab-page .circuit-svg .chip-label,
+body.inner-page.lab-page .circuit-svg .chip-subtext,
+body.inner-page.lab-page .circuit-svg .chip-pin,
+body.inner-page.lab-page .circuit-svg .chip-state-hint,
+body.inner-page.lab-page .circuit-svg .module-title,
+body.inner-page.lab-page .circuit-svg .module-formula,
+body.inner-page.lab-page .circuit-svg .value-label { fill: #17465b; stroke: none; }
+body.inner-page.lab-page .circuit-svg .diagram-caption,
+body.inner-page.lab-page .circuit-svg .small-label,
+body.inner-page.lab-page .circuit-svg .signal-label { fill: #547789; }
+body.inner-page.lab-page .circuit-svg .clock-pulse { stroke: #149ba6; }
+
+body.inner-page.lab-page .timing-diagram {
+  border-color: var(--dc-color-border);
+  background:
+    linear-gradient(rgba(57, 173, 192, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 173, 192, .08) 1px, transparent 1px),
+    #f7fcfd;
+  background-size: 20px 20px;
+}
+body.inner-page.lab-page .timing-svg .timing-signal.clock,
+body.inner-page.lab-page .timing-svg .timing-signal.output { stroke: #169b91; }
+body.inner-page.lab-page .timing-svg .timing-signal.input,
+body.inner-page.lab-page .timing-svg .edge-marker { stroke: #2a9abd; fill: #2a9abd; }
+body.inner-page.lab-page .assistant-dock-toggle {
+  background: linear-gradient(135deg, rgba(29, 207, 226, .17), rgba(64, 172, 209, .14));
+}
+body.inner-page.lab-page .assistant-dock-toggle__mark {
+  background: linear-gradient(135deg, #16b9ba, #3295c4);
+}

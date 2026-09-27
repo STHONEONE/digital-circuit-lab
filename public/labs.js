@@ -175,8 +175,7 @@ const experiments = {
 const chapterNames = {
   "basic-logic": "基础逻辑",
   "combinational-logic": "组合逻辑",
-  "sequential-logic": "时序逻辑",
-  "advanced-topics": "进阶主题"
+  "sequential-logic": "时序逻辑"
 };
 
 function compactModelCases(experimentId, state) {
@@ -273,14 +272,14 @@ function svgDefs() {
   return `
     <defs>
       <linearGradient id="componentFill" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#0ea5e9"/>
-        <stop offset="100%" stop-color="#1e1b4b"/>
+        <stop offset="0%" stop-color="#effcff"/>
+        <stop offset="100%" stop-color="#c9ecf1"/>
       </linearGradient>
       <filter id="componentShadow" x="-30%" y="-30%" width="160%" height="160%">
-        <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#38bdf8" flood-opacity=".18"/>
+        <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#1599ad" flood-opacity=".14"/>
       </filter>
       <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
-        <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#38bdf8" flood-opacity=".12"/>
+        <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#1599ad" flood-opacity=".10"/>
       </filter>
       <filter id="signalGlow" x="-80%" y="-80%" width="260%" height="260%">
         <feGaussianBlur stdDeviation="4" result="blur"/>
@@ -922,7 +921,7 @@ const ids = [
   "experimentChapter", "experimentTitle", "experimentObjective", "workspaceStartButton", "controls", "circuitDiagram", "circuitPanel",
   "experimentEvidencePanel",
   "timingPanel", "timingSummary", "timingDiagram", "clearTimingButton",
-  "stateExplanation", "truthTable",
+  "stateExplanation", "truthTable", "assistantPanel", "assistantDockToggle", "assistantResizeHandle",
   "demoButton", "speakButton", "tutorFace", "voiceStatus", "labMessages",
   "stateQuestionButton", "voiceButton", "labQuestion", "askButton",
   "guideButton", "focusButton", "fullscreenButton", "screenshotButton", "exportReportButton", "toolStatus",
@@ -954,6 +953,160 @@ function focusCurrentExperimentAction() {
   const reduceMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
   target.focus?.({ preventScroll: true });
+}
+
+function setAssistantDockExpanded(expanded, { focusInput = false } = {}) {
+  elements.assistantPanel.classList.toggle("is-collapsed", !expanded);
+  elements.assistantDockToggle.setAttribute("aria-expanded", String(expanded));
+  if (expanded) restoreAssistantDockSize();
+  requestAnimationFrame(() => {
+    clampAssistantDockToViewport();
+    if (focusInput && expanded) elements.labQuestion.focus({ preventScroll: true });
+  });
+}
+
+const assistantDockStorageKey = "digital-circuit-lab-assistant-window/v1";
+let assistantDockDrag = null;
+let assistantDockResize = null;
+let suppressAssistantDockToggle = false;
+
+function readAssistantDockState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(assistantDockStorageKey) || "null");
+    return Number.isFinite(saved?.left) && Number.isFinite(saved?.top) ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveAssistantDockState() {
+  const rect = elements.assistantPanel.getBoundingClientRect();
+  const state = { left: Math.round(rect.left), top: Math.round(rect.top) };
+  if (!elements.assistantPanel.classList.contains("is-collapsed")) {
+    state.width = Math.round(rect.width);
+    state.height = Math.round(rect.height);
+  }
+  try {
+    localStorage.setItem(assistantDockStorageKey, JSON.stringify(state));
+  } catch {
+    // The assistant remains movable even where storage is unavailable.
+  }
+}
+
+function clampAssistantDockToViewport({ persist = false } = {}) {
+  const panel = elements.assistantPanel;
+  const rect = panel.getBoundingClientRect();
+  const margin = 8;
+  const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
+  const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
+  const left = Math.min(maxLeft, Math.max(margin, rect.left));
+  const top = Math.min(maxTop, Math.max(margin, rect.top));
+  panel.style.left = `${Math.round(left)}px`;
+  panel.style.top = `${Math.round(top)}px`;
+  panel.style.right = "auto";
+  panel.style.bottom = "auto";
+  if (persist) saveAssistantDockState();
+}
+
+function restoreAssistantDockSize() {
+  const saved = readAssistantDockState();
+  if (!saved) return;
+  const minWidth = 280;
+  const minHeight = 280;
+  if (Number.isFinite(saved.width)) {
+    elements.assistantPanel.style.width = `${Math.min(window.innerWidth - 16, Math.max(minWidth, saved.width))}px`;
+  }
+  if (Number.isFinite(saved.height)) {
+    elements.assistantPanel.style.height = `${Math.min(window.innerHeight - 16, Math.max(minHeight, saved.height))}px`;
+  }
+}
+
+function restoreAssistantDockPosition() {
+  const saved = readAssistantDockState();
+  if (!saved) return;
+  elements.assistantPanel.style.left = `${saved.left}px`;
+  elements.assistantPanel.style.top = `${saved.top}px`;
+  elements.assistantPanel.style.right = "auto";
+  elements.assistantPanel.style.bottom = "auto";
+  clampAssistantDockToViewport();
+}
+
+function setupAssistantDockInteractions() {
+  if (!window.PointerEvent) return;
+  const panel = elements.assistantPanel;
+  const handle = elements.assistantDockToggle;
+
+  handle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !event.isPrimary) return;
+    const rect = panel.getBoundingClientRect();
+    assistantDockDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      moved: false
+    };
+    handle.setPointerCapture(event.pointerId);
+  });
+
+  handle.addEventListener("pointermove", (event) => {
+    if (!assistantDockDrag || assistantDockDrag.pointerId !== event.pointerId) return;
+    if (!assistantDockDrag.moved && Math.hypot(event.clientX - assistantDockDrag.startX, event.clientY - assistantDockDrag.startY) < 7) return;
+    assistantDockDrag.moved = true;
+    panel.classList.add("is-dragging");
+    panel.style.left = `${event.clientX - assistantDockDrag.offsetX}px`;
+    panel.style.top = `${event.clientY - assistantDockDrag.offsetY}px`;
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    clampAssistantDockToViewport();
+    event.preventDefault();
+  });
+
+  const stopDrag = (event) => {
+    if (!assistantDockDrag || assistantDockDrag.pointerId !== event.pointerId) return;
+    const moved = assistantDockDrag.moved;
+    assistantDockDrag = null;
+    panel.classList.remove("is-dragging");
+    if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+    if (moved) {
+      suppressAssistantDockToggle = true;
+      saveAssistantDockState();
+      window.setTimeout(() => { suppressAssistantDockToggle = false; }, 0);
+    }
+  };
+  handle.addEventListener("pointerup", stopDrag);
+  handle.addEventListener("pointercancel", stopDrag);
+
+  elements.assistantResizeHandle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || panel.classList.contains("is-collapsed")) return;
+    const rect = panel.getBoundingClientRect();
+    assistantDockResize = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, width: rect.width, height: rect.height };
+    panel.classList.add("is-resizing");
+    elements.assistantResizeHandle.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+
+  elements.assistantResizeHandle.addEventListener("pointermove", (event) => {
+    if (!assistantDockResize || assistantDockResize.pointerId !== event.pointerId) return;
+    const width = Math.min(window.innerWidth - 16, Math.max(280, assistantDockResize.width + event.clientX - assistantDockResize.startX));
+    const height = Math.min(window.innerHeight - 16, Math.max(280, assistantDockResize.height + event.clientY - assistantDockResize.startY));
+    panel.style.width = `${Math.round(width)}px`;
+    panel.style.height = `${Math.round(height)}px`;
+    clampAssistantDockToViewport();
+  });
+
+  const stopResize = (event) => {
+    if (!assistantDockResize || assistantDockResize.pointerId !== event.pointerId) return;
+    assistantDockResize = null;
+    panel.classList.remove("is-resizing");
+    if (elements.assistantResizeHandle.hasPointerCapture(event.pointerId)) elements.assistantResizeHandle.releasePointerCapture(event.pointerId);
+    saveAssistantDockState();
+  };
+  elements.assistantResizeHandle.addEventListener("pointerup", stopResize);
+  elements.assistantResizeHandle.addEventListener("pointercancel", stopResize);
+
+  window.addEventListener("resize", () => clampAssistantDockToViewport());
 }
 
 function renderTabs() {
@@ -1735,6 +1888,11 @@ async function completeFullAdderExperiment() {
 
 elements.demoButton.addEventListener("click", startDemo);
 elements.workspaceStartButton.addEventListener("click", focusCurrentExperimentAction);
+elements.assistantDockToggle.addEventListener("click", () => {
+  if (suppressAssistantDockToggle) return;
+  const expanded = elements.assistantDockToggle.getAttribute("aria-expanded") !== "true";
+  setAssistantDockExpanded(expanded, { focusInput: expanded });
+});
 elements.clearTimingButton.addEventListener("click", () => {
   jkTimingHistory = [];
   jkCycleNumber = 0;
@@ -1803,6 +1961,8 @@ document.addEventListener("keydown", (event) => {
 });
 
 restoreLabState();
+setupAssistantDockInteractions();
+requestAnimationFrame(restoreAssistantDockPosition);
 render();
 if (experimentKey === "fullAdder") {
   ensureFullAdderSession()

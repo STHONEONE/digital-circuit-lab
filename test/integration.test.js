@@ -47,7 +47,7 @@ test("health, pages and question APIs are available", async () => {
   assert.ok(questions.some((question) => question.explanationSvg?.includes("<svg")));
   assert.match(home, /数字电路智能仿真学习系统/);
   assert.match(home, /集成逻辑门、触发器、译码器与存储器，探索动态信号与时序波形/);
-  assert.match(home, /\/assets\/neon-circuit-city-astronaut\.webp/);
+  assert.match(home, /\/assets\/shuzidainlu\.webp/);
   assert.match(home, /data-pixel-home-canvas/);
   assert.match(home, /initPixelHeroCanvas/);
   assert.match(home, /robot-pulse/);
@@ -155,10 +155,6 @@ test("health, pages and question APIs are available", async () => {
   assert.match(builder, /scrollbar-color/);
   assert.match(builder, /\*::-webkit-scrollbar-thumb:hover/);
   assert.match(builder, /overscroll-behavior: contain/);
-  assert.match(mainStyle, /\*::-webkit-scrollbar-thumb:hover/);
-  assert.match(mainStyle, /scrollbar-color: #00d1ff rgba\(4, 12, 24, \.88\)/);
-  assert.match(labStyle, /\*::-webkit-scrollbar-thumb:hover/);
-  assert.match(labStyle, /scrollbar-color: #00d1ff rgba\(4, 12, 24, \.88\)/);
   assert.match(siteNavStyle, /\.site-nav/);
   assert.match(siteNavStyle, /\.site-nav \.site-nav__link\.active/);
   assert.match(builder, /CONST 0/);
@@ -290,6 +286,8 @@ test("learning center uses five independent pages and embeds practice settings i
   assert.match(shell, /const views = new Map/);
   assert.match(shell, /window\.history\.pushState/);
   assert.match(shell, /window\.parent\.learningPlatform\.switchPage/);
+  assert.match(shell, /window\.top\.location\.assign\(destination\.href\)/);
+  assert.match(shell, /Product-level links such as/);
   assert.match(shell, /visiblePage/);
   assert.match(shell, /location\.assign\(destination\.href\)/);
   assert.match(shell, /function installLearningPageRouting\(\)/);

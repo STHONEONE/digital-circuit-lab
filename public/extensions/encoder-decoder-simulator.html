@@ -389,14 +389,14 @@
 
         .module-grid {
             display: grid;
-            grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1.25fr) minmax(480px, 0.75fr);
             gap: 16px;
             align-items: start;
             min-width: 0;
         }
 
         .priority-advanced-grid {
-            grid-template-columns: minmax(520px, 600px) minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1.15fr) minmax(520px, 0.85fr);
         }
 
         .wide-grid {
@@ -478,6 +478,15 @@
             gap: 8px;
             margin-bottom: 16px;
             min-width: 0;
+        }
+
+        #encoder-control-area .pin-grid {
+            grid-template-columns: repeat(auto-fit, minmax(min(96px, 100%), 1fr));
+        }
+
+        #encoder-control-area .pin-control small {
+            font-size: 12px;
+            white-space: nowrap;
         }
 
         .pin-control {
@@ -727,7 +736,7 @@
 
         .seven-layout {
             display: grid;
-            grid-template-columns: minmax(220px, 320px) minmax(240px, 1fr);
+            grid-template-columns: 1fr;
             gap: 16px;
             align-items: center;
         }

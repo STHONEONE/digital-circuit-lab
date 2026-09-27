@@ -80,9 +80,9 @@ test("desktop primary pages render one identical 60px platform header", {
     assert.ok(Math.abs(metrics.height - 60) <= 1, `${pathname} header should be 60px tall`);
     assert.equal(metrics.position, "sticky");
     assert.equal(metrics.borderRadius, "0px");
-    assert.match(metrics.backgroundColor, /^rgba?\(3, 15, 33/);
+    assert.match(metrics.backgroundColor, /^rgba?\(250, 253, 255/);
     assert.equal(metrics.activeHref, activeHref);
-    assert.equal(metrics.activeColor, "rgb(57, 223, 244)");
+    assert.equal(metrics.activeColor, "rgb(7, 154, 183)");
     assert.equal(metrics.brandVisible, true);
     assert.equal(metrics.linkHeights.length, 4);
     assert.ok(metrics.linkHeights.every((height) => height >= 58));

@@ -77,12 +77,21 @@ function installLearningPageRouting() {
       const link = event.target.closest("a[href]");
       if (!link || event.defaultPrevented || event.button !== 0
         || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const item = learningItemForUrl(link.href);
-      if (!item || typeof window.parent.learningPlatform?.switchPage !== "function") return;
-      event.preventDefault();
+      if (link.target === "_blank" || link.hasAttribute("download")) return;
       const destination = new URL(link.href, location.href);
+      if (destination.origin !== location.origin) return;
+      const item = learningItemForUrl(destination);
+      if (!item) {
+        // An iframe is only for learning-center subpages. Product-level links such as
+        // “前往实验中心” must replace the top document instead of nesting another app.
+        event.preventDefault();
+        window.top.location.assign(destination.href);
+        return;
+      }
+      if (typeof window.parent.learningPlatform?.switchPage !== "function") return;
+      event.preventDefault();
       if (destination.search) {
-        window.parent.location.assign(destination.href);
+        window.top.location.assign(destination.href);
         return;
       }
       window.parent.learningPlatform.switchPage(item.key);

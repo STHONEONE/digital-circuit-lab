@@ -73,10 +73,8 @@
       margin: 0;
       overflow: hidden;
       color: var(--text);
-      background:
-        radial-gradient(circle at 18% 12%, rgba(56, 189, 248, .18), transparent 30%),
-        radial-gradient(circle at 84% 22%, rgba(139, 92, 246, .16), transparent 28%),
-        linear-gradient(135deg, #050b16 0%, #071a2d 48%, #10172a 100%);
+      background: var(--dc-gradient-page,
+        linear-gradient(135deg, #050b16 0%, #071a2d 48%, #10172a 100%));
     }
 
     body::before,
@@ -128,8 +126,8 @@
       border: 1px solid var(--line);
       border-radius: 22px;
       padding: 13px 16px;
-      background: linear-gradient(145deg, rgba(15, 23, 42, .72), rgba(7, 17, 31, .58));
-      box-shadow: 0 16px 50px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.08);
+      background: var(--dc-gradient-surface, linear-gradient(145deg, rgba(15, 23, 42, .72), rgba(7, 17, 31, .58)));
+      box-shadow: var(--dc-shadow-md), var(--dc-inset-highlight);
       backdrop-filter: blur(14px);
     }
 
@@ -154,10 +152,10 @@
       display: inline-flex;
       align-items: center;
       gap: 9px;
-      border: 1px solid rgba(125, 211, 252, .28);
+      border: 1px solid var(--dc-color-border, rgba(125, 211, 252, .28));
       border-radius: 999px;
-      color: #c8fbff;
-      background: rgba(56, 189, 248, .10);
+      color: var(--dc-color-text-secondary, #c8fbff);
+      background: var(--dc-color-brand-soft, rgba(56, 189, 248, .10));
       padding: 10px 15px;
       font-size: 13px;
       white-space: nowrap;
@@ -186,23 +184,23 @@
       min-height: 46px;
       border: 1px solid rgba(125, 211, 252, .58);
       border-radius: 12px;
-      color: #fff;
-      background: linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6);
+      color: var(--dc-color-text-on-brand, #03101f);
+      background: var(--dc-gradient-action, linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6));
       padding: 0 18px;
       font-size: 15px;
       font-weight: 900;
       letter-spacing: .01em;
       text-decoration: none;
       white-space: nowrap;
-      box-shadow: 0 12px 34px rgba(56, 189, 248, .24);
+      box-shadow: var(--dc-shadow-action);
       transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
     }
 
     .top-actions a:hover {
       transform: translateY(-1px);
       border-color: rgba(196, 181, 253, .68);
-      background: linear-gradient(135deg, #22d3ee, #38bdf8 58%, #8b5cf6);
-      box-shadow: 0 16px 36px rgba(56, 189, 248, .32);
+      background: var(--dc-gradient-action, linear-gradient(135deg, #22d3ee, #38bdf8 58%, #8b5cf6));
+      box-shadow: var(--dc-shadow-action), var(--dc-shadow-focus);
     }
 
     .workspace {
@@ -257,10 +255,10 @@
 
     .panel,
     .canvas-panel {
-      border: 1px solid var(--line);
+      border: 1px solid var(--dc-color-border, var(--line));
       border-radius: 22px;
-      background: linear-gradient(145deg, rgba(15, 23, 42, .78), rgba(7, 17, 31, .66));
-      box-shadow: 0 18px 58px rgba(0,0,0,.28), 0 0 36px rgba(56, 189, 248, .08), inset 0 1px 0 rgba(255,255,255,.08);
+      background: var(--dc-gradient-surface, linear-gradient(145deg, rgba(15, 23, 42, .78), rgba(7, 17, 31, .66)));
+      box-shadow: var(--dc-shadow-lg), var(--dc-inset-highlight);
       backdrop-filter: blur(14px);
       overflow: hidden;
     }
@@ -525,8 +523,8 @@
 
     .ghost-buttons .primary {
       border-color: rgba(125, 211, 252, .58);
-      color: white;
-      background: linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6);
+      color: var(--dc-color-text-on-brand, #03101f);
+      background: var(--dc-gradient-action, linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6));
     }
 
     .ghost-status {
@@ -613,8 +611,8 @@
     .toolbar .primary,
     .analysis-actions .primary {
       border-color: rgba(125, 211, 252, .58);
-      background: linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6);
-      color: white;
+      background: var(--dc-gradient-action, linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6));
+      color: var(--dc-color-text-on-brand, #03101f);
     }
 
     .toolbar .danger {
@@ -873,7 +871,7 @@
       background:
         linear-gradient(145deg, rgba(15, 23, 42, .94), rgba(8, 20, 38, .86)),
         radial-gradient(circle at 50% 0, rgba(56, 189, 248, .12), transparent 70%);
-      box-shadow: 0 12px 32px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.08);
+      box-shadow: var(--dc-shadow-md), var(--dc-inset-highlight);
       padding: 10px 16px 14px;
       user-select: none;
       touch-action: none;
@@ -1551,7 +1549,7 @@
       .zoom-controls button,
       .history-controls button {
         min-width: 44px;
-        min-height: 44px;
+        min-height: 45px;
       }
 
       .port {
@@ -1644,7 +1642,7 @@
 
     .chat-input-row textarea:focus {
       border-color: rgba(34, 211, 238, .58);
-      box-shadow: 0 0 0 3px rgba(34, 211, 238, .10);
+      box-shadow: var(--dc-shadow-focus);
     }
 
     .chat-input-row button {
@@ -1652,8 +1650,8 @@
       min-height: 52px;
       border: 1px solid rgba(125, 211, 252, .58);
       border-radius: 14px;
-      color: white;
-      background: linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6);
+      color: var(--dc-color-text-on-brand, #03101f);
+      background: var(--dc-gradient-action, linear-gradient(135deg, #38bdf8, #22d3ee 70%, #8b5cf6));
       padding: 0 15px;
       font-weight: 900;
     }
@@ -1755,8 +1753,8 @@
 
     /* Unified inner-page background: visible homepage WebP + translucent floating modules. */
     body.inner-page {
-      color: #eaf6ff;
-      background: #040b16 !important;
+      color: var(--dc-color-text, #f2f9ff);
+      background: var(--dc-color-canvas-deep, #071a2e) !important;
     }
 
     body.inner-page::before {
@@ -1766,8 +1764,8 @@
       pointer-events: none;
       content: "";
       background: url("/assets/neon-circuit-city-astronaut.webp") center center / cover no-repeat;
-      opacity: .78;
-      filter: saturate(.95) brightness(.86);
+      opacity: .90;
+      filter: saturate(.92) brightness(1.02);
     }
 
     body.inner-page::after {
@@ -1777,8 +1775,8 @@
       pointer-events: none;
       content: "";
       background:
-        linear-gradient(180deg, rgba(3, 8, 20, .36) 0%, rgba(3, 8, 20, .50) 48%, rgba(3, 8, 20, .66) 100%),
-        radial-gradient(circle at 50% 45%, rgba(0, 210, 255, .08), transparent 42%);
+        linear-gradient(180deg, rgba(6, 25, 49, .16) 0%, rgba(6, 25, 49, .24) 48%, rgba(6, 25, 49, .38) 100%),
+        radial-gradient(circle at 50% 45%, rgba(72, 216, 244, .14), transparent 44%);
     }
 
     body.inner-page .page,
@@ -1809,19 +1807,16 @@
     body.inner-page .result-card,
     body.inner-page .module-card,
     body.inner-page .analysis-panel {
-      background: rgba(5, 14, 30, .48) !important;
-      border-color: rgba(95, 205, 255, .24);
-      box-shadow:
-        0 12px 30px rgba(0, 0, 0, .24),
-        0 0 22px rgba(0, 210, 255, .055),
-        inset 0 0 0 1px rgba(140, 220, 255, .055);
+      background: var(--dc-color-surface-glass, rgba(16, 47, 79, .56)) !important;
+      border-color: var(--dc-color-border, rgba(126, 199, 231, .27));
+      box-shadow: var(--dc-shadow-md), var(--dc-inset-highlight);
       backdrop-filter: blur(12px) saturate(1.05);
       -webkit-backdrop-filter: blur(12px) saturate(1.05);
     }
 
     body.inner-page .library-panel,
     body.inner-page .analysis-panel {
-      background: rgba(5, 14, 30, .46) !important;
+      background: var(--dc-color-surface-quiet, rgba(14, 42, 72, .48)) !important;
     }
 
     body.inner-page .canvas-panel,
@@ -1829,8 +1824,8 @@
     body.inner-page .practice-main,
     body.inner-page .content-card,
     body.inner-page .simulation-area {
-      background: rgba(5, 14, 30, .60) !important;
-      border-color: rgba(100, 205, 255, .26);
+      background: var(--dc-color-surface, rgba(18, 50, 82, .74)) !important;
+      border-color: var(--dc-color-border, rgba(126, 199, 231, .27));
       backdrop-filter: blur(14px) saturate(1.05);
       -webkit-backdrop-filter: blur(14px) saturate(1.05);
     }
@@ -1844,8 +1839,8 @@
     body.inner-page .waveform-panel,
     body.inner-page .canvas-area {
       background:
-        linear-gradient(rgba(6, 18, 38, .56), rgba(6, 18, 38, .56)),
-        radial-gradient(circle at center, rgba(0, 210, 255, .10), transparent 60%) !important;
+        linear-gradient(rgba(10, 39, 70, .68), rgba(10, 39, 70, .68)),
+        radial-gradient(circle at center, rgba(72, 216, 244, .14), transparent 60%) !important;
       border-color: rgba(90, 200, 255, .25);
     }
 
@@ -1855,7 +1850,7 @@
     body.inner-page .top-nav,
     body.inner-page .navbar,
     body.inner-page .tab-bar {
-      background: rgba(5, 14, 30, .44) !important;
+      background: var(--dc-color-surface-quiet, rgba(14, 42, 72, .48)) !important;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
@@ -1873,13 +1868,15 @@
     body.inner-page .simulation-summary,
     body.inner-page .ghost-helper,
     body.inner-page .ghost-status {
-      background: rgba(8, 22, 46, .44) !important;
-      border-color: rgba(95, 205, 255, .20);
-      color: #eaf6ff;
-      text-shadow: 0 1px 5px rgba(0, 0, 0, .58);
+      background: var(--dc-color-surface-soft, rgba(29, 71, 108, .62)) !important;
+      border-color: var(--dc-color-border, rgba(126, 199, 231, .27));
+      color: var(--dc-color-text, #f2f9ff);
+      text-shadow: none;
     }
   </style>
-  <link rel="stylesheet" href="./site-nav.css?v=20260718-2">
+  <link rel="stylesheet" href="./site-nav.css?v=20260721-2">
+  <link rel="stylesheet" href="./design-tokens.css?v=20260722-1">
+<link rel="stylesheet" href="./fresh-theme.css?v=20260722-6">
 </head>
 <body class="inner-page practice-page practice-center has-platform-topbar">
   <div class="page">

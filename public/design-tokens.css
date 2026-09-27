@@ -1,0 +1,159 @@
+:root {
+  /* Cool, brand-tinted neutral scale. */
+  --dc-color-canvas-deep: #0b2b49;
+  --dc-color-canvas: #0e3658;
+  --dc-color-canvas-raised: #134267;
+  --dc-color-surface: rgba(31, 78, 116, .72);
+  --dc-color-surface-raised: rgba(36, 86, 128, .80);
+  --dc-color-surface-soft: rgba(44, 96, 134, .58);
+  --dc-color-surface-glass: rgba(28, 73, 111, .55);
+  --dc-color-surface-quiet: rgba(25, 65, 100, .48);
+  --dc-color-surface-active: rgba(38, 108, 139, .58);
+
+  --dc-color-border-subtle: rgba(135, 191, 224, .17);
+  --dc-color-border: rgba(126, 199, 231, .27);
+  --dc-color-border-strong: rgba(91, 215, 241, .44);
+  --dc-color-border-interactive: rgba(84, 207, 239, .48);
+
+  --dc-color-text: #f2f9ff;
+  --dc-color-text-secondary: #c8dcea;
+  --dc-color-text-muted: #9eb8cc;
+  --dc-color-text-on-brand: #031321;
+
+  --dc-color-brand: #39dff4;
+  --dc-color-brand-strong: #22cde6;
+  --dc-color-brand-soft: rgba(57, 223, 244, .10);
+  --dc-color-brand-surface: rgba(26, 93, 122, .38);
+  --dc-color-violet: #3f9ed8;
+  --dc-color-violet-soft: rgba(63, 158, 216, .12);
+
+  --dc-color-success: #49d6a4;
+  --dc-color-success-soft: rgba(34, 145, 111, .16);
+  --dc-color-success-border: rgba(73, 214, 164, .30);
+  --dc-color-warning: #e9b45f;
+  --dc-color-warning-soft: rgba(169, 111, 31, .17);
+  --dc-color-warning-border: rgba(233, 180, 95, .30);
+  --dc-color-danger: #ed7189;
+  --dc-color-danger-soft: rgba(181, 55, 82, .16);
+  --dc-color-danger-border: rgba(237, 113, 137, .30);
+
+  --dc-gradient-page:
+    radial-gradient(circle at 14% 0%, rgba(79, 224, 244, .14), transparent 32%),
+    linear-gradient(180deg, var(--dc-color-canvas-raised), var(--dc-color-canvas));
+  --dc-gradient-surface: linear-gradient(145deg, rgba(26, 66, 103, .86), rgba(13, 42, 73, .72));
+  --dc-gradient-action: linear-gradient(105deg, #45d2ca 0%, #42b7dd 52%, #4c96d7 100%);
+
+  --dc-shadow-sm:
+    0 4px 14px rgba(3, 18, 35, .12),
+    0 0 0 1px rgba(62, 167, 213, .035);
+  --dc-shadow-md:
+    0 12px 32px rgba(3, 18, 35, .18),
+    0 0 0 1px rgba(62, 167, 213, .05);
+  --dc-shadow-lg:
+    0 20px 48px rgba(3, 18, 35, .22),
+    0 0 0 1px rgba(62, 167, 213, .055);
+  --dc-shadow-action:
+    0 12px 28px rgba(28, 151, 195, .20),
+    0 0 0 1px rgba(117, 235, 251, .12);
+  --dc-shadow-focus: 0 0 0 3px rgba(57, 223, 244, .58);
+  --dc-inset-highlight: inset 0 1px 0 rgba(198, 239, 255, .055);
+
+  /* Compatibility aliases while legacy styles migrate to semantic tokens. */
+  --bg: var(--dc-color-canvas);
+  --ink: var(--dc-color-text);
+  --text: var(--dc-color-text);
+  --muted: var(--dc-color-text-secondary);
+  --line: var(--dc-color-border);
+  --surface: var(--dc-color-surface);
+  --panel: var(--dc-color-surface);
+  --panel-strong: var(--dc-color-surface-raised);
+  --accent: var(--dc-color-brand);
+  --accent-dark: var(--dc-color-brand-strong);
+  --accent-soft: var(--dc-color-brand-soft);
+  --cyan: var(--dc-color-brand);
+  --cyan-soft: rgba(57, 223, 244, .32);
+  --aqua: var(--dc-color-brand-strong);
+  --blue: #4f9bea;
+  --violet: var(--dc-color-violet);
+  --warn: var(--dc-color-danger);
+  --warn-soft: var(--dc-color-danger-soft);
+  --ok: var(--dc-color-success);
+  --ok-soft: var(--dc-color-success-soft);
+  --mint: var(--dc-color-success);
+
+  --platform-nav-bg: rgba(8, 32, 58, .94);
+  --platform-nav-line: var(--dc-color-border-subtle);
+  --platform-nav-copy: var(--dc-color-text-secondary);
+  --platform-nav-active: var(--dc-color-brand);
+}
+
+body.inner-page {
+  --dc-color-canvas-deep: #e5f2f7;
+  --dc-color-canvas: #f1f8fb;
+  --dc-color-canvas-raised: #f8fcfe;
+  --dc-color-surface: rgba(255, 255, 255, .90);
+  --dc-color-surface-raised: rgba(255, 255, 255, .97);
+  --dc-color-surface-soft: rgba(226, 242, 248, .84);
+  --dc-color-surface-glass: rgba(249, 253, 255, .86);
+  --dc-color-surface-quiet: rgba(237, 247, 251, .84);
+  --dc-color-surface-active: rgba(53, 191, 211, .16);
+
+  --dc-color-border-subtle: rgba(73, 132, 168, .16);
+  --dc-color-border: rgba(64, 143, 184, .25);
+  --dc-color-border-strong: rgba(8, 169, 196, .48);
+  --dc-color-border-interactive: rgba(5, 134, 169, .62);
+
+  --dc-color-text: #12304a;
+  --dc-color-text-secondary: #45647b;
+  --dc-color-text-muted: #6f8799;
+  --dc-color-text-on-brand: #073149;
+
+  --dc-color-brand: #08a9c4;
+  --dc-color-brand-strong: #087f9f;
+  --dc-color-brand-soft: rgba(8, 169, 196, .10);
+  --dc-color-brand-surface: rgba(32, 190, 207, .16);
+  --dc-color-violet: #318bbd;
+  --dc-color-violet-soft: rgba(49, 139, 189, .10);
+
+  --dc-color-success: #138565;
+  --dc-color-success-soft: rgba(33, 181, 134, .11);
+  --dc-color-success-border: rgba(19, 133, 101, .28);
+  --dc-color-warning: #a96312;
+  --dc-color-warning-soft: rgba(232, 163, 65, .13);
+  --dc-color-warning-border: rgba(169, 99, 18, .28);
+  --dc-color-danger: #be4963;
+  --dc-color-danger-soft: rgba(218, 91, 116, .11);
+  --dc-color-danger-border: rgba(190, 73, 99, .28);
+
+  --dc-gradient-page:
+    radial-gradient(circle at 12% 0%, rgba(42, 198, 218, .16), transparent 34%),
+    linear-gradient(180deg, #f8fcfe, #eaf5f9);
+  --dc-gradient-surface: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(236, 248, 252, .90));
+  --dc-gradient-action: linear-gradient(105deg, #25c9c7 0%, #45b7d8 54%, #4a95cc 100%);
+
+  --dc-shadow-sm:
+    0 4px 14px rgba(39, 96, 128, .08),
+    0 0 0 1px rgba(77, 154, 194, .025);
+  --dc-shadow-md:
+    0 12px 32px rgba(39, 96, 128, .12),
+    0 0 0 1px rgba(77, 154, 194, .035);
+  --dc-shadow-lg:
+    0 20px 48px rgba(39, 96, 128, .16),
+    0 0 0 1px rgba(77, 154, 194, .04);
+  --dc-shadow-action:
+    0 12px 28px rgba(22, 145, 171, .17),
+    0 0 0 1px rgba(20, 169, 192, .12);
+  --dc-shadow-focus: 0 0 0 3px rgba(8, 169, 196, .24);
+  --dc-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, .72);
+
+  --platform-nav-bg: rgba(250, 253, 255, .96);
+  --platform-nav-line: rgba(73, 132, 168, .16);
+  --platform-nav-copy: #45647b;
+  --platform-nav-active: #079ab7;
+}
+
+:where(button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--dc-color-brand);
+  outline-offset: 3px;
+  box-shadow: var(--dc-shadow-focus);
+}

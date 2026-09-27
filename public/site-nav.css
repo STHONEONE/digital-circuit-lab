@@ -1,9 +1,9 @@
 :root {
   --platform-nav-height: 60px;
   --platform-nav-bg: rgba(3, 15, 33, .96);
-  --platform-nav-line: rgba(117, 174, 223, .16);
-  --platform-nav-copy: #c7d3e2;
-  --platform-nav-active: #39dff4;
+  --platform-nav-line: var(--dc-color-border-subtle, rgba(117, 174, 223, .16));
+  --platform-nav-copy: var(--dc-color-text-secondary, #c7d3e2);
+  --platform-nav-active: var(--dc-color-brand, #39dff4);
 }
 
 .platform-topbar,
@@ -34,7 +34,7 @@ body.inner-page .platform-topbar.lab-topbar {
   align-items: center;
   gap: 18px;
   padding: 0 30px;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, .12);
+  box-shadow: var(--dc-shadow-sm, 0 10px 26px rgba(1, 8, 22, .18));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -45,7 +45,7 @@ body.inner-page .platform-topbar.lab-topbar {
   display: inline-flex;
   min-width: 0;
   width: fit-content;
-  color: #edf8ff;
+  color: var(--dc-color-text, #edf8ff);
   align-items: center;
   justify-self: start;
   gap: 10px;
@@ -67,7 +67,7 @@ body.inner-page .platform-topbar.lab-topbar {
 }
 
 .platform-brand:hover {
-  color: #fff;
+  color: var(--dc-color-text, #fff);
 }
 
 .platform-brand:focus-visible,
@@ -131,8 +131,8 @@ body.inner-page .platform-topbar .site-nav .site-nav__link {
 
 body.inner-page .platform-topbar .site-nav .site-nav__link:hover {
   transform: none;
-  color: #f3fbff;
-  background: rgba(57, 223, 244, .04);
+  color: var(--dc-color-text, #f3fbff);
+  background: var(--dc-color-brand-soft, rgba(57, 223, 244, .04));
   box-shadow: none;
 }
 
@@ -156,10 +156,10 @@ body.inner-page .platform-topbar .site-nav .site-nav__link[aria-current="page"] 
 
 .platform-header-tools button {
   min-height: 36px;
-  border: 1px solid rgba(125, 211, 252, .28);
+  border: 1px solid var(--dc-color-border, rgba(125, 211, 252, .28));
   border-radius: 8px;
-  background: rgba(9, 28, 54, .72);
-  color: #dcecff;
+  background: var(--dc-color-surface-soft, rgba(9, 28, 54, .72));
+  color: var(--dc-color-text-secondary, #dcecff);
   padding: 0 13px;
   font: inherit;
   font-size: 13px;
@@ -167,8 +167,8 @@ body.inner-page .platform-topbar .site-nav .site-nav__link[aria-current="page"] 
 }
 
 .platform-header-tools button:hover {
-  border-color: rgba(57, 223, 244, .62);
-  background: rgba(57, 223, 244, .08);
+  border-color: var(--dc-color-border-strong, rgba(57, 223, 244, .62));
+  background: var(--dc-color-brand-soft, rgba(57, 223, 244, .08));
 }
 
 body.has-platform-topbar .desktop-rail-logo {
@@ -192,6 +192,14 @@ body.has-platform-topbar .desktop-rail-logo {
 
 body.has-platform-topbar .system-notice {
   top: 72px;
+  bottom: auto;
+}
+
+@media (min-width: 1081px) {
+  body.has-platform-topbar.center-page .system-notice {
+    top: auto;
+    bottom: 88px;
+  }
 }
 
 @media (max-width: 1100px) {

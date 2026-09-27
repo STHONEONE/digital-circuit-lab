@@ -13,38 +13,6 @@
 
 * {
   box-sizing: border-box;
-  scrollbar-width: thin;
-  scrollbar-color: #00d1ff rgba(4, 12, 24, .88);
-}
-
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-*::-webkit-scrollbar-track {
-  border: 1px solid rgba(0, 209, 255, .10);
-  border-radius: 999px;
-  background: rgba(4, 12, 24, .88);
-}
-
-*::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: linear-gradient(180deg, #00d1ff, #4df6c2);
-  box-shadow:
-    0 0 8px rgba(0, 209, 255, .55),
-    inset 0 0 4px rgba(255, 255, 255, .22);
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #4df6c2, #7c6cff);
-  box-shadow:
-    0 0 12px rgba(77, 246, 194, .75),
-    inset 0 0 4px rgba(255, 255, 255, .30);
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
 }
 body {
   margin: 0;
@@ -82,7 +50,7 @@ body::after {
 button, input { font: inherit; }
 button {
   min-height: 42px;
-  border: 1px solid rgba(125, 211, 252, .25);
+  border: 1px solid var(--dc-color-border-interactive, rgba(84, 207, 239, .54));
   border-radius: 10px;
   background: rgba(15, 23, 42, .76);
   color: var(--ink);
@@ -1004,7 +972,7 @@ body.inner-page .muted,
 body.inner-page .tip,
 body.inner-page .help-text,
 body.inner-page small {
-  color: rgba(225, 242, 255, .82);
+  color: var(--dc-color-text-secondary, rgba(225, 242, 255, .82));
 }
 
 body.inner-page button.primary,
@@ -1015,11 +983,9 @@ body.inner-page .enter-btn,
 body.inner-page .active-tab,
 body.inner-page .experiment-tabs button.active,
 body.inner-page .control-group button.active {
-  background: linear-gradient(90deg, #35dfff, #6d78ff) !important;
-  color: #fff;
-  box-shadow:
-    0 0 18px rgba(0, 210, 255, .38),
-    inset 0 0 12px rgba(255, 255, 255, .18);
+  background: var(--dc-gradient-action, linear-gradient(90deg, #35dfff, #6d78ff)) !important;
+  color: var(--dc-color-text-on-brand, #03101f);
+  box-shadow: var(--dc-shadow-action), var(--dc-inset-highlight);
 }
 
 /* Inner-page transparency refinement: make panels float over the visible WebP background. */
@@ -1043,12 +1009,9 @@ body.inner-page .result-card,
 body.inner-page .module-card,
 body.inner-page .explanation-card,
 body.inner-page .timing-panel {
-  background: rgba(5, 14, 30, .48) !important;
-  border-color: rgba(92, 202, 255, .24);
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, .24),
-    0 0 22px rgba(0, 210, 255, .055),
-    inset 0 0 0 1px rgba(140, 220, 255, .055);
+  background: var(--dc-color-surface-glass, rgba(5, 14, 30, .48)) !important;
+  border-color: var(--dc-color-border, rgba(92, 202, 255, .24));
+  box-shadow: var(--dc-shadow-md), var(--dc-inset-highlight);
   backdrop-filter: blur(9px) saturate(1.05);
   -webkit-backdrop-filter: blur(9px) saturate(1.05);
 }
@@ -1057,11 +1020,11 @@ body.inner-page .truth-panel,
 body.inner-page .assistant-panel,
 body.inner-page .explanation-card,
 body.inner-page .timing-panel {
-  background: rgba(5, 14, 30, .46) !important;
+  background: var(--dc-color-surface-quiet, rgba(5, 14, 30, .46)) !important;
 }
 
 body.inner-page .circuit-panel {
-  background: rgba(5, 14, 30, .60) !important;
+  background: var(--dc-color-surface, rgba(5, 14, 30, .60)) !important;
 }
 
 body.inner-page .circuit-stage,
@@ -1576,37 +1539,37 @@ body.lab-focus-mode .lab-grid {
    compact curriculum navigation on the left, one clear work surface on the
    right, and restrained cyan/violet accents for state and feedback. */
 body.inner-page.lab-page {
-  --workbench-bg: #06152a;
-  --workbench-bg-deep: #031022;
-  --workbench-surface: rgba(7, 24, 48, .92);
-  --workbench-surface-soft: rgba(8, 28, 55, .72);
-  --workbench-border: rgba(117, 174, 223, .21);
-  --workbench-border-strong: rgba(57, 223, 244, .42);
-  --workbench-cyan: #39dff4;
-  --workbench-violet: #7768ff;
-  --workbench-copy: #f4f8ff;
-  --workbench-muted: #a6b8ce;
+  --workbench-bg: var(--dc-color-canvas-raised, #06152a);
+  --workbench-bg-deep: var(--dc-color-canvas-deep, #031022);
+  --workbench-surface: var(--dc-color-surface-raised, rgba(7, 24, 48, .92));
+  --workbench-surface-soft: var(--dc-color-surface-soft, rgba(8, 28, 55, .72));
+  --workbench-border: var(--dc-color-border, rgba(117, 174, 223, .21));
+  --workbench-border-strong: var(--dc-color-border-strong, rgba(57, 223, 244, .42));
+  --workbench-cyan: var(--dc-color-brand, #39dff4);
+  --workbench-violet: var(--dc-color-violet, #7768ff);
+  --workbench-copy: var(--dc-color-text, #f4f8ff);
+  --workbench-muted: var(--dc-color-text-muted, #a6b8ce);
   min-height: 100vh;
   color: var(--workbench-copy);
   background: var(--workbench-bg-deep) !important;
 }
 
 body.inner-page.lab-page::before {
-  opacity: .075;
-  filter: saturate(.62) brightness(.66) blur(1px);
+  opacity: .38;
+  filter: saturate(.86) brightness(.98) blur(.5px);
 }
 
 body.inner-page.lab-page::after {
   background:
-    linear-gradient(90deg, rgba(3, 14, 31, .98), rgba(5, 20, 41, .94) 38%, rgba(4, 17, 36, .97)),
-    radial-gradient(circle at 72% 16%, rgba(57, 223, 244, .055), transparent 32%),
-    radial-gradient(circle at 84% 72%, rgba(119, 104, 255, .045), transparent 34%);
+    linear-gradient(90deg, rgba(8, 31, 58, .72), rgba(12, 48, 80, .56) 38%, rgba(8, 34, 63, .68)),
+    radial-gradient(circle at 72% 16%, rgba(83, 221, 244, .12), transparent 34%),
+    radial-gradient(circle at 84% 72%, rgba(137, 129, 243, .10), transparent 36%);
 }
 
 body.inner-page.lab-page .circuit-bg-canvas,
 body.inner-page.lab-page .circuit-bg-overlay,
 body.inner-page.lab-page .lab-background {
-  opacity: .08;
+  opacity: .16;
 }
 
 body.inner-page.lab-page .lab-topbar {
@@ -1619,10 +1582,10 @@ body.inner-page.lab-page .lab-topbar {
   margin: 0;
   padding: 0 30px;
   border: 0;
-  border-bottom: 1px solid rgba(117, 174, 223, .16);
+  border-bottom: 1px solid var(--dc-color-border-subtle, rgba(117, 174, 223, .16));
   border-radius: 0;
-  background: rgba(3, 15, 33, .96) !important;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, .16);
+  background: var(--platform-nav-bg, rgba(3, 15, 33, .96)) !important;
+  box-shadow: var(--dc-shadow-sm);
   backdrop-filter: blur(16px);
 }
 
@@ -1703,8 +1666,8 @@ body.inner-page.lab-page .lab-shell {
   min-height: calc(100vh - 60px);
   margin: 0 auto;
   padding: 0;
-  background: rgba(4, 17, 36, .66) !important;
-  box-shadow: 0 0 48px rgba(0, 0, 0, .2);
+  background: var(--dc-color-surface-quiet, rgba(14, 42, 72, .48)) !important;
+  box-shadow: 0 0 40px rgba(3, 18, 35, .14);
 }
 
 body.inner-page.lab-page .experiment-browser {
@@ -1721,7 +1684,7 @@ body.inner-page.lab-page .experiment-browser {
   border: 0;
   border-right: 1px solid rgba(117, 174, 223, .17);
   border-radius: 0;
-  background: rgba(4, 18, 38, .95) !important;
+  background: var(--dc-color-surface-glass, rgba(16, 47, 79, .56)) !important;
   box-shadow: none;
   backdrop-filter: blur(14px);
 }
@@ -1759,7 +1722,7 @@ body.inner-page.lab-page .experiment-search input {
   border-color: rgba(117, 174, 223, .27);
   border-radius: 6px;
   color: #e9f5ff;
-  background: rgba(6, 22, 45, .94) !important;
+  background: var(--dc-color-surface-soft, rgba(29, 71, 108, .62)) !important;
   font-size: 14px;
   text-shadow: none;
 }
@@ -2154,7 +2117,7 @@ body.inner-page.lab-page .control-group {
   padding: 4px 6px;
   border-color: rgba(117, 174, 223, .22);
   border-radius: 5px;
-  background: rgba(7, 25, 51, .92) !important;
+  background: var(--dc-color-surface-soft, rgba(29, 71, 108, .62)) !important;
   box-shadow: none;
 }
 
@@ -2185,8 +2148,8 @@ body.inner-page.lab-page .circuit-stage {
   border-color: rgba(117, 174, 223, .2);
   border-radius: 5px;
   background:
-    linear-gradient(rgba(5, 20, 42, .96), rgba(5, 20, 42, .96)),
-    radial-gradient(circle at center, rgba(57, 223, 244, .045), transparent 62%) !important;
+    linear-gradient(rgba(8, 35, 64, .76), rgba(8, 35, 64, .76)),
+    radial-gradient(circle at center, rgba(83, 221, 244, .10), transparent 62%) !important;
 }
 
 body.inner-page.lab-page .circuit-svg {
@@ -2320,7 +2283,7 @@ body.inner-page.lab-page .truth-row {
   min-height: 34px;
   border-color: rgba(117, 174, 223, .13);
   border-radius: 3px;
-  background: rgba(5, 20, 42, .72) !important;
+  background: var(--dc-color-surface-soft, rgba(29, 71, 108, .62)) !important;
   font-size: 12px;
 }
 
@@ -2341,7 +2304,7 @@ body.inner-page.lab-page .assistant-chat,
 body.inner-page.lab-page .assistant-composer,
 body.inner-page.lab-page .message {
   border-radius: 5px;
-  background: rgba(7, 25, 51, .82) !important;
+  background: var(--dc-color-surface-soft, rgba(29, 71, 108, .62)) !important;
 }
 
 body.inner-page.lab-page .assistant-composer input {

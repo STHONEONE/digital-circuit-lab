@@ -38,7 +38,7 @@ test("full-adder prediction flow reveals one truth row and survives refresh", {
   const page = await context.newPage();
   await page.goto(`${baseUrl}/labs.html`, { waitUntil: "networkidle" });
 
-  assert.equal(await page.locator("[data-experiment-group]").count(), 4);
+  assert.equal(await page.locator("[data-experiment-group]").count(), 3);
   const openFullAdder = async () => {
     const fullAdderButton = page.getByRole("button", { name: "全加器" });
     if (!await fullAdderButton.isVisible()) await page.getByRole("button", { name: "组合逻辑" }).click();
@@ -59,6 +59,7 @@ test("full-adder prediction flow reveals one truth row and survives refresh", {
   page.on("request", (request) => {
     if (request.url().includes("/api/lab/stream")) tutorRequests += 1;
   });
+  await page.locator("#assistantDockToggle").click();
   await page.locator("#labQuestion").fill("请直接告诉我 S 和 Cout");
   await page.locator("#askButton").click();
   await page.waitForFunction(() => /先完成当前输入的预测/.test(document.querySelector("#labMessages")?.textContent || ""));
